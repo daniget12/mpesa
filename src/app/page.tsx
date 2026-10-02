@@ -1,78 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 import DealCard from '@/components/DealCard';
 import MpesaModal from '@/components/MpesaModal';
-import { Utensils, Coffee, Bed, Sparkles, MonitorSmartphone, Car } from 'lucide-react';
+import { Utensils, Coffee, Bed, Sparkles, MonitorSmartphone, Car, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
-
-const DEALS = [
-  {
-    id: '1',
-    title: 'Traditional Habesha Buffet for Two - Includes Tej',
-    merchant: 'Yod Abyssinia Traditional Restaurant',
-    location: 'Bole, Addis Ababa',
-    originalPrice: 2500,
-    discountedPrice: 1800,
-    image: 'https://images.unsplash.com/photo-1627993081198-5c4a5c9a0d8e?auto=format&fit=crop&q=80&w=800',
-    bought: 450
-  },
-  {
-    id: '2',
-    title: 'Full Body Massage & Sauna - 90 Minutes',
-    merchant: 'Kuriftu Resort & Spa',
-    location: 'Bishoftu',
-    originalPrice: 3000,
-    discountedPrice: 1950,
-    image: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&q=80&w=800',
-    bought: 320
-  },
-  {
-    id: '3',
-    title: 'Ethiopian Coffee Ceremony Experience for Group of 4',
-    merchant: 'Tomoca Coffee House',
-    location: 'Piassa, Addis Ababa',
-    originalPrice: 800,
-    discountedPrice: 500,
-    image: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800',
-    bought: 890
-  },
-  {
-    id: '4',
-    title: 'Weekend Getaway - 2 Nights Stay with Breakfast',
-    merchant: 'Haile Resort',
-    location: 'Hawassa',
-    originalPrice: 15000,
-    discountedPrice: 10500,
-    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=800',
-    bought: 150
-  },
-  {
-    id: '5',
-    title: 'Samsung Galaxy A14 128GB - Official Warranty',
-    merchant: 'Glorious Electronics',
-    location: 'Edna Mall, Addis Ababa',
-    originalPrice: 14000,
-    discountedPrice: 12500,
-    image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&q=80&w=800',
-    bought: 60
-  },
-  {
-    id: '6',
-    title: 'Car Wash & Interior Detailing Premium Package',
-    merchant: 'Clean & Shine Auto Care',
-    location: 'Kazanchis, Addis Ababa',
-    originalPrice: 1200,
-    discountedPrice: 800,
-    image: 'https://images.unsplash.com/photo-1520340356584-f9917d1eea6f?auto=format&fit=crop&q=80&w=800',
-    bought: 230
-  }
-];
+import { supabase } from '@/lib/supabase';
 
 export default function Home() {
-  const [selectedDeal, setSelectedDeal] = useState<typeof DEALS[0] | null>(null);
+  const [selectedDeal, setSelectedDeal] = useState<any | null>(null);
+  const [deals, setDeals] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    const fetchDeals = async () => {
+      const { data, error } = await supabase
+        .from('deals')
+        .select('*')
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+      
+      if (!error && data) {
+        setDeals(data);
+      }
+      setLoading(false);
+    };
+
+    fetchDeals();
+  }, []);
 
   const CATEGORIES = [
     { name: t('cat.food'), icon: Utensils, color: 'bg-orange-100 text-orange-600' },
@@ -133,15 +90,32 @@ export default function Home() {
             <button className="text-green-700 font-medium hover:underline text-sm">{t("trending.viewAll")}</button>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {DEALS.map((deal) => (
-              <DealCard 
-                key={deal.id}
-                {...deal}
-                onBuy={() => setSelectedDeal(deal)}
-              />
-            ))}
-          </div>
+          {loading ? (
+            <div className="py-20 flex justify-center items-center">
+              <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+            </div>
+          ) : deals.length === 0 ? (
+            <div className="py-20 text-center text-gray-500 bg-white rounded-xl border border-gray-100">
+              No deals available at the moment. Check back soon!
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {deals.map((deal) => (
+                <DealCard 
+                  key={deal.id}
+                  id={deal.id}
+                  title={deal.title}
+                  merchant={deal.merchant_name || 'AddisDeals Merchant'}
+                  location="Addis Ababa" // Note: Currently hardcoded as we simplified
+                  originalPrice={deal.original_price}
+                  discountedPrice={deal.discounted_price}
+                  image={deal.image_url}
+                  bought={deal.bought_count || 0}
+                  onBuy={() => setSelectedDeal(deal)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </main>
 

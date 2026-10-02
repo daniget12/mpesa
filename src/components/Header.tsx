@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, ShoppingCart, User, LogOut, Globe, ShieldCheck } from 'lucide-react';
+import { Menu, Search, ShoppingCart, User, LogOut, Globe, ShieldCheck, Store } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from './AuthModal';
 import { supabase } from '@/lib/supabase';
@@ -13,6 +13,7 @@ export default function Header() {
   const [user, setUser] = useState<any>(null);
   const [profileName, setProfileName] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSeller, setIsSeller] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
@@ -21,13 +22,15 @@ export default function Header() {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const { data } = await supabase.from('profiles').select('role, full_name').eq('id', session.user.id).single();
+        const { data } = await supabase.from('profiles').select('role, account_type, full_name').eq('id', session.user.id).single();
         if (data) {
           if (data.role === 'admin') setIsAdmin(true);
+          if (data.account_type === 'seller') setIsSeller(true);
           if (data.full_name) setProfileName(data.full_name);
         }
       } else {
         setIsAdmin(false);
+        setIsSeller(false);
         setProfileName('');
       }
     };
@@ -88,6 +91,11 @@ export default function Header() {
                 {isAdmin && (
                   <Link href="/admin" className="text-sm font-bold text-purple-600 hover:text-purple-700 bg-purple-50 px-3 py-1 rounded-full flex items-center gap-1">
                     <ShieldCheck className="w-4 h-4" /> Admin
+                  </Link>
+                )}
+                {isSeller && !isAdmin && (
+                  <Link href="/seller" className="text-sm font-bold text-green-600 hover:text-green-700 bg-green-50 px-3 py-1 rounded-full flex items-center gap-1">
+                    <Store className="w-4 h-4" /> Seller Dashboard
                   </Link>
                 )}
                 <span className="text-sm font-medium text-gray-700">
