@@ -18,6 +18,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [location, setLocation] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [accountType, setAccountType] = useState<'buyer' | 'seller'>('buyer');
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             data: {
               phone_number: phoneNumber,
               location: location,
+              account_type: accountType,
             }
           }
         });
@@ -72,6 +74,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setConfirmPassword('');
     setPhoneNumber('');
     setLocation('');
+    setAccountType('buyer');
   };
 
   return (
@@ -111,6 +114,36 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         )}
 
         <form onSubmit={handleAuth} className="space-y-4">
+          {isSignUp && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t("auth.accountType")}</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setAccountType('buyer')}
+                  className={`py-2 px-4 rounded-xl border font-medium text-sm transition-colors ${
+                    accountType === 'buyer' 
+                      ? 'bg-green-50 border-green-500 text-green-700' 
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {t("auth.buyer")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType('seller')}
+                  className={`py-2 px-4 rounded-xl border font-medium text-sm transition-colors ${
+                    accountType === 'seller' 
+                      ? 'bg-green-50 border-green-500 text-green-700' 
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {t("auth.seller")}
+                </button>
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.email")}</label>
             <input
