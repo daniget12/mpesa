@@ -130,7 +130,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <input
                   type="tel"
                   className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
-                  placeholder="+251 9XX XXX XXX"
+                  placeholder="+251 712345678"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   required
