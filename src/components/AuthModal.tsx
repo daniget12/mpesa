@@ -14,6 +14,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   
   // Form fields
   const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [location, setLocation] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +44,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           password,
           options: {
             data: {
+              full_name: fullName,
               phone_number: phoneNumber,
               location: location,
               account_type: accountType,
@@ -74,6 +76,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setConfirmPassword('');
     setPhoneNumber('');
     setLocation('');
+    setFullName('');
     setAccountType('buyer');
   };
 
@@ -141,6 +144,20 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   {t("auth.seller")}
                 </button>
               </div>
+            </div>
+          )}
+
+          {isSignUp && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.fullName")}</label>
+              <input
+                type="text"
+                className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Abebe Kebede"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+              />
             </div>
           )}
 
