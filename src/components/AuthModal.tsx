@@ -9,8 +9,14 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(false);
+  
+  // Form fields
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [location, setLocation] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -25,9 +31,19 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (isSignUp) {
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match!");
+        }
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              phone_number: phoneNumber,
+              location: location,
+            }
+          }
         });
         if (error) throw error;
         setSuccessMsg('Success! Please check your email to confirm your account.');
@@ -38,7 +54,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         });
         if (error) throw error;
         onClose(); // Close on successful login
-        // Optional: you can force a page refresh or state update here if needed
         window.location.reload();
       }
     } catch (err: any) {
@@ -48,9 +63,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
+  const resetForm = () => {
+    setIsSignUp(!isSignUp);
+    setError(null);
+    setSuccessMsg(null);
+    setConfirmPassword('');
+    setPhoneNumber('');
+    setLocation('');
+  };
+
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden relative p-6">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 antialiased">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative p-6 max-h-[90vh] overflow-y-auto">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
@@ -66,19 +90,19 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </p>
 
         {error && (
-          <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg mb-4">
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4 font-medium">
             {error}
           </div>
         )}
         
         {successMsg && (
-          <div className="bg-green-50 text-green-700 text-sm p-3 rounded-lg mb-4">
+          <div className="bg-green-50 border border-green-200 text-green-700 text-sm p-3 rounded-lg mb-4 font-medium">
             {successMsg}
           </div>
         )}
 
-        <form onSubmit={handleAuth}>
-          <div className="mb-4">
+        <form onSubmit={handleAuth} className="space-y-4">
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
             <input
               type="email"
@@ -90,7 +114,35 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             />
           </div>
 
-          <div className="mb-6">
+          {isSignUp && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="+251 9XX XXX XXX"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Location / City</label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                  placeholder="e.g., Addis Ababa, Bole"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          )}
+
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
               type="password"
@@ -102,23 +154,34 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             />
           </div>
 
+          {isSignUp && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+              <input
+                type="password"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-3 px-4 rounded-xl transition-colors shadow-md flex items-center justify-center disabled:opacity-50"
+            className="w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-3 px-4 rounded-xl transition-colors shadow-md flex items-center justify-center disabled:opacity-50 mt-2"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'Sign Up' : 'Sign In')}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'Create Account' : 'Sign In')}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
           {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button 
-            onClick={() => {
-              setIsSignUp(!isSignUp);
-              setError(null);
-              setSuccessMsg(null);
-            }}
+            type="button"
+            onClick={resetForm}
             className="text-green-600 font-bold hover:underline"
           >
             {isSignUp ? 'Sign In' : 'Sign Up'}
