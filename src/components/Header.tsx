@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, ShoppingCart, User, LogOut, Globe } from 'lucide-react';
+import { Menu, Search, ShoppingCart, User, LogOut, Globe, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from './AuthModal';
 import { supabase } from '@/lib/supabase';
@@ -11,15 +11,26 @@ import { Language } from '@/locales/translations';
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const fetchUserAndProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user ?? null);
-    });
+      
+      if (session?.user) {
+        const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
+        if (data && data.role === 'admin') setIsAdmin(true);
+      } else {
+        setIsAdmin(false);
+      }
+    };
+
+    fetchUserAndProfile();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      fetchUserAndProfile();
     });
 
     return () => subscription.unsubscribe();
@@ -69,6 +80,11 @@ export default function Header() {
 
             {user ? (
               <div className="hidden sm:flex items-center gap-4">
+                {isAdmin && (
+                  <Link href="/admin" className="text-sm font-bold text-purple-600 hover:text-purple-700 bg-purple-50 px-3 py-1 rounded-full flex items-center gap-1">
+                    <ShieldCheck className="w-4 h-4" /> Admin
+                  </Link>
+                )}
                 <span className="text-sm font-medium text-gray-700">
                   {user.user_metadata?.full_name || user.email?.split('@')[0]}
                 </span>
