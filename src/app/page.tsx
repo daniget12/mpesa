@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import DealCard from '@/components/DealCard';
 import MpesaModal from '@/components/MpesaModal';
 import { Utensils, Coffee, Bed, Sparkles, MonitorSmartphone, Car } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 
 const DEALS = [
   {
@@ -69,17 +70,18 @@ const DEALS = [
   }
 ];
 
-const CATEGORIES = [
-  { name: 'Food & Drink', icon: Utensils, color: 'bg-orange-100 text-orange-600' },
-  { name: 'Coffee & Cafe', icon: Coffee, color: 'bg-amber-100 text-amber-700' },
-  { name: 'Spa & Wellness', icon: Sparkles, color: 'bg-purple-100 text-purple-600' },
-  { name: 'Hotels & Travel', icon: Bed, color: 'bg-blue-100 text-blue-600' },
-  { name: 'Electronics', icon: MonitorSmartphone, color: 'bg-gray-100 text-gray-700' },
-  { name: 'Auto Services', icon: Car, color: 'bg-red-100 text-red-600' },
-];
-
 export default function Home() {
   const [selectedDeal, setSelectedDeal] = useState<typeof DEALS[0] | null>(null);
+  const { t } = useLanguage();
+
+  const CATEGORIES = [
+    { name: t('cat.food'), icon: Utensils, color: 'bg-orange-100 text-orange-600' },
+    { name: t('cat.coffee'), icon: Coffee, color: 'bg-amber-100 text-amber-700' },
+    { name: t('cat.spa'), icon: Sparkles, color: 'bg-purple-100 text-purple-600' },
+    { name: t('cat.hotels'), icon: Bed, color: 'bg-blue-100 text-blue-600' },
+    { name: t('cat.electronics'), icon: MonitorSmartphone, color: 'bg-gray-100 text-gray-700' },
+    { name: t('cat.auto'), icon: Car, color: 'bg-red-100 text-red-600' },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -93,17 +95,17 @@ export default function Home() {
           
           <div className="relative z-10 max-w-2xl">
             <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
-              Discover the Best Deals in Ethiopia
+              {t("hero.title")}
             </h1>
             <p className="text-lg md:text-xl mb-8 text-green-50">
-              Save up to 70% on restaurants, spas, electronics, and getaways. Securely pay with M-Pesa Safaricom.
+              {t("hero.subtitle")}
             </p>
             <div className="flex flex-wrap gap-4">
               <button className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-3 px-8 rounded-full transition-colors shadow-lg">
-                Explore Deals
+                {t("hero.explore")}
               </button>
               <button className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white font-bold py-3 px-8 rounded-full transition-colors">
-                How it works
+                {t("hero.how")}
               </button>
             </div>
           </div>
@@ -111,7 +113,7 @@ export default function Home() {
 
         {/* Categories */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-green-600 inline-block pb-1">Categories</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-green-600 inline-block pb-1">{t("categories.title")}</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {CATEGORIES.map((cat, idx) => (
               <div key={idx} className="bg-white rounded-xl p-4 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md transition-shadow border border-gray-100">
@@ -127,8 +129,8 @@ export default function Home() {
         {/* Trending Deals */}
         <div>
           <div className="flex justify-between items-end mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-green-600 inline-block pb-1">Trending Today</h2>
-            <button className="text-green-700 font-medium hover:underline text-sm">View All</button>
+            <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-green-600 inline-block pb-1">{t("trending.title")}</h2>
+            <button className="text-green-700 font-medium hover:underline text-sm">{t("trending.viewAll")}</button>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

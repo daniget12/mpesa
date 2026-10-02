@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/context/LanguageContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isSignUp, setIsSignUp] = useState(false);
+  const { t } = useLanguage();
   
   // Form fields
   const [email, setEmail] = useState('');
@@ -83,10 +85,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </button>
 
         <h2 className="text-2xl font-bold text-center text-green-700 mb-2">
-          {isSignUp ? 'Create an Account' : 'Welcome Back (Selam!)'}
+          {isSignUp ? t("auth.signup") : t("auth.signin")}
         </h2>
         <p className="text-center text-gray-500 text-sm mb-6">
-          {isSignUp ? 'Sign up to get the best deals in Ethiopia' : 'Sign in to access your deals and M-Pesa orders'}
+          {isSignUp ? t("auth.signup.desc") : t("auth.signin.desc")}
         </p>
 
         {error && (
@@ -103,7 +105,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
         <form onSubmit={handleAuth} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.email")}</label>
             <input
               type="email"
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -117,7 +119,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {isSignUp && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.phone")}</label>
                 <input
                   type="tel"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -129,7 +131,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Location / City</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.location")}</label>
                 <input
                   type="text"
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -143,7 +145,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.password")}</label>
             <input
               type="password"
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -156,7 +158,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
           {isSignUp && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.confirmPassword")}</label>
               <input
                 type="password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -173,18 +175,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             disabled={loading}
             className="w-full bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-3 px-4 rounded-xl transition-colors shadow-md flex items-center justify-center disabled:opacity-50 mt-2"
           >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? 'Create Account' : 'Sign In')}
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isSignUp ? t("auth.btnSignup") : t("auth.btnSignin"))}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-gray-600">
-          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
+          {isSignUp ? t("auth.haveAccount") : t("auth.noAccount")}{' '}
           <button 
             type="button"
             onClick={resetForm}
             className="text-green-600 font-bold hover:underline"
           >
-            {isSignUp ? 'Sign In' : 'Sign Up'}
+            {isSignUp ? t("auth.btnSignin") : t("auth.btnSignup")}
           </button>
         </div>
       </div>
