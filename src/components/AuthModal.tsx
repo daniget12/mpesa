@@ -115,7 +115,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.email")}</label>
             <input
               type="email"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -129,7 +129,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.phone")}</label>
                 <input
                   type="tel"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="+251 9XX XXX XXX"
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
@@ -141,7 +141,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.location")}</label>
                 <input
                   type="text"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                   placeholder="e.g., Addis Ababa, Bole"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
@@ -155,7 +155,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.password")}</label>
             <input
               type="password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -168,7 +168,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <label className="block text-sm font-medium text-gray-700 mb-1">{t("auth.confirmPassword")}</label>
               <input
                 type="password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-4 py-3 text-gray-900 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
