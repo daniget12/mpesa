@@ -11,6 +11,7 @@ import { Language } from '@/locales/translations';
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [profileName, setProfileName] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
@@ -20,10 +21,14 @@ export default function Header() {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-        if (data && data.role === 'admin') setIsAdmin(true);
+        const { data } = await supabase.from('profiles').select('role, full_name').eq('id', session.user.id).single();
+        if (data) {
+          if (data.role === 'admin') setIsAdmin(true);
+          if (data.full_name) setProfileName(data.full_name);
+        }
       } else {
         setIsAdmin(false);
+        setProfileName('');
       }
     };
 
@@ -86,7 +91,7 @@ export default function Header() {
                   </Link>
                 )}
                 <span className="text-sm font-medium text-gray-700">
-                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                  {profileName || user.user_metadata?.full_name || user.email?.split('@')[0]}
                 </span>
                 <button 
                   onClick={handleSignOut}
