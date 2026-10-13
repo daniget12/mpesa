@@ -106,7 +106,43 @@ export const translations = {
     "cat.hotels": "Hoteelota fi Imala",
     "cat.electronics": "Elektirooniksii",
     "cat.auto": "Tajaajila Konkolaataa"
+  },
+  ti: {
+    "header.search": "ምግቢ ኣዳራሻት፣ ስፓታት፣ ኤሌክትሮኒክስ ድለዩ...",
+    "header.signin": "ሰላም፣ እተዉ",
+    "hero.title": "ኣብ ኢትዮጵያ ዝበለጹ ቅናሳት ርኸቡ",
+    "hero.subtitle": "ኣብ ቤት ምግቢታት፣ ስፓታትን ኤሌክትሮኒክስን ክሳብ 70% ቆጥቡ። ብM-Pesa ብውሑስ መንገዲ ክፈሉ።",
+    "hero.explore": "ቅናሳት ርኣዩ",
+    "hero.how": "ከመይ ይሰርሕ",
+    "categories.title": "ምድባት",
+    "trending.title": "ናይ ሎሚ ተፈታዊ",
+    "trending.viewAll": "ኩሉ ርአ",
+    "auth.signup": "ኣካውንት ፍጠሩ",
+    "auth.signin": "እንቋዕ ብደሓን መጻእኩም",
+    "auth.signup.desc": "ኣብ ኢትዮጵያ ዝበለጹ ቅናሳት ንምርካብ ተመዝገቡ",
+    "auth.signin.desc": "ቅናሳትኩምን ትእዛዛት M-Pesa ንምርካብ እተዉ",
+    "auth.accountType": "ዓይነት ኣካውንት",
+    "auth.buyer": "ዓዳጊ",
+    "auth.seller": "ነጋዳይ / ሸያጢ",
+    "auth.fullName": "ምሉእ ስም",
+    "auth.email": "ኢመይል",
+    "auth.phone": "ቁጽሪ ተሌፎን",
+    "auth.location": "ቦታ / ከተማ",
+    "auth.password": "መሕለፊ ቃል",
+    "auth.confirmPassword": "መሕለፊ ቃል ኣረጋግጹ",
+    "auth.btnSignup": "ኣካውንት ፍጠር",
+    "auth.btnSignin": "እተዉ",
+    "auth.haveAccount": "ድሮ ኣካውንት ኣለኩም ዶ?",
+    "auth.noAccount": "ኣካውንት የብልኩምን ዶ?",
+    "deal.buyNow": "ሕጂ ዓድጉ",
+    "deal.bought": "ተዓዲጉ",
+    "cat.food": "ምግብን መስተን",
+    "cat.coffee": "ቡንን ካፌን",
+    "cat.spa": "ስፓን ጥዕናን",
+    "cat.hotels": "ሆቴላትን ጉዕዞን",
+    "cat.electronics": "ኤሌክትሮኒክስ",
+    "cat.auto": "ኣገልግሎት መካይን"
   }
 };
 
-export type Language = 'en' | 'am' | 'om';
+export type Language = 'en' | 'am' | 'om' | 'ti';

@@ -83,6 +83,7 @@ export default function Header() {
                 <button onClick={() => setLanguage('en')} className="block w-full text-left px-4 py-2 text-sm hover:bg-green-50 text-gray-700">English</button>
                 <button onClick={() => setLanguage('am')} className="block w-full text-left px-4 py-2 text-sm hover:bg-green-50 text-gray-700">አማርኛ</button>
                 <button onClick={() => setLanguage('om')} className="block w-full text-left px-4 py-2 text-sm hover:bg-green-50 text-gray-700">Afaan Oromoo</button>
+                <button onClick={() => setLanguage('ti')} className="block w-full text-left px-4 py-2 text-sm hover:bg-green-50 text-gray-700">ትግርኛ</button>
               </div>
             </div>
 

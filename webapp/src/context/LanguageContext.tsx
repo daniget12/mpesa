@@ -16,15 +16,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Load saved language from localStorage if available
-    const savedLang = localStorage.getItem('TirfMarket_lang') as Language;
-    if (savedLang && (savedLang === 'en' || savedLang === 'am' || savedLang === 'om')) {
-      setLanguageState(savedLang);
+    try {
+      const savedLang = localStorage.getItem('TirfMarket_lang') as Language;
+      if (savedLang && (savedLang === 'en' || savedLang === 'am' || savedLang === 'om' || savedLang === 'ti')) {
+        setLanguageState(savedLang);
+      }
+    } catch (e) {
+      console.warn("localStorage access denied", e);
     }
   }, []);
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('TirfMarket_lang', lang);
+    try {
+      localStorage.setItem('TirfMarket_lang', lang);
+    } catch (e) {
+      console.warn("localStorage access denied", e);
+    }
   };
 
   const t = (key: keyof typeof translations.en) => {
