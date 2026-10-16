@@ -26,6 +26,7 @@ export default function MpesaModal({
   const [errorMessage, setErrorMessage] = useState('');
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [pollCountdown, setPollCountdown] = useState(30);
+  const [mockReceipt] = useState(() => 'MOCK' + Math.random().toString(36).substring(2, 8).toUpperCase());
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -74,8 +75,9 @@ export default function MpesaModal({
           setStatus('error');
           setErrorMessage(order.failureReason || 'Payment declined or cancelled on mobile handset.');
         }
-      } catch (err: any) {
-        console.warn('Polling check error:', err.message);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn('Polling check error:', msg);
       }
     }, 2000);
   };
@@ -101,11 +103,12 @@ export default function MpesaModal({
 
       // 2. Start polling for customer PIN entry
       startPolling(order.id);
-    } catch (err: any) {
-      console.error('M-PESA checkout error:', err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('M-PESA checkout error:', msg);
       // Seamless pitch fallback: if backend is unreachable, provide informative message
       setStatus('error');
-      setErrorMessage(err.message || 'Could not connect to payment service. Check if backend is running on port 3000.');
+      setErrorMessage(msg || 'Could not connect to payment service. Check if backend is running on port 3000.');
     }
   };
 
@@ -116,7 +119,7 @@ export default function MpesaModal({
       setActiveOrder(updated);
       stopPolling();
       setStatus('success');
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.warn('Instant success override failed:', e);
     }
   };
@@ -279,7 +282,7 @@ export default function MpesaModal({
                   <div>
                     <span className="text-[10px] text-gray-400 uppercase tracking-wider block">M-PESA Receipt</span>
                     <span className="font-mono font-bold text-yellow-300">
-                      {activeOrder?.mpesaReceipt || 'MOCK' + Math.random().toString(36).substring(2, 8).toUpperCase()}
+                      {activeOrder?.mpesaReceipt || mockReceipt}
                     </span>
                   </div>
                   <div>
