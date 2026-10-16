@@ -1,18 +1,52 @@
-"use client";
-import React, { useState, useEffect } from 'react';
-import { X, MapPin, Star, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+'use client';
+import React, { useState, useEffect, useCallback } from 'react';
+import { X, MapPin, Star, Loader2, Image as ImageIcon } from 'lucide-react';
 import Image from 'next/image';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import type { User } from '@supabase/supabase-js';
+
+export interface ModalDeal {
+  id?: string;
+  dealId?: string;
+  title: string;
+  description?: string;
+  category?: string;
+  price?: number;
+  original_price?: number;
+  finalAmount?: number;
+  discounted_price?: number;
+  discountPct?: number;
+  merchantName?: string;
+  merchant_name?: string;
+  location?: string;
+  image?: string;
+  image_url?: string;
+  distanceMeters?: number;
+  highlights?: string;
+  fine_print?: string;
+}
+
+interface ReviewItem {
+  id: string;
+  deal_id: string;
+  user_id: string;
+  rating: number;
+  comment: string;
+  image_url?: string | null;
+  profiles?: {
+    full_name?: string | null;
+  } | null;
+}
 
 interface DealDetailsModalProps {
-  deal: any;
+  deal: ModalDeal | null;
   isOpen: boolean;
   onClose: () => void;
   onBuy: () => void;
 }
 
 export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealDetailsModalProps) {
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   
   // Review form state
@@ -20,30 +54,53 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
   const [comment, setComment] = useState('');
   const [reviewImage, setReviewImage] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  const targetDealId = deal?.dealId || deal?.id;
+
+  const fetchReviews = useCallback(async () => {
+    if (!targetDealId) return;
+    if (!isSupabaseConfigured) {
+      setReviews([]);
+      setLoadingReviews(false);
+      return;
+    }
+    setLoadingReviews(true);
+    try {
+      const { data } = await supabase
+        .from('reviews')
+        .select('*, profiles(full_name)')
+        .eq('deal_id', targetDealId)
+        .order('created_at', { ascending: false });
+      
+      if (data) setReviews(data as ReviewItem[]);
+    } catch {
+      setReviews([]);
+    } finally {
+      setLoadingReviews(false);
+    }
+  }, [targetDealId]);
 
   useEffect(() => {
     if (!isOpen || !deal) return;
     
+    let isCancelled = false;
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+      if (isSupabaseConfigured) {
+        try {
+          const { data: { user: currentUser } } = await supabase.auth.getUser();
+          if (!isCancelled) setUser(currentUser);
+        } catch {
+          if (!isCancelled) setUser(null);
+        }
+      }
       fetchReviews();
     };
     init();
-  }, [isOpen, deal]);
-
-  const fetchReviews = async () => {
-    setLoadingReviews(true);
-    const { data } = await supabase
-      .from('reviews')
-      .select('*, profiles(full_name)')
-      .eq('deal_id', deal.id)
-      .order('created_at', { ascending: false });
-    
-    if (data) setReviews(data);
-    setLoadingReviews(false);
-  };
+    return () => {
+      isCancelled = true;
+    };
+  }, [isOpen, deal, fetchReviews]);
 
   const handleReviewUpload = async (file: File) => {
     const fileExt = file.name.split('.').pop();
@@ -59,6 +116,10 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isSupabaseConfigured) {
+      alert("Reviews are currently unavailable in this deployment (Supabase is not configured).");
+      return;
+    }
     if (!user) return alert("Please sign in to leave a review.");
     setIsSubmitting(true);
     
@@ -67,22 +128,27 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
       uploadedImageUrl = await handleReviewUpload(reviewImage);
     }
     
-    const { error } = await supabase.from('reviews').insert([{
-      deal_id: deal.id,
-      user_id: user.id,
-      rating,
-      comment,
-      image_url: uploadedImageUrl
-    }]);
+    try {
+      const { error } = await supabase.from('reviews').insert([{
+        deal_id: deal?.dealId || deal?.id,
+        user_id: user.id,
+        rating,
+        comment,
+        image_url: uploadedImageUrl
+      }]);
 
-    setIsSubmitting(false);
-    if (error) {
-      alert("Error: " + error.message);
-    } else {
-      setComment('');
-      setReviewImage(null);
-      setRating(5);
-      fetchReviews();
+      if (error) {
+        alert("Error: " + error.message);
+      } else {
+        setComment('');
+        setReviewImage(null);
+        setRating(5);
+        fetchReviews();
+      }
+    } catch {
+      alert("Failed to submit review.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -98,22 +164,24 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
         {/* Left Side - Image & Main Details */}
         <div className="md:w-1/2 bg-gray-50 flex flex-col">
           <div className="relative h-64 md:h-80 w-full bg-gray-200">
-            <Image src={deal.image_url || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800'} alt={deal.title} fill className="object-cover" />
+            <Image src={deal.image || deal.image_url || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800'} alt={deal.title} fill className="object-cover" />
             <div className="absolute bottom-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 backdrop-blur-md">
-              <MapPin className="w-4 h-4 text-green-400" /> {deal.location || 'Addis Ababa'}
+              <MapPin className="w-4 h-4 text-green-400" /> {deal.distanceMeters ? (deal.distanceMeters < 1000 ? `${Math.round(deal.distanceMeters)} m` : `${(deal.distanceMeters / 1000).toFixed(1)} km`) : (deal.location || 'Addis Ababa')}
             </div>
           </div>
           
           <div className="p-6">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{deal.title}</h2>
-            <p className="text-gray-600 font-medium mb-6">{deal.merchant_name}</p>
+            <p className="text-gray-600 font-medium mb-6">{deal.merchantName || deal.merchant_name || 'Tirf Market Merchant'}</p>
             
             <div className="flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
               <div>
-                <p className="text-sm text-gray-400 line-through">ETB {deal.original_price}</p>
-                <p className="text-3xl font-black text-green-600">ETB {deal.discounted_price}</p>
+                {(deal.price || deal.original_price) && (deal.price || deal.original_price) > (deal.finalAmount ?? deal.discounted_price) && (
+                  <p className="text-sm text-gray-400 line-through">{(deal.price || deal.original_price)} ETB</p>
+                )}
+                <p className="text-3xl font-black text-green-600">{(deal.finalAmount ?? deal.discounted_price)} ETB</p>
               </div>
-              <button onClick={() => { onClose(); onBuy(); }} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg shadow-green-600/30">
+              <button onClick={() => { onClose(); onBuy(); }} className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg shadow-green-600/30 cursor-pointer">
                 Buy Now
               </button>
             </div>
@@ -149,7 +217,11 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
           
           <div className="p-6 space-y-6 flex-1">
             {/* Add Review Form */}
-            {user ? (
+            {!isSupabaseConfigured ? (
+              <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-xs text-center border border-amber-200">
+                Customer reviews are currently unavailable in this deployment (Supabase database not configured).
+              </div>
+            ) : user ? (
               <form onSubmit={handleSubmitReview} className="bg-gray-50 p-4 rounded-xl border border-gray-100 space-y-3">
                 <h4 className="font-bold text-sm text-gray-800">Write a Review</h4>
                 <div className="flex gap-2">
@@ -189,7 +261,9 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
               {loadingReviews ? (
                 <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-green-600" /></div>
               ) : reviews.length === 0 ? (
-                <p className="text-gray-500 text-center py-8 text-sm">No reviews yet. Be the first to review!</p>
+                !isSupabaseConfigured ? null : (
+                  <p className="text-gray-500 text-center py-8 text-sm">No reviews yet. Be the first to review!</p>
+                )
               ) : (
                 reviews.map(review => (
                   <div key={review.id} className="border-b border-gray-100 pb-4">

@@ -1,51 +1,84 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Menu, Search, ShoppingCart, User, LogOut, Globe, ShieldCheck, Store } from 'lucide-react';
+import { Menu, Search, ShoppingCart, User as UserIcon, LogOut, Globe, ShieldCheck, Store } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from './AuthModal';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useLanguage } from '@/context/LanguageContext';
-import { Language } from '@/locales/translations';
+import type { User } from '@supabase/supabase-js';
 
 export default function Header() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [profileName, setProfileName] = useState<string>('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
   const { language, setLanguage, t } = useLanguage();
 
   useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    let isMounted = true;
     const fetchUserAndProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        const { data } = await supabase.from('profiles').select('role, account_type, full_name').eq('id', session.user.id).single();
-        if (data) {
-          if (data.role === 'admin') setIsAdmin(true);
-          if (data.account_type === 'seller') setIsSeller(true);
-          if (data.full_name) setProfileName(data.full_name);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!isMounted) return;
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          const { data } = await supabase.from('profiles').select('role, account_type, full_name').eq('id', session.user.id).single();
+          if (!isMounted) return;
+          if (data) {
+            if (data.role === 'admin') setIsAdmin(true);
+            if (data.account_type === 'seller') setIsSeller(true);
+            if (data.full_name) setProfileName(data.full_name);
+          }
+        } else {
+          setIsAdmin(false);
+          setIsSeller(false);
+          setProfileName('');
         }
-      } else {
-        setIsAdmin(false);
-        setIsSeller(false);
-        setProfileName('');
+      } catch {
+        if (isMounted) {
+          setUser(null);
+          setIsAdmin(false);
+          setIsSeller(false);
+          setProfileName('');
+        }
       }
     };
 
     fetchUserAndProfile();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      fetchUserAndProfile();
-    });
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+        fetchUserAndProfile();
+      });
 
-    return () => subscription.unsubscribe();
+      return () => {
+        isMounted = false;
+        subscription.unsubscribe();
+      };
+    } catch {
+      return () => {
+        isMounted = false;
+      };
+    }
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    if (isSupabaseConfigured) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // Graceful
+      }
+    }
+    setUser(null);
+    setIsAdmin(false);
+    setIsSeller(false);
+    setProfileName('');
   };
 
   return (
@@ -75,6 +108,13 @@ export default function Header() {
           </div>
 
           <div className="flex items-center gap-4 lg:gap-6">
+            <Link 
+              href="/dashboard" 
+              className="text-xs font-semibold text-gray-600 hover:text-green-700 transition-colors uppercase tracking-wider py-1 px-2 rounded hover:bg-gray-100"
+            >
+              {t("header.dashboard")}
+            </Link>
+
             <div className="relative group">
               <button className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-green-700 p-2">
                 <Globe className="w-4 h-4" /> {language.toUpperCase()}
@@ -127,7 +167,7 @@ export default function Header() {
                 className="p-2 text-gray-700 sm:hidden"
                 onClick={() => !user && setIsAuthModalOpen(true)}
               >
-                {user ? <LogOut className="w-6 h-6 text-red-600" onClick={handleSignOut} /> : <User className="w-6 h-6" />}
+                {user ? <LogOut className="w-6 h-6 text-red-600" onClick={handleSignOut} /> : <UserIcon className="w-6 h-6" />}
               </button>
             </div>
           </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { translations, Language } from '@/locales/translations';
 
 interface LanguageContextType {
@@ -12,19 +12,19 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
-
-  useEffect(() => {
-    // Load saved language from localStorage if available
-    try {
-      const savedLang = localStorage.getItem('TirfMarket_lang') as Language;
-      if (savedLang && (savedLang === 'en' || savedLang === 'am' || savedLang === 'om' || savedLang === 'ti')) {
-        setLanguageState(savedLang);
+  const [language, setLanguageState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedLang = localStorage.getItem('TirfMarket_lang') as Language;
+        if (savedLang && (savedLang === 'en' || savedLang === 'am' || savedLang === 'om' || savedLang === 'ti')) {
+          return savedLang;
+        }
+      } catch (e) {
+        console.warn("localStorage access denied", e);
       }
-    } catch (e) {
-      console.warn("localStorage access denied", e);
     }
-  }, []);
+    return 'en';
+  });
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { useEffect, useState, useCallback } from 'react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Store, PlusCircle, Clock, CheckCircle2, XCircle, Loader2, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -19,8 +19,12 @@ interface Deal {
 
 export default function SellerDashboard() {
   const [deals, setDeals] = useState<Deal[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [error, setError] = useState(
+    isSupabaseConfigured
+      ? ''
+      : 'Seller Dashboard is currently unavailable. Supabase credentials (NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY) are not configured in this deployment.'
+  );
   
   // Form State
   const [title, setTitle] = useState('');
@@ -39,11 +43,31 @@ export default function SellerDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userId, setUserId] = useState('');
 
-  useEffect(() => {
-    checkSellerAndFetchDeals();
+  const fetchDeals = useCallback(async (uid: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('deals')
+        .select('*')
+        .eq('seller_id', uid)
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setDeals(data);
+      }
+    } catch {
+      // Graceful
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const checkSellerAndFetchDeals = async () => {
+  const checkSellerAndFetchDeals = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setError("Seller Dashboard is currently unavailable. Supabase credentials (NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY) are not configured in this deployment.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -70,24 +94,19 @@ export default function SellerDashboard() {
       }
 
       fetchDeals(user.id);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An error occurred while loading the seller portal.';
+      setError(msg);
       setLoading(false);
     }
-  };
+  }, [fetchDeals, merchantName]);
 
-  const fetchDeals = async (uid: string) => {
-    const { data, error } = await supabase
-      .from('deals')
-      .select('*')
-      .eq('seller_id', uid)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setDeals(data);
-    }
-    setLoading(false);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkSellerAndFetchDeals();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [checkSellerAndFetchDeals]);
 
   const handleImageUpload = async (file: File) => {
     const fileExt = file.name.split('.').pop();
@@ -271,7 +290,7 @@ export default function SellerDashboard() {
             </div>
             <div className="divide-y divide-gray-100">
               {deals.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">You haven't submitted any deals yet.</div>
+                <div className="p-8 text-center text-gray-500">You haven&apos;t submitted any deals yet.</div>
               ) : (
                 deals.map(deal => (
                   <div key={deal.id} className="p-6 flex gap-4 items-center">

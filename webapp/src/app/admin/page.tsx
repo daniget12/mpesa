@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { useEffect, useState, useCallback } from 'react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Users, Ban, ShieldCheck, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,19 +15,54 @@ interface UserProfile {
   created_at: string;
 }
 
+interface DealAdminItem {
+  id: string;
+  title: string;
+  merchant_name?: string;
+  category?: string;
+  discounted_price?: number;
+  status?: string;
+  created_at?: string;
+}
+
 export default function AdminDashboard() {
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [deals, setDeals] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [error, setError] = useState('');
+  const [deals, setDeals] = useState<DealAdminItem[]>([]);
+  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [error, setError] = useState(
+    isSupabaseConfigured
+      ? ''
+      : 'Admin Dashboard is currently unavailable. Supabase credentials (NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY) are not configured in this deployment.'
+  );
   const [activeTab, setActiveTab] = useState<'users' | 'deals'>('users');
 
-  useEffect(() => {
-    checkAdminAndFetchData();
+  const fetchUsers = useCallback(async () => {
+    try {
+      const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (data) setUsers(data);
+    } catch {
+      // Graceful
+    }
   }, []);
 
-  const checkAdminAndFetchData = async () => {
+  const fetchDeals = useCallback(async () => {
+    try {
+      const { data } = await supabase.from('deals').select('*').order('created_at', { ascending: false });
+      if (data) setDeals(data);
+    } catch {
+      // Graceful
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const checkAdminAndFetchData = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setError("Admin Dashboard is currently unavailable. Supabase credentials (NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY) are not configured in this deployment.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -48,25 +83,21 @@ export default function AdminDashboard() {
         return;
       }
 
-      setIsAdmin(true);
       fetchUsers();
       fetchDeals();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An error occurred while loading the admin portal.';
+      setError(msg);
       setLoading(false);
     }
-  };
+  }, [fetchUsers, fetchDeals]);
 
-  const fetchUsers = async () => {
-    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    if (data) setUsers(data);
-  };
-
-  const fetchDeals = async () => {
-    const { data } = await supabase.from('deals').select('*').order('created_at', { ascending: false });
-    if (data) setDeals(data);
-    setLoading(false);
-  };
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      checkAdminAndFetchData();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [checkAdminAndFetchData]);
 
   const toggleBanStatus = async (userId: string, currentStatus: boolean) => {
     const { error } = await supabase.from('profiles').update({ is_banned: !currentStatus }).eq('id', userId);
@@ -106,7 +137,6 @@ export default function AdminDashboard() {
     );
   }
 
-  const buyers = users.filter(u => u.account_type === 'buyer');
   const sellers = users.filter(u => u.account_type === 'seller');
   const pendingDeals = deals.filter(d => d.status === 'pending');
 

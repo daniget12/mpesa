@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useLanguage } from '@/context/LanguageContext';
 
 interface AuthModalProps {
@@ -22,7 +22,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [accountType, setAccountType] = useState<'buyer' | 'seller'>('buyer');
   
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    !isSupabaseConfigured ? "User accounts are currently unavailable. Supabase authentication is not configured in this deployment." : null
+  );
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -32,6 +34,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
+
+    if (!isSupabaseConfigured) {
+      setError("User accounts are currently unavailable. Supabase authentication is not configured in this deployment.");
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isSignUp) {
@@ -62,8 +70,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         onClose(); // Close on successful login
         window.location.reload();
       }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during authentication.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'An error occurred during authentication.';
+      setError(message);
     } finally {
       setLoading(false);
     }

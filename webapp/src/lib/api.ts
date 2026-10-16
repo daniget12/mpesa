@@ -1,6 +1,6 @@
 // TirfMarket API Client: Connects the Next.js frontend to the Express M-PESA Backend
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tirfmarket-backend.onrender.com';
 
 export interface Order {
   id: string;
@@ -32,6 +32,7 @@ export interface NearbyDeal {
   lat: number;
   lon: number;
   distanceMeters: number;
+  verified?: boolean;
 }
 
 export interface MerchantStats {
@@ -49,33 +50,126 @@ export interface MerchantStats {
   }>;
 }
 
+export interface BackendHealth {
+  ok: boolean;
+  mode: string;
+  store: string;
+}
+
+export class ApiError extends Error {
+  status: number;
+  data?: unknown;
+  constructor(status: number, message: string, data?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
+/**
+ * Strips whitespace and hyphens from phone numbers.
+ */
+export function sanitizePhone(input: string): string {
+  return String(input || '').trim().replace(/[\s-]/g, '');
+}
+
+/**
+ * Validates Ethiopian mobile number formats:
+ * - 07xxxxxxxx (10 digits)
+ * - 09xxxxxxxx (10 digits)
+ * - +2517xxxxxxx (13 chars)
+ * - +2519xxxxxxx (13 chars)
+ * - 002517xxxxxxx (14 chars)
+ * - 002519xxxxxxx (14 chars)
+ * - 12 digits starting with 2517 or 2519
+ */
+export function isValidEthiopianPhone(input: string): boolean {
+  const p = sanitizePhone(input);
+  return /^(?:0[79]\d{8}|\+251[79]\d{8}|00251[79]\d{8}|251[79]\d{8})$/.test(p);
+}
+
+/**
+ * Checks backend health and mode ('mock' vs 'sandbox').
+ */
+export async function getBackendHealth(): Promise<BackendHealth> {
+  try {
+    const res = await fetch(`${BACKEND_URL}/health`);
+    if (!res.ok) {
+      throw new ApiError(res.status, `Health check failed with status ${res.status}`);
+    }
+    return await res.json();
+  } catch (err: unknown) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(0, 'Network error. Could not reach backend.');
+  }
+}
+
 /**
  * Initiates an M-PESA STK Push checkout request.
+ * Sends { dealId, phone } ONLY. Never sends an amount.
  */
 export async function createOrder(dealId: string, phone: string): Promise<Order> {
-  const res = await fetch(`${BACKEND_URL}/api/orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ dealId, phone }),
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Failed to initiate M-PESA payment request');
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_URL}/api/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dealId, phone }),
+    });
+  } catch {
+    throw new ApiError(0, 'Network error. Please check your internet connection.');
   }
-  return data;
+
+  let data: { error?: string; [key: string]: unknown } | null = null;
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON response
+  }
+
+  if (!res.ok) {
+    if (res.status === 400) {
+      throw new ApiError(400, data?.error || 'Invalid phone number. Use 07xxxxxxxx or 09xxxxxxxx.', data);
+    }
+    if (res.status === 404) {
+      throw new ApiError(404, 'Deal no longer available', data);
+    }
+    if (res.status === 429) {
+      throw new ApiError(429, 'Too many attempts, wait a minute', data);
+    }
+    if (res.status === 502) {
+      throw new ApiError(502, data?.error || 'Payment service unavailable. Please retry.', data);
+    }
+    throw new ApiError(res.status, data?.error || `Request failed with status ${res.status}`, data);
+  }
+
+  return data as unknown as Order;
 }
 
 /**
  * Polls the current status of an ongoing order.
  */
 export async function getOrderStatus(orderId: string): Promise<Order> {
-  const res = await fetch(`${BACKEND_URL}/api/orders/${encodeURIComponent(orderId)}`);
-  const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error || 'Failed to fetch order status');
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_URL}/api/orders/${encodeURIComponent(orderId)}`);
+  } catch {
+    throw new ApiError(0, 'Network error. Could not reach server.');
   }
-  return data;
+
+  let data: { error?: string; [key: string]: unknown } | null = null;
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON response
+  }
+
+  if (!res.ok) {
+    throw new ApiError(res.status, data?.error || `Failed to fetch order status (${res.status})`, data);
+  }
+
+  return data as unknown as Order;
 }
 
 /**
@@ -117,3 +211,4 @@ export async function forceMockResult(orderId: string, outcome: 'paid' | 'failed
   });
   return res.json();
 }
+

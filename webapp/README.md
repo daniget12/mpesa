@@ -16,9 +16,10 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### M-PESA Payment Testing & Mock Failure Mode
+- **Success testing**: Use any standard Safaricom number (e.g. `0711223344`, `0911223344`, or `+2517...`). In mock mode, payment confirms after ~4 seconds.
+- **Intentional failure testing**: Any phone ending in `0000` (e.g. `0711220000` or `0911220000`) intentionally fails on purpose (`status: "failed"`, `failureReason: "System internal error."`) to test decline messaging and the retry flow.
+- **Pitch demo override**: Append `?demo=1` to the URL when connected to a mock backend to reveal the instant confirmation override shortcut.
 
 ## Learn More
 
