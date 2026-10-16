@@ -237,6 +237,8 @@ export default function Home() {
           onClose={() => setSelectedDealForBuy(null)} 
           amount={(selectedDealForBuy.discounted_price || selectedDealForBuy.discountedPrice)}
           dealTitle={selectedDealForBuy.title}
+          dealId={selectedDealForBuy.id}
+          merchantName={selectedDealForBuy.merchant_name || selectedDealForBuy.merchant || 'Tirf Market Partner'}
         />
       )}
     </div>

@@ -50,3 +50,4 @@ tirfmarket.db
 Thumbs.db
 .vscode/
 .idea/
+!webapp/src/lib/
