@@ -26,7 +26,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
-import { fetchNearbyDeals, NearbyDeal } from '@/lib/api';
+import { fetchNearbyDeals, NearbyDeal, ApiError } from '@/lib/api';
 
 const DEFAULT_LAT = 9.0000;
 const DEFAULT_LON = 38.7800;
@@ -97,8 +97,12 @@ export default function Home() {
     try {
       const data = await fetchNearbyDeals(lat, lon, 2000);
       setDeals(Array.isArray(data) ? data : []);
-    } catch {
-      setError(t('deals.error') || 'Failed to connect to the deals service.');
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 408) {
+        setError(t('deals.waking'));
+      } else {
+        setError(t('deals.error') || 'Failed to connect to the deals service.');
+      }
     } finally {
       setLoading(false);
       setIsWakingUp(false);
@@ -434,7 +438,7 @@ export default function Home() {
               <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <AlertCircle className="w-6 h-6" />
               </div>
-              <h3 className="font-bold text-gray-900 text-base mb-1">{t("deals.error")}</h3>
+              <h3 className="font-bold text-gray-900 text-base mb-1">{error}</h3>
               <p className="text-xs text-gray-500 mb-5">
                 The backend server could be spinning up or temporarily unreachable.
               </p>

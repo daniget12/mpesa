@@ -126,9 +126,14 @@ export default function DashboardPage() {
     };
   }, []);
 
+  // Ref to prevent stacking requests if one is slow
+  const isFetchingRef = useRef<boolean>(false);
+
   // Fetch stats function
   const fetchStats = useCallback(
     async (currentToken?: string, isInitial: boolean = false) => {
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
       if (isInitial) setLoading(true);
 
       try {
@@ -148,11 +153,16 @@ export default function DashboardPage() {
             setStatusOverride(err.merchantStatus || 'suspended');
             return;
           }
+          if (err.status === 408) {
+            setErrorMessage(t('dashboard.waking') || 'Server is waking up...');
+            return;
+          }
           setErrorMessage(err.message);
         } else {
           setErrorMessage(t('dashboard.error'));
         }
       } finally {
+        isFetchingRef.current = false;
         if (isInitial) {
           setLoading(false);
           setIsWakingUp(false);

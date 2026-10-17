@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, CheckCircle, AlertCircle, Loader2, Smartphone, ShieldCheck, RefreshCw, Zap } from 'lucide-react';
+import { useLanguage } from '@/context/LanguageContext';
 import { 
   createOrder, 
   getOrderStatus, 
@@ -12,6 +13,15 @@ import {
   ApiError, 
   Order 
 } from '@/lib/api';
+
+function maskPhoneNumber(phone: string): string {
+  const clean = phone.trim().replace(/[\s-]/g, '');
+  if (clean.length < 6) return clean;
+  const first4 = clean.slice(0, 4);
+  const last2 = clean.slice(-2);
+  const starCount = Math.max(clean.length - 6, 4);
+  return `${first4}${'*'.repeat(starCount)}${last2}`;
+}
 
 interface MpesaModalProps {
   isOpen: boolean;
@@ -32,6 +42,7 @@ export default function MpesaModal({
   merchantId,
   merchantName = 'Tirf Market Partner',
 }: MpesaModalProps) {
+  const { t } = useLanguage();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -52,6 +63,7 @@ export default function MpesaModal({
 
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isPollingRef = useRef<boolean>(false);
 
   // Check backend health for mock mode on open
   useEffect(() => {
@@ -106,8 +118,10 @@ export default function MpesaModal({
       });
     }, 1000);
 
-    // Poll GET /api/orders/:id every 2 seconds
+    // Poll GET /api/orders/:id every 2 seconds without stacking
     pollTimerRef.current = setInterval(async () => {
+      if (isPollingRef.current) return;
+      isPollingRef.current = true;
       try {
         const order = await getOrderStatus(orderId);
         setActiveOrder(order);
@@ -121,8 +135,14 @@ export default function MpesaModal({
           setErrorMessage(order.failureReason || 'Payment declined or cancelled on mobile handset.');
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn('Polling check error:', msg);
+        if (err instanceof ApiError && err.status === 408) {
+          console.warn('Poll request timed out');
+        } else {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn('Polling check error:', msg);
+        }
+      } finally {
+        isPollingRef.current = false;
       }
     }, 2000);
   };
@@ -166,7 +186,11 @@ export default function MpesaModal({
     } catch (err: unknown) {
       setStatus('error');
       if (err instanceof ApiError) {
-        setErrorMessage(err.message);
+        if (err.status === 408) {
+          setErrorMessage(t('deals.waking') + ' ' + t('deals.retry'));
+        } else {
+          setErrorMessage(err.message);
+        }
       } else if (err instanceof Error) {
         setErrorMessage(err.message);
       } else {
@@ -175,7 +199,7 @@ export default function MpesaModal({
     }
   };
 
-  // Demo override: Available ONLY when URL has ?demo=1 AND backend mode is 'mock'
+  // Demo overrides: Available ONLY when URL has ?demo=1 AND backend mode is 'mock'
   const handleForceInstantSuccess = async () => {
     if (!activeOrder?.id) return;
     try {
@@ -185,6 +209,19 @@ export default function MpesaModal({
       setStatus('success');
     } catch (e: unknown) {
       console.warn('Instant success override failed:', e);
+    }
+  };
+
+  const handleForceInstantFailure = async () => {
+    if (!activeOrder?.id) return;
+    try {
+      const updated = await forceMockResult(activeOrder.id, 'failed');
+      setActiveOrder(updated);
+      stopPolling();
+      setStatus('error');
+      setErrorMessage(updated.failureReason || 'Payment failed (Simulated failure)');
+    } catch (e: unknown) {
+      console.warn('Instant failure override failed:', e);
     }
   };
 
@@ -198,7 +235,7 @@ export default function MpesaModal({
   };
 
   const isMockMode = backendMode === 'mock';
-  const showForceDemoButton = isDemoParam && isMockMode && status === 'loading' && !!activeOrder?.id;
+  const showDemoControls = isDemoParam && isMockMode && status === 'loading' && !!activeOrder?.id;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
@@ -323,17 +360,29 @@ export default function MpesaModal({
                 Polling payment status ({pollCountdown}s)
               </div>
 
-              {/* Pitch-day instant override shortcut: ONLY shown when ?demo=1 AND backend mode is mock */}
-              {showForceDemoButton && (
-                <div className="border-t border-gray-100 pt-4 animate-fade-in">
-                  <button
-                    type="button"
-                    onClick={handleForceInstantSuccess}
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-yellow-700 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 px-3 py-2 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-yellow-600" />
-                    Pitch Demo: Force Instant Confirmation
-                  </button>
+              {/* Demo Controls panel: ONLY shown when URL has ?demo=1 AND backend mode is 'mock' */}
+              {showDemoControls && (
+                <div className="border-t border-gray-100 pt-4 mt-2 animate-fade-in">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-amber-700 mb-2 flex items-center justify-center gap-1">
+                    <Zap className="w-3.5 h-3.5 text-amber-600" />
+                    Demo Controls
+                  </div>
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={handleForceInstantSuccess}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Force Paid
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleForceInstantFailure}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-rose-800 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      Force Failed
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -374,7 +423,7 @@ export default function MpesaModal({
                   </div>
                   <div>
                     <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Customer Line</span>
-                    <span className="font-mono text-gray-200">{activeOrder?.phone ? `+${activeOrder.phone}` : phoneNumber}</span>
+                    <span className="font-mono text-gray-200">{maskPhoneNumber(phoneNumber)}</span>
                   </div>
                 </div>
 

@@ -6,7 +6,6 @@ export interface Order {
   id: string;
   dealId: string;
   merchantId: string;
-  phone: string;
   amount: number;
   status: 'created' | 'pending' | 'paid' | 'failed';
   checkoutRequestId?: string;
@@ -33,21 +32,6 @@ export interface NearbyDeal {
   lon: number;
   distanceMeters: number;
   verified?: boolean;
-}
-
-export interface MerchantStats {
-  dealsRedeemed: number;
-  cashlessSales: number;
-  pending: number;
-  failed: number;
-  recent: Array<{
-    id: string;
-    amount: number;
-    status: string;
-    phone: string;
-    mpesaReceipt?: string;
-    createdAt: string;
-  }>;
 }
 
 export interface BackendHealth {
@@ -90,11 +74,40 @@ export function isValidEthiopianPhone(input: string): boolean {
 }
 
 /**
+ * Helper to fetch with an AbortController timeout.
+ * Throws an ApiError with status 408 on timeout.
+ */
+export async function fetchWithTimeout(
+  url: string,
+  options: RequestInit = {},
+  timeoutMs: number = 60000
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return res;
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new ApiError(408, 'Request timed out. The server may be waking up.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
  * Checks backend health and mode ('mock' vs 'sandbox').
+ * 60s timeout for cold start.
  */
 export async function getBackendHealth(): Promise<BackendHealth> {
   try {
-    const res = await fetch(`${BACKEND_URL}/health`);
+    const res = await fetchWithTimeout(`${BACKEND_URL}/health`, {}, 60000);
     if (!res.ok) {
       throw new ApiError(res.status, `Health check failed with status ${res.status}`);
     }
@@ -108,16 +121,22 @@ export async function getBackendHealth(): Promise<BackendHealth> {
 /**
  * Initiates an M-PESA STK Push checkout request.
  * Sends { dealId, phone } ONLY. Never sends an amount.
+ * 60s timeout for cold start.
  */
 export async function createOrder(dealId: string, phone: string): Promise<Order> {
   let res: Response;
   try {
-    res = await fetch(`${BACKEND_URL}/api/orders`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dealId, phone }),
-    });
-  } catch {
+    res = await fetchWithTimeout(
+      `${BACKEND_URL}/api/orders`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dealId, phone }),
+      },
+      60000
+    );
+  } catch (err: unknown) {
+    if (err instanceof ApiError) throw err;
     throw new ApiError(0, 'Network error. Please check your internet connection.');
   }
 
@@ -149,12 +168,14 @@ export async function createOrder(dealId: string, phone: string): Promise<Order>
 
 /**
  * Polls the current status of an ongoing order.
+ * 15s timeout per poll.
  */
 export async function getOrderStatus(orderId: string): Promise<Order> {
   let res: Response;
   try {
-    res = await fetch(`${BACKEND_URL}/api/orders/${encodeURIComponent(orderId)}`);
-  } catch {
+    res = await fetchWithTimeout(`${BACKEND_URL}/api/orders/${encodeURIComponent(orderId)}`, {}, 15000);
+  } catch (err: unknown) {
+    if (err instanceof ApiError) throw err;
     throw new ApiError(0, 'Network error. Could not reach server.');
   }
 
@@ -174,6 +195,7 @@ export async function getOrderStatus(orderId: string): Promise<Order> {
 
 /**
  * Hyperlocal deal search within radius (meters).
+ * 60s timeout for cold start.
  */
 export async function fetchNearbyDeals(lat: number, lon: number, radius: number = 2000): Promise<NearbyDeal[]> {
   const params = new URLSearchParams({
@@ -182,33 +204,27 @@ export async function fetchNearbyDeals(lat: number, lon: number, radius: number 
     radius: radius.toString(),
   });
 
-  const res = await fetch(`${BACKEND_URL}/api/deals/nearby?${params.toString()}`);
+  const res = await fetchWithTimeout(`${BACKEND_URL}/api/deals/nearby?${params.toString()}`, {}, 60000);
   if (!res.ok) {
-    throw new Error('Failed to fetch nearby deals');
-  }
-  return res.json();
-}
-
-/**
- * Fetches merchant cashless sales and redemptions stats.
- */
-export async function fetchMerchantStats(merchantId: string): Promise<MerchantStats> {
-  const res = await fetch(`${BACKEND_URL}/api/merchants/${encodeURIComponent(merchantId)}/stats`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch merchant stats');
+    throw new ApiError(res.status, 'Failed to fetch nearby deals');
   }
   return res.json();
 }
 
 /**
  * Instant pitch-day test override (forces paid or failed immediately).
+ * 15s timeout.
  */
 export async function forceMockResult(orderId: string, outcome: 'paid' | 'failed'): Promise<Order> {
-  const res = await fetch(`${BACKEND_URL}/api/orders/${encodeURIComponent(orderId)}/mock-result`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ outcome }),
-  });
+  const res = await fetchWithTimeout(
+    `${BACKEND_URL}/api/orders/${encodeURIComponent(orderId)}/mock-result`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outcome }),
+    },
+    15000
+  );
   return res.json();
 }
 

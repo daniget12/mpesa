@@ -8,11 +8,11 @@ export function isMockDashboard(): boolean {
 }
 
 // ==========================================
-// PROVISIONAL BACKEND CONTRACT SHAPE
-// (From teammate's AI, to be confirmed by contract file later; kept strictly in this one file)
+// BACKEND CONTRACT SHAPE
+// (Confirmed by API-CONTRACT.md v1.0.0; kept strictly in this one file)
 // ==========================================
 
-export interface ProvisionalRecentOrder {
+export interface RecentOrder {
   orderId: string;
   dealTitle: string | null;
   amount: number;
@@ -20,13 +20,13 @@ export interface ProvisionalRecentOrder {
   paidAt: string;
 }
 
-export interface ProvisionalStatsResponse {
+export interface StatsResponse {
   merchantId?: string;
   dealsRedeemed: number;
   cashlessSales: number;
   pending: number;
   failed: number;
-  recent: ProvisionalRecentOrder[];
+  recent: RecentOrder[];
 }
 
 // ==========================================
@@ -72,12 +72,30 @@ export class DashboardApiError extends Error {
   }
 }
 
+/**
+ * 15-second request timeout helper for dashboard API calls.
+ */
+async function fetchWithDashboardTimeout(url: string, options: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new DashboardApiError(408, 'Request timed out. The server may be waking up.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ==========================================
 // FIELD MAPPING
-// (Single source of truth for provisional contract field mapping)
+// (Single source of truth for contract field mapping)
 // ==========================================
 
-export function mapProvisionalStats(raw: Partial<ProvisionalStatsResponse>): DashboardStats {
+export function mapStats(raw: Partial<StatsResponse>): DashboardStats {
   const rawRecent = Array.isArray(raw.recent) ? raw.recent : [];
   const recent: DashboardOrder[] = rawRecent.map((o) => ({
     orderId: String(o.orderId || ''),
@@ -149,7 +167,7 @@ const mockPendingCount = 1;
 const mockFailedCount = 0;
 
 // Initial sample paid orders at Bole shops
-const mockProvisionalOrders: ProvisionalRecentOrder[] = [
+const mockRecentOrders: RecentOrder[] = [
   {
     orderId: 'tm_ord_8f1a01',
     dealTitle: '20% off Specialty Macchiato & Croissant',
@@ -185,7 +203,7 @@ export function addMockPaidOrder(): void {
   mockReceiptCounter += 1;
   const sample = SAMPLE_BOLE_DEALS[Math.floor(Math.random() * SAMPLE_BOLE_DEALS.length)];
   const randomHex = Math.random().toString(16).substring(2, 8);
-  const newOrder: ProvisionalRecentOrder = {
+  const newOrder: RecentOrder = {
     orderId: `tm_ord_${randomHex}`,
     dealTitle: sample.dealTitle,
     amount: sample.amount,
@@ -193,9 +211,9 @@ export function addMockPaidOrder(): void {
     paidAt: new Date().toISOString(),
   };
 
-  mockProvisionalOrders.unshift(newOrder);
-  if (mockProvisionalOrders.length > 50) {
-    mockProvisionalOrders.pop();
+  mockRecentOrders.unshift(newOrder);
+  if (mockRecentOrders.length > 50) {
+    mockRecentOrders.pop();
   }
 }
 
@@ -215,6 +233,7 @@ if (typeof window !== 'undefined') {
 /**
  * Requests an email verification code.
  * In both mock and real mode, always resolves cleanly to avoid leaking email existence.
+ * 15s timeout.
  */
 export async function requestAuthCode(email: string): Promise<{ ok: boolean; message: string }> {
   const normalizedEmail = email.trim().toLowerCase();
@@ -224,7 +243,7 @@ export async function requestAuthCode(email: string): Promise<{ ok: boolean; mes
   }
 
   try {
-    const res = await fetch(`${BACKEND_URL}/api/merchant/auth/request`, {
+    const res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/auth/request`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: normalizedEmail }),
@@ -244,6 +263,7 @@ export async function requestAuthCode(email: string): Promise<{ ok: boolean; mes
 /**
  * Verifies the 6-digit code and returns { token }.
  * 5 wrong codes returns 429: "Too many attempts, wait 15 minutes".
+ * 15s timeout.
  */
 export async function verifyAuthCode(
   email: string,
@@ -263,7 +283,7 @@ export async function verifyAuthCode(
   }
 
   try {
-    const res = await fetch(`${BACKEND_URL}/api/merchant/auth/verify`, {
+    const res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/auth/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: normalizedEmail, code: cleanCode }),
@@ -287,7 +307,10 @@ export async function verifyAuthCode(
     }
 
     return { error: 'No token received from verification server', status: 500 };
-  } catch {
+  } catch (err: unknown) {
+    if (err instanceof DashboardApiError) {
+      return { error: err.message, status: err.status };
+    }
     return { error: 'Network error. Could not connect to verification server.', status: 0 };
   }
 }
@@ -298,6 +321,7 @@ export async function verifyAuthCode(
 
 /**
  * Fetches merchant status: 'pending', 'approved', 'rejected', or 'suspended'.
+ * 15s timeout.
  */
 export async function fetchMerchantMe(token?: string): Promise<MerchantMe> {
   if (isMockDashboard()) {
@@ -315,12 +339,13 @@ export async function fetchMerchantMe(token?: string): Promise<MerchantMe> {
 
   let res: Response;
   try {
-    res = await fetch(`${BACKEND_URL}/api/merchant/me`, {
+    res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/me`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
     });
-  } catch {
+  } catch (err: unknown) {
+    if (err instanceof DashboardApiError) throw err;
     throw new DashboardApiError(0, 'Network error. Please check your connection.');
   }
 
@@ -356,22 +381,22 @@ export async function fetchMerchantMe(token?: string): Promise<MerchantMe> {
 
 /**
  * Fetches merchant stats.
- * In mock mode: generates provisional shape where cashlessSales equals the sum of order amounts,
- * then maps it through mapProvisionalStats().
- * In real mode: calls GET /api/merchant/stats with Bearer token, then maps it through mapProvisionalStats().
+ * In mock mode: generates contract shape where cashlessSales equals the sum of order amounts,
+ * then maps it through mapStats().
+ * In real mode: calls GET /api/merchant/stats with Bearer token (15s timeout), then maps it through mapStats().
  */
 export async function fetchDashboardStats(token?: string): Promise<DashboardStats> {
   if (isMockDashboard()) {
-    const cashlessSales = mockProvisionalOrders.reduce((sum, item) => sum + item.amount, 0);
-    const raw: ProvisionalStatsResponse = {
+    const cashlessSales = mockRecentOrders.reduce((sum, item) => sum + item.amount, 0);
+    const raw: StatsResponse = {
       merchantId: 'merchant_bole_highland',
-      dealsRedeemed: mockProvisionalOrders.length,
+      dealsRedeemed: mockRecentOrders.length,
       cashlessSales,
       pending: mockPendingCount,
       failed: mockFailedCount,
-      recent: [...mockProvisionalOrders],
+      recent: [...mockRecentOrders],
     };
-    return mapProvisionalStats(raw);
+    return mapStats(raw);
   }
 
   const authToken = token || getStoredToken();
@@ -381,12 +406,13 @@ export async function fetchDashboardStats(token?: string): Promise<DashboardStat
 
   let res: Response;
   try {
-    res = await fetch(`${BACKEND_URL}/api/merchant/stats`, {
+    res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/stats`, {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
     });
-  } catch {
+  } catch (err: unknown) {
+    if (err instanceof DashboardApiError) throw err;
     throw new DashboardApiError(0, 'Network error. Please check your connection.');
   }
 
@@ -405,5 +431,5 @@ export async function fetchDashboardStats(token?: string): Promise<DashboardStat
     throw new DashboardApiError(res.status, data?.error || `Failed to fetch merchant stats (${res.status})`);
   }
 
-  return mapProvisionalStats(data as ProvisionalStatsResponse);
+  return mapStats(data as StatsResponse);
 }
