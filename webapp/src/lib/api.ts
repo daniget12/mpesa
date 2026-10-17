@@ -228,3 +228,89 @@ export async function forceMockResult(orderId: string, outcome: 'paid' | 'failed
   return res.json();
 }
 
+/**
+ * Checks whether merchant registration is in mock mode (default "true").
+ * Only "false" performs live network requests.
+ */
+export function isMockRegister(): boolean {
+  return process.env.NEXT_PUBLIC_REGISTER_MOCK !== 'false';
+}
+
+export interface MerchantRegisterPayload {
+  shopName: string;
+  ownerName: string;
+  licenseNumber: string;
+  email: string;
+  ownerPhone: string;
+  mpesaPhone: string;
+  category: string;
+  lat: number;
+  lon: number;
+  photo: string;
+  tillNumber?: string;
+}
+
+export interface MerchantRegisterResponse {
+  merchantId: string;
+  status: 'pending';
+}
+
+/**
+ * Registers a new shop merchant (POST /api/merchants/register).
+ * Timeout: 60 seconds (cold-start mitigation).
+ * Never logs request payload or credentials.
+ */
+export async function registerMerchant(
+  payload: MerchantRegisterPayload
+): Promise<MerchantRegisterResponse> {
+  if (isMockRegister()) {
+    // Artificial natural latency for local demo
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    return {
+      merchantId: 'mock-mid-' + Math.random().toString(36).substring(2, 10),
+      status: 'pending',
+    };
+  }
+
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${BACKEND_URL}/api/merchants/register`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+      60000
+    );
+  } catch (err: unknown) {
+    if (err instanceof ApiError) throw err;
+    throw new ApiError(0, 'Network error. Please check your internet connection.');
+  }
+
+  let data: { error?: string; [key: string]: unknown } | null = null;
+  try {
+    data = await res.json();
+  } catch {
+    // Non-JSON response
+  }
+
+  if (!res.ok) {
+    if (res.status === 400) {
+      throw new ApiError(400, data?.error || 'Validation error. Please verify all fields.', data);
+    }
+    if (res.status === 409) {
+      throw new ApiError(409, 'A shop with these details already exists. Contact support if this is yours.', data);
+    }
+    if (res.status === 429) {
+      throw new ApiError(429, 'Too many attempts, try again in an hour', data);
+    }
+    if (res.status === 500) {
+      throw new ApiError(500, data?.error || 'Failed to process registration. Please retry.', data);
+    }
+    throw new ApiError(res.status, data?.error || `Request failed with status ${res.status}`, data);
+  }
+
+  return data as unknown as MerchantRegisterResponse;
+}
+

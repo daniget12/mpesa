@@ -549,6 +549,7 @@ export default function Home() {
             <div>
               <h4 className="font-bold mb-4">Work with Us</h4>
               <ul className="space-y-2 text-sm text-gray-400">
+                <li><Link href="/merchant/register" className="hover:text-white cursor-pointer">{t("register.runADeal") || "Run a Deal"}</Link></li>
                 <li><Link href="/dashboard" className="hover:text-white cursor-pointer">Merchant Center</Link></li>
               </ul>
             </div>
