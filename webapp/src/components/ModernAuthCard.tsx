@@ -168,8 +168,8 @@ export default function ModernAuthCard({
     }
   };
 
-  // Social OAuth Handler
-  const handleSocialAuth = async (provider: 'google' | 'facebook' | 'github' | 'linkedin_oidc') => {
+  // Social OAuth Handler (Google only)
+  const handleSocialAuth = async (provider: 'google' = 'google') => {
     if (!isSupabaseConfigured) {
       setError('Social authentication is not configured in this environment.');
       return;
@@ -327,15 +327,16 @@ export default function ModernAuthCard({
                   {t('auth.signup') || 'Create Account'}
                 </h1>
 
-                {/* Social Icons */}
-                <div className="social-icons">
+                {/* Google Sign Up */}
+                <div className="my-2 w-full flex justify-center">
                   <button
                     type="button"
                     onClick={() => handleSocialAuth('google')}
+                    className="w-full max-w-[280px] flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-2xs hover:border-green-600 transition-all cursor-pointer"
                     title="Sign up with Google"
                     aria-label="Google"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                       <path
                         fill="#EA4335"
                         d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
@@ -353,36 +354,7 @@ export default function ModernAuthCard({
                         d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.1 7.5 23 12 23z"
                       />
                     </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('facebook')}
-                    title="Sign up with Facebook"
-                    aria-label="Facebook"
-                  >
-                    <svg className="w-4 h-4 text-blue-600 fill-current" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('github')}
-                    title="Sign up with GitHub"
-                    aria-label="GitHub"
-                  >
-                    <svg className="w-4 h-4 fill-current text-gray-800" viewBox="0 0 24 24">
-                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('linkedin_oidc')}
-                    title="Sign up with LinkedIn"
-                    aria-label="LinkedIn"
-                  >
-                    <svg className="w-4 h-4 text-blue-700 fill-current" viewBox="0 0 24 24">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                    </svg>
+                    <span>{t('auth.googleSignup') || 'Sign up with Google'}</span>
                   </button>
                 </div>
 
@@ -511,15 +483,16 @@ export default function ModernAuthCard({
                   {t('auth.signin') || 'Sign In'}
                 </h1>
 
-                {/* Social Icons */}
-                <div className="social-icons">
+                {/* Google Sign In */}
+                <div className="my-2 w-full flex justify-center">
                   <button
                     type="button"
                     onClick={() => handleSocialAuth('google')}
+                    className="w-full max-w-[280px] flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-2xs hover:border-green-600 transition-all cursor-pointer"
                     title="Sign in with Google"
                     aria-label="Google"
                   >
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                       <path
                         fill="#EA4335"
                         d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.3l3.7 2.9C6.5 7.4 9 5 12 5z"
@@ -537,36 +510,7 @@ export default function ModernAuthCard({
                         d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2-6.4-4.8L1.9 16.4C3.7 20.1 7.5 23 12 23z"
                       />
                     </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('facebook')}
-                    title="Sign in with Facebook"
-                    aria-label="Facebook"
-                  >
-                    <svg className="w-4 h-4 text-blue-600 fill-current" viewBox="0 0 24 24">
-                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('github')}
-                    title="Sign in with GitHub"
-                    aria-label="GitHub"
-                  >
-                    <svg className="w-4 h-4 fill-current text-gray-800" viewBox="0 0 24 24">
-                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSocialAuth('linkedin_oidc')}
-                    title="Sign in with LinkedIn"
-                    aria-label="LinkedIn"
-                  >
-                    <svg className="w-4 h-4 text-blue-700 fill-current" viewBox="0 0 24 24">
-                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
-                    </svg>
+                    <span>{t('auth.googleSignin') || 'Sign in with Google'}</span>
                   </button>
                 </div>
 
