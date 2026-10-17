@@ -57,6 +57,9 @@ export interface MerchantMe {
   id?: string;
   email?: string;
   name?: string;
+  shopName?: string;
+  category?: string;
+  rejectionReason?: string | null;
   status: MerchantStatus;
   error?: string;
 }
@@ -360,6 +363,7 @@ export async function fetchMerchantMe(token?: string): Promise<MerchantMe> {
     return {
       status: (data.status as MerchantStatus) || 'suspended',
       error: data.error,
+      rejectionReason: data.rejectionReason ?? null,
     };
   }
 
@@ -370,6 +374,9 @@ export async function fetchMerchantMe(token?: string): Promise<MerchantMe> {
   return {
     id: data.id,
     name: data.name,
+    shopName: data.shopName || data.name,
+    category: data.category,
+    rejectionReason: data.rejectionReason ?? null,
     email: data.email,
     status: (data.status as MerchantStatus) || 'approved',
   };

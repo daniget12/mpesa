@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Menu, Search, User as UserIcon, LogOut, Globe, ShieldCheck, Store } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Menu, Search, User as UserIcon, LogOut, Globe, ShieldCheck, Store, ChevronDown, X } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from './AuthModal';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -20,6 +20,29 @@ export default function Header({ searchQuery = '', onSearchChange }: HeaderProps
   const [isAdmin, setIsAdmin] = useState(false);
   const [isSeller, setIsSeller] = useState(false);
   const { language, setLanguage, t } = useLanguage();
+  const [isForShopsOpen, setIsForShopsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const forShopsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (forShopsRef.current && !forShopsRef.current.contains(event.target as Node)) {
+        setIsForShopsOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsForShopsOpen(false);
+        setIsMobileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -91,8 +114,14 @@ export default function Header({ searchQuery = '', onSearchChange }: HeaderProps
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
-            <button className="lg:hidden min-h-[44px] min-w-[44px] p-2 flex items-center justify-center text-gray-700" aria-label="Menu">
-              <Menu className="w-6 h-6" />
+            <button 
+              type="button"
+              onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+              className="lg:hidden min-h-[44px] min-w-[44px] p-2 flex items-center justify-center text-gray-700 cursor-pointer" 
+              aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isMobileMenuOpen}
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
             <Link href="/" className="min-h-[44px] flex items-center text-2xl font-bold text-green-700">
               <span className="text-yellow-500">Tirf</span>&nbsp;Market
@@ -115,12 +144,53 @@ export default function Header({ searchQuery = '', onSearchChange }: HeaderProps
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4">
-            <Link 
-              href="/dashboard" 
-              className="text-xs font-semibold text-gray-600 hover:text-green-700 transition-colors uppercase tracking-wider min-h-[44px] px-2.5 py-1 rounded hover:bg-gray-100 flex items-center"
-            >
-              {t("header.dashboard")}
-            </Link>
+            {/* For shops Dropdown Menu */}
+            <div className="relative" ref={forShopsRef}>
+              <button
+                type="button"
+                onClick={() => setIsForShopsOpen((prev) => !prev)}
+                onKeyDown={(e) => {
+                  if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setIsForShopsOpen(true);
+                  }
+                }}
+                aria-haspopup="true"
+                aria-expanded={isForShopsOpen}
+                aria-label={t("header.forShops")}
+                className="text-xs font-semibold text-gray-700 hover:text-green-700 transition-colors uppercase tracking-wider min-h-[44px] px-3 py-1.5 rounded-lg hover:bg-gray-100 flex items-center gap-1.5 cursor-pointer"
+              >
+                <Store className="w-4 h-4 text-green-700" />
+                <span>{t("header.forShops")}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isForShopsOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isForShopsOpen && (
+                <div 
+                  role="menu"
+                  className="absolute right-0 top-full mt-1.5 w-56 bg-white border border-gray-200 shadow-xl rounded-xl py-1.5 z-50 animate-scale-up"
+                >
+                  <Link
+                    href="/merchant/register"
+                    role="menuitem"
+                    onClick={() => setIsForShopsOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-3 min-h-[44px] text-xs font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors"
+                  >
+                    <Store className="w-4 h-4 text-green-600 shrink-0" />
+                    <span>{t("header.registerShop")}</span>
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    role="menuitem"
+                    onClick={() => setIsForShopsOpen(false)}
+                    className="flex items-center gap-2.5 px-4 py-3 min-h-[44px] text-xs font-semibold text-gray-700 hover:text-green-700 hover:bg-green-50 transition-colors border-t border-gray-100"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{t("header.merchantLogin")}</span>
+                  </Link>
+                </div>
+              )}
+            </div>
 
             <div className="relative group">
               <button className="flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-green-700 min-h-[44px] p-2">
@@ -200,6 +270,37 @@ export default function Header({ searchQuery = '', onSearchChange }: HeaderProps
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
           </div>
         </div>
+
+        {/* Mobile Navigation Drawer */}
+        {isMobileMenuOpen && (
+          <div className="lg:hidden border-t border-gray-200 bg-white px-4 py-4 space-y-3 shadow-lg">
+            <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider px-2">
+              {t("header.forShops")}
+            </div>
+            <div className="flex flex-col space-y-1">
+              <Link
+                href="/merchant/register"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-gray-800 hover:bg-green-50 hover:text-green-700 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-green-100 text-green-700 flex items-center justify-center shrink-0">
+                  <Store className="w-4 h-4" />
+                </div>
+                <span>{t("header.registerShop")}</span>
+              </Link>
+              <Link
+                href="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-gray-800 hover:bg-green-50 hover:text-green-700 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <span>{t("header.merchantLogin")}</span>
+              </Link>
+            </div>
+          </div>
+        )}
       </header>
 
       <AuthModal 

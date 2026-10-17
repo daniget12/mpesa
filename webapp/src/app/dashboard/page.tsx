@@ -31,6 +31,8 @@ import {
   ShieldCheck,
   ArrowLeft,
   Sparkles,
+  ChevronDown,
+  Store,
 } from 'lucide-react';
 
 // Smooth animated number hook using requestAnimationFrame with cubic ease-out
@@ -70,7 +72,20 @@ export default function DashboardPage() {
 
   // Authentication State (Real Mode)
   const [token, setToken] = useState<string | null>(null);
-  const [merchant, setMerchant] = useState<MerchantMe | null>(null);
+  const [merchant, setMerchant] = useState<MerchantMe | null>(() => {
+    if (isMock) {
+      return {
+        id: 'mock-sample-merchant',
+        shopName: 'Bole Highland Cafe',
+        name: 'Bole Highland Cafe',
+        category: 'cafe',
+        status: 'approved',
+        rejectionReason: null,
+      };
+    }
+    return null;
+  });
+  const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [emailInput, setEmailInput] = useState<string>('');
   const [codeInput, setCodeInput] = useState<string>('');
   const [codeSent, setCodeSent] = useState<boolean>(false);
@@ -444,6 +459,19 @@ export default function DashboardPage() {
                 </button>
               </form>
             )}
+
+            {/* New shop registration link */}
+            <div className="mt-6 pt-6 border-t border-slate-800 text-center">
+              <p className="text-xs sm:text-sm text-slate-400">
+                {t('dashboard.newShop')}{' '}
+                <Link
+                  href="/merchant/register"
+                  className="font-medium text-emerald-400 hover:text-emerald-300 underline underline-offset-4 transition-colors min-h-[44px] inline-flex items-center"
+                >
+                  {t('dashboard.registerShop')}
+                </Link>
+              </p>
+            </div>
           </div>
         </main>
       </div>
@@ -451,8 +479,8 @@ export default function DashboardPage() {
   }
 
   // Active status check for Real Mode
-  const currentStatus = statusOverride || merchant?.status;
-  const isStatusBlocked = !isMock && currentStatus && currentStatus !== 'approved';
+  const currentStatus = (statusOverride || merchant?.status || 'approved') as MerchantStatus;
+  const isStatusBlocked = !isMock && currentStatus !== 'approved';
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans pb-16 selection:bg-emerald-500 selection:text-slate-950">
@@ -508,6 +536,130 @@ export default function DashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 mt-8 flex-1">
+        {/* Collapsible Shop Profile Panel (Collapsed by default, shown after login / in mock mode) */}
+        {merchant && (
+          <div className="mb-6 bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden backdrop-blur-md shadow-lg transition-all">
+            <button
+              type="button"
+              onClick={() => setIsProfileOpen((prev) => !prev)}
+              aria-expanded={isProfileOpen}
+              aria-controls="shop-profile-panel"
+              className="w-full px-5 py-3.5 min-h-[44px] flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors cursor-pointer group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                  <Store className="w-4 h-4" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
+                    {t('dashboard.shopProfile')}
+                  </span>
+                  {merchant.shopName && (
+                    <span className="text-xs text-slate-400 hidden sm:inline">
+                      — {merchant.shopName}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                  currentStatus === 'approved'
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                    : currentStatus === 'pending'
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                }`}>
+                  {currentStatus}
+                </span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {isProfileOpen && (
+              <div id="shop-profile-panel" className="px-5 pb-5 pt-2 border-t border-slate-800/60 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm animate-fade-in">
+                {/* Shop Name */}
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {t('register.shopName') || 'Shop Name'}
+                  </div>
+                  <div className="font-bold text-white text-base">
+                    {merchant.shopName || merchant.name || 'Bole Highland Cafe'}
+                  </div>
+                </div>
+
+                {/* Category */}
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {t('dashboard.category') || 'Category'}
+                  </div>
+                  <div className="font-medium text-slate-200 capitalize">
+                    {merchant.category ? (t(`cat.${merchant.category}`) || merchant.category) : 'Cafe'}
+                  </div>
+                </div>
+
+                {/* Status & Actions (Projector Privacy Constraint: strictly no email, phone, license, photo, IP) */}
+                <div className="space-y-1">
+                  <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {t('dashboard.status') || 'Status'}
+                  </div>
+                  <div className="flex flex-col gap-1.5 items-start">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md border ${
+                        currentStatus === 'approved'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                          : currentStatus === 'pending'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                          : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                      }`}>
+                        {currentStatus === 'approved' && <ShieldCheck className="w-3.5 h-3.5" />}
+                        {currentStatus === 'pending' && <Clock className="w-3.5 h-3.5" />}
+                        {(currentStatus === 'rejected' || currentStatus === 'suspended') && <AlertCircle className="w-3.5 h-3.5" />}
+                        <span>{currentStatus}</span>
+                      </span>
+                    </div>
+
+                    {/* Status Explanation & Actions */}
+                    {currentStatus === 'approved' && (
+                      <p className="text-xs text-slate-400">
+                        {t('dashboard.statusApprovedDesc')}
+                      </p>
+                    )}
+                    {currentStatus === 'pending' && (
+                      <p className="text-xs text-amber-300">
+                        {t('dashboard.statusPendingDesc')}
+                      </p>
+                    )}
+                    {currentStatus === 'rejected' && (
+                      <div className="space-y-2 mt-1">
+                        {merchant.rejectionReason && (
+                          <p className="text-xs text-rose-300">
+                            <span className="font-semibold">{t('dashboard.rejectionReason')}:</span> {merchant.rejectionReason}
+                          </p>
+                        )}
+                        {!merchant.rejectionReason && (
+                          <p className="text-xs text-rose-300">
+                            {t('dashboard.statusRejectedDesc')}
+                          </p>
+                        )}
+                        <Link
+                          href="/merchant/register"
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 px-3 py-1.5 rounded-lg transition-colors min-h-[44px]"
+                        >
+                          {t('dashboard.registerAgain')}
+                        </Link>
+                      </div>
+                    )}
+                    {currentStatus === 'suspended' && (
+                      <p className="text-xs text-rose-300">
+                        {t('dashboard.statusSuspendedDesc')}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {/* Waking Server Banner */}
         {isWakingUp && (
           <div className="mb-6 bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 rounded-xl text-sm flex items-center gap-3">

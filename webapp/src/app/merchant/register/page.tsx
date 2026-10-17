@@ -244,7 +244,17 @@ export default function MerchantRegisterPage() {
             <span>Tirf Market</span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <Link 
+              href="/dashboard" 
+              className="text-xs sm:text-sm font-medium text-gray-600 hover:text-green-700 transition-colors min-h-[44px] flex items-center gap-1.5"
+            >
+              <span>{t('register.alreadyRegistered')}</span>
+              <span className="font-bold text-green-700 underline underline-offset-2">
+                {t('register.login')}
+              </span>
+            </Link>
+
             {/* Language Selector */}
             <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl text-xs font-semibold">
               <Globe className="w-3.5 h-3.5 text-gray-500 ml-1.5" />
@@ -323,6 +333,19 @@ export default function MerchantRegisterPage() {
               <span>{t('register.goToDashboard') || 'Go to Merchant Dashboard'}</span>
               <Store className="w-5 h-5" />
             </Link>
+
+            {/* Already registered reciprocal link on success card */}
+            <div className="mt-6 pt-5 border-t border-gray-100 text-center">
+              <p className="text-xs sm:text-sm text-gray-600">
+                {t('register.alreadyRegistered')}{' '}
+                <Link
+                  href="/dashboard"
+                  className="font-bold text-green-700 hover:text-green-800 underline underline-offset-2 transition-colors min-h-[44px] inline-flex items-center"
+                >
+                  {t('register.login')}
+                </Link>
+              </p>
+            </div>
           </div>
         ) : (
           /* REGISTRATION FORM */
@@ -337,6 +360,15 @@ export default function MerchantRegisterPage() {
               </h1>
               <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
                 {t('register.subtitle') || 'Join Tirf Market to attract nearby customers and accept M-PESA cashless payments.'}
+              </p>
+              <p className="text-xs sm:text-sm text-gray-600 mt-2">
+                {t('register.alreadyRegistered')}{' '}
+                <Link
+                  href="/dashboard"
+                  className="font-semibold text-green-700 hover:text-green-800 underline underline-offset-2 transition-colors min-h-[44px] inline-flex items-center"
+                >
+                  {t('register.login')}
+                </Link>
               </p>
             </div>
 
