@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Tirf Market | Best Deals in Ethiopia",
-  description: "Discover the best deals on restaurants, spas, electronics, and more in Ethiopia. Pay securely with M-Pesa.",
+  description: "Discover local deals on cafes, groceries, pharmacies, tailors and restaurants within 2 km. Pay securely with Safaricom M-Pesa.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

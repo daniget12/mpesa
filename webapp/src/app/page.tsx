@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Header from '@/components/Header';
 import DealCard from '@/components/DealCard';
 import MpesaModal from '@/components/MpesaModal';
@@ -8,10 +9,8 @@ import DealDetailsModal from '@/components/DealDetailsModal';
 import { 
   Utensils, 
   Coffee, 
-  Bed, 
   Sparkles, 
   MonitorSmartphone, 
-  Car, 
   Loader2, 
   MapPin, 
   AlertCircle, 
@@ -20,7 +19,11 @@ import {
   Compass,
   Sliders,
   ChevronDown,
-  X
+  X,
+  Pill,
+  Scissors,
+  Store,
+  ShieldCheck,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { fetchNearbyDeals, NearbyDeal } from '@/lib/api';
@@ -28,11 +31,23 @@ import { fetchNearbyDeals, NearbyDeal } from '@/lib/api';
 const DEFAULT_LAT = 9.0000;
 const DEFAULT_LON = 38.7800;
 
+const KNOWN_CATEGORIES = ['cafe', 'restaurant', 'grocery', 'pharmacy', 'tailor', 'barbershop'] as const;
+
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  cafe: Coffee,
+  restaurant: Utensils,
+  grocery: Store,
+  pharmacy: Pill,
+  tailor: Scissors,
+  barbershop: Sparkles,
+};
+
 export default function Home() {
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<NearbyDeal | null>(null);
   const [selectedDealForBuy, setSelectedDealForBuy] = useState<NearbyDeal | null>(null);
   const [deals, setDeals] = useState<NearbyDeal[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [isWakingUp, setIsWakingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -152,24 +167,35 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [requestUserLocation]);
 
-  const CATEGORIES = [
-    { id: 'all', name: 'All', icon: Sparkles, color: 'bg-green-100 text-green-700' },
-    { id: 'food', name: t('cat.food'), icon: Utensils, color: 'bg-orange-100 text-orange-600' },
-    { id: 'cafe', name: t('cat.coffee'), icon: Coffee, color: 'bg-amber-100 text-amber-700' },
-    { id: 'spa', name: t('cat.spa'), icon: Sparkles, color: 'bg-purple-100 text-purple-600' },
-    { id: 'hotels', name: t('cat.hotels'), icon: Bed, color: 'bg-blue-100 text-blue-600' },
-    { id: 'electronics', name: t('cat.electronics'), icon: MonitorSmartphone, color: 'bg-gray-100 text-gray-700' },
-    { id: 'auto', name: t('cat.auto'), icon: Car, color: 'bg-red-100 text-red-600' },
-  ];
+  // Build category chips dynamically from loaded deals, plus "All"
+  const categoryChips = React.useMemo(() => {
+    const catsInDeals = new Set(
+      deals.map((d) => (d.category || '').toLowerCase().trim()).filter(Boolean)
+    );
+    const presentCategories = KNOWN_CATEGORIES.filter((c) => catsInDeals.has(c));
+    return [
+      { id: 'all', label: t('cat.all') || 'All', icon: Sparkles },
+      ...presentCategories.map((c) => ({
+        id: c,
+        label: t(`cat.${c}`) || c,
+        icon: CATEGORY_ICONS[c] || Store,
+      })),
+    ];
+  }, [deals, t]);
 
-  const filteredDeals = selectedCategory === 'all'
-    ? deals
-    : deals.filter((d) => {
-        const cat = (d.category || '').toLowerCase();
-        if (selectedCategory === 'food') return cat === 'food' || cat === 'grocery' || cat === 'restaurant';
-        if (selectedCategory === 'cafe') return cat === 'cafe' || cat === 'coffee';
-        return cat === selectedCategory;
-      });
+  // In-browser filtering with NO network requests: by category and title/merchantName
+  const filteredDeals = React.useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return deals.filter((d) => {
+      const cat = (d.category || '').toLowerCase().trim();
+      const matchesCategory = selectedCategory === 'all' || cat === selectedCategory;
+      const matchesSearch =
+        !q ||
+        (d.title || '').toLowerCase().includes(q) ||
+        (d.merchantName || '').toLowerCase().includes(q);
+      return matchesCategory && matchesSearch;
+    });
+  }, [deals, selectedCategory, searchQuery]);
 
   const nearestDeal = deals.length > 0 ? deals[0] : null;
   const isBannerVisible = Boolean(
@@ -186,18 +212,14 @@ export default function Home() {
     }
   };
 
-  const handleActionClick = (action: string) => {
-    alert(`${action} feature coming soon!`);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      <Header />
+    <div className="min-h-screen bg-gray-50 font-sans overflow-x-hidden w-full">
+      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
       
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8 w-full max-w-full">
         {/* Proximity Alert Banner (Nearest deal within 500 m) */}
         {isBannerVisible && nearestDeal && (
-          <div className="mb-6 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-700 text-white rounded-2xl p-4 shadow-lg flex items-center justify-between gap-4 transition-all">
+          <div className="mb-6 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-700 text-white rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 transition-all">
             <div 
               onClick={() => setSelectedDealForDetails(nearestDeal)}
               className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
@@ -213,11 +235,11 @@ export default function Home() {
                 <span className="font-bold underline decoration-yellow-400">{nearestDeal.finalAmount} ETB</span>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 justify-end flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setSelectedDealForDetails(nearestDeal)}
-                className="text-xs bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                className="min-h-[44px] text-xs bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold px-4 py-2.5 rounded-xl transition-colors cursor-pointer flex items-center justify-center"
               >
                 {t("alert.view")}
               </button>
@@ -228,7 +250,7 @@ export default function Home() {
                   setDismissedMerchantId(nearestDeal.merchantId);
                 }}
                 aria-label="Dismiss proximity alert"
-                className="p-1.5 hover:bg-white/20 rounded-lg text-white/80 hover:text-white transition-colors cursor-pointer"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 hover:bg-white/20 rounded-xl text-white/80 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -237,27 +259,27 @@ export default function Home() {
         )}
 
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-green-800 via-green-700 to-yellow-600 rounded-3xl p-8 mb-12 text-white shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-green-800 via-green-700 to-yellow-600 rounded-3xl p-6 sm:p-8 mb-10 sm:mb-12 text-white shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500 rounded-full opacity-20 blur-3xl -translate-y-1/2 translate-x-1/3"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-red-500 rounded-full opacity-20 blur-3xl translate-y-1/2 -translate-x-1/3"></div>
           
           <div className="relative z-10 max-w-2xl">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 tracking-tight leading-tight">
               {t("hero.title")}
             </h1>
-            <p className="text-lg md:text-xl mb-8 text-green-50">
+            <p className="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 text-green-50 leading-relaxed">
               {t("hero.subtitle")}
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-3 sm:gap-4">
               <button 
                 onClick={() => scrollToSection('deals')}
-                className="bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-3 px-8 rounded-full transition-colors shadow-lg cursor-pointer"
+                className="min-h-[44px] bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold py-3 px-6 sm:px-8 rounded-full transition-colors shadow-lg cursor-pointer flex items-center justify-center text-sm sm:text-base"
               >
                 {t("hero.explore")}
               </button>
               <button 
                 onClick={() => scrollToSection('how-it-works')}
-                className="bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white font-bold py-3 px-8 rounded-full transition-colors cursor-pointer"
+                className="min-h-[44px] bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/40 text-white font-bold py-3 px-6 sm:px-8 rounded-full transition-colors cursor-pointer flex items-center justify-center text-sm sm:text-base"
               >
                 {t("hero.how")}
               </button>
@@ -265,54 +287,67 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Categories */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b-2 border-green-600 inline-block pb-1">{t("categories.title")}</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {CATEGORIES.map((cat) => (
-              <div 
-                key={cat.id} 
-                onClick={() => {
-                  setSelectedCategory(cat.id);
-                  scrollToSection('deals');
-                }}
-                className={`bg-white rounded-xl p-4 flex flex-col items-center justify-center gap-3 cursor-pointer hover:shadow-md transition-all border ${
-                  selectedCategory === cat.id ? 'border-green-600 ring-2 ring-green-500/20 shadow-sm' : 'border-gray-100'
-                }`}
-              >
-                <div className={`p-3 rounded-full ${cat.color}`}>
-                  <cat.icon className="w-6 h-6" />
-                </div>
-                <span className="text-sm font-medium text-gray-700 text-center">{cat.name}</span>
-              </div>
-            ))}
+        {/* Category Filter Chips */}
+        <div className="mb-10 sm:mb-12">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4 border-b-2 border-green-600 inline-block pb-1">
+            {t("categories.title")}
+          </h2>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {categoryChips.map((chip) => {
+              const isSelected = selectedCategory === chip.id;
+              const Icon = chip.icon;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(chip.id);
+                    scrollToSection('deals');
+                  }}
+                  className={`min-h-[44px] px-4 py-2.5 rounded-full flex items-center gap-2 text-sm font-semibold transition-all cursor-pointer border ${
+                    isSelected
+                      ? 'bg-green-700 text-white border-green-700 shadow-sm ring-2 ring-green-500/20'
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-xs'
+                  }`}
+                >
+                  <Icon className={`w-4 h-4 ${isSelected ? 'text-yellow-300' : 'text-gray-500'}`} />
+                  <span>{chip.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* How it Works Section */}
-        <div id="how-it-works" className="mb-16 bg-white rounded-3xl p-8 shadow-sm border border-gray-100 scroll-mt-24">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center border-b-2 border-yellow-500 inline-block pb-2 mx-auto flex w-fit">Why Choose Tirf Market?</h2>
+        <div id="how-it-works" className="mb-14 sm:mb-16 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 scroll-mt-24">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8 text-center border-b-2 border-yellow-500 pb-2 mx-auto flex w-fit">
+            Why Choose Tirf Market?
+          </h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="text-center space-y-3 sm:space-y-4">
+              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Sparkles className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800">Hyperlocal Deals (2 km)</h3>
-              <p className="text-gray-600">Discover verified deals within walking distance. Pay live via Safaricom M-Pesa with instant voucher pass generation.</p>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800">Hyperlocal Deals (2 km)</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Discover verified deals at local cafes, groceries, pharmacies, tailors and restaurants within 2 km. Pay live via Safaricom M-Pesa with instant voucher redemption.
+              </p>
             </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="text-center space-y-3 sm:space-y-4">
+              <div className="w-16 h-16 bg-yellow-100 text-yellow-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <MonitorSmartphone className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800">Seamless Telegram Integration</h3>
-              <p className="text-gray-600">Tirf Market isn&apos;t just a website. Connect with our Telegram Bot to get instant alerts on fresh deals directly on your phone so you never miss out.</p>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800">{t("features.telegram.title")}</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">{t("features.telegram.desc")}</p>
             </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Car className="w-8 h-8" />
+            <div className="text-center space-y-3 sm:space-y-4">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <ShieldCheck className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-gray-800">Fast & Secure Payments</h3>
-              <p className="text-gray-600">Checkout is quick and secure using Safaricom M-Pesa. Receive your digital voucher instantly and redeem it right at the counter.</p>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-800">Fast & Secure Payments</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Checkout is quick and secure using Safaricom M-Pesa. Receive your digital voucher instantly and claim your savings directly at the shop counter.
+              </p>
             </div>
           </div>
         </div>
@@ -321,8 +356,10 @@ export default function Home() {
         <div id="deals" className="scroll-mt-24">
           <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-3 mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 border-b-2 border-green-600 inline-block pb-1">{t("trending.title")}</h2>
-              <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 border-b-2 border-green-600 inline-block pb-1">
+                {t("trending.title")}
+              </h2>
+              <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-gray-500">
                 <span className="flex items-center gap-1 font-medium">
                   <MapPin className="w-3.5 h-3.5 text-green-600" />
                   {isSimulatedLocation 
@@ -339,7 +376,7 @@ export default function Home() {
                   type="button"
                   onClick={requestUserLocation}
                   disabled={isRequestingLocation}
-                  className="text-green-700 hover:text-green-800 font-semibold hover:underline cursor-pointer inline-flex items-center gap-1"
+                  className="min-h-[44px] text-green-700 hover:text-green-800 font-semibold hover:underline cursor-pointer inline-flex items-center gap-1"
                 >
                   <Navigation className="w-3 h-3" />
                   {isRequestingLocation ? 'Locating...' : (isLiveLocation ? 'Refresh Location' : t("deals.locateMe"))}
@@ -347,13 +384,25 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {selectedCategory !== 'all' && (
                 <button
+                  type="button"
                   onClick={() => setSelectedCategory('all')}
-                  className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded-full cursor-pointer transition-colors"
+                  className="min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3.5 py-2 rounded-full cursor-pointer transition-colors inline-flex items-center gap-1.5"
                 >
-                  Clear filter ({selectedCategory})
+                  <span>Clear category: {t(`cat.${selectedCategory}`) || selectedCategory}</span>
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="min-h-[44px] text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3.5 py-2 rounded-full cursor-pointer transition-colors inline-flex items-center gap-1.5"
+                >
+                  <span>Clear search: &ldquo;{searchQuery}&rdquo;</span>
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -407,23 +456,48 @@ export default function Home() {
                 <Compass className="w-6 h-6 text-gray-400" />
               </div>
               <h3 className="font-bold text-gray-900 text-base mb-1">{t("deals.empty")}</h3>
-              <p className="text-xs text-gray-500 mb-5">
-                {selectedCategory !== 'all' 
-                  ? `No deals found under "${selectedCategory}" within 2 km.` 
+              <p className="text-xs text-gray-500 mb-5 leading-relaxed">
+                {searchQuery
+                  ? `No deals matching "${searchQuery}" within 2 km.`
+                  : selectedCategory !== 'all'
+                  ? `No deals found under "${t(`cat.${selectedCategory}`) || selectedCategory}" within 2 km.`
                   : 'No promotions active within 2 km of your current coordinates.'}
               </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedCategory('all');
-                  setIsLiveLocation(false);
-                  setCoords({ lat: DEFAULT_LAT, lon: DEFAULT_LON });
-                  loadDeals(DEFAULT_LAT, DEFAULT_LON);
-                }}
-                className="inline-flex items-center gap-2 bg-gray-900 hover:bg-black text-white font-medium py-2 px-5 rounded-xl transition-colors text-sm cursor-pointer"
-              >
-                Explore Addis Ababa Center
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="min-h-[44px] inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium py-2.5 px-5 rounded-xl transition-colors text-sm cursor-pointer shadow-xs"
+                  >
+                    Clear Search
+                  </button>
+                )}
+                {selectedCategory !== 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCategory('all')}
+                    className="min-h-[44px] inline-flex items-center gap-2 bg-gray-900 hover:bg-black text-white font-medium py-2.5 px-5 rounded-xl transition-colors text-sm cursor-pointer shadow-xs"
+                  >
+                    Show All Deals
+                  </button>
+                )}
+                {!searchQuery && selectedCategory === 'all' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedCategory('all');
+                      setSearchQuery('');
+                      setIsLiveLocation(false);
+                      setCoords({ lat: DEFAULT_LAT, lon: DEFAULT_LON });
+                      loadDeals(DEFAULT_LAT, DEFAULT_LON);
+                    }}
+                    className="min-h-[44px] inline-flex items-center gap-2 bg-gray-900 hover:bg-black text-white font-medium py-2.5 px-5 rounded-xl transition-colors text-sm cursor-pointer shadow-xs"
+                  >
+                    Explore Addis Ababa Center
+                  </button>
+                )}
+              </div>
             </div>
           )}
 
@@ -454,7 +528,7 @@ export default function Home() {
       {/* Footer */}
       <footer className="bg-gray-900 text-white pt-12 pb-8 mt-20">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8 border-b border-gray-800 pb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 border-b border-gray-800 pb-8">
             <div>
               <h3 className="text-2xl font-bold mb-4 flex items-center gap-1">
                 <span className="text-yellow-500">Tirf</span> Market
@@ -469,19 +543,9 @@ export default function Home() {
               </div>
             </div>
             <div>
-              <h4 className="font-bold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-gray-400">
-                <li><button onClick={() => handleActionClick("Footer link")} className="hover:text-white cursor-pointer">About Us</button></li>
-                <li><button onClick={() => handleActionClick("Footer link")} className="hover:text-white cursor-pointer">Careers</button></li>
-                <li><button onClick={() => handleActionClick("Footer link")} className="hover:text-white cursor-pointer">Press</button></li>
-              </ul>
-            </div>
-            <div>
               <h4 className="font-bold mb-4">Work with Us</h4>
               <ul className="space-y-2 text-sm text-gray-400">
-                <li><button onClick={() => handleActionClick("Footer link")} className="hover:text-white cursor-pointer">Run a Deal</button></li>
-                <li><button onClick={() => handleActionClick("Footer link")} className="hover:text-white cursor-pointer">Merchant Center</button></li>
-                <li><button onClick={() => handleActionClick("Footer link")} className="hover:text-white cursor-pointer">Affiliate Program</button></li>
+                <li><Link href="/dashboard" className="hover:text-white cursor-pointer">Merchant Center</Link></li>
               </ul>
             </div>
             <div>
@@ -531,7 +595,7 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setIsDemoPanelOpen(true)}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-semibold text-xs px-4 py-2.5 rounded-full shadow-xl border border-purple-400/30 transition-transform active:scale-95 cursor-pointer"
+              className="min-h-[44px] flex items-center gap-2 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-800 hover:to-indigo-800 text-white font-semibold text-xs px-4 py-2.5 rounded-full shadow-xl border border-purple-400/30 transition-transform active:scale-95 cursor-pointer"
             >
               <Sliders className="w-3.5 h-3.5 text-yellow-300" />
               <span>{t("demo.badge")}</span>
@@ -546,7 +610,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setIsDemoPanelOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 p-1 rounded-md transition-colors cursor-pointer"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-gray-400 hover:text-gray-600 p-1 rounded-md transition-colors cursor-pointer"
                   aria-label="Collapse demo panel"
                 >
                   <ChevronDown className="w-4 h-4" />
@@ -560,7 +624,7 @@ export default function Home() {
                   type="button"
                   onClick={handleWalkToShop}
                   disabled={loading || deals.length === 0}
-                  className="w-full flex items-center justify-between text-left text-xs bg-purple-50 hover:bg-purple-100 disabled:opacity-50 text-purple-900 font-semibold py-2.5 px-3 rounded-xl border border-purple-200 transition-colors cursor-pointer"
+                  className="min-h-[44px] w-full flex items-center justify-between text-left text-xs bg-purple-50 hover:bg-purple-100 disabled:opacity-50 text-purple-900 font-semibold py-2.5 px-3 rounded-xl border border-purple-200 transition-colors cursor-pointer"
                 >
                   <span>{t("demo.walkShop")}</span>
                   <Navigation className="w-3.5 h-3.5 text-purple-600 flex-shrink-0" />
@@ -569,7 +633,7 @@ export default function Home() {
                   type="button"
                   onClick={handleBackToBole}
                   disabled={loading}
-                  className="w-full flex items-center justify-between text-left text-xs bg-gray-50 hover:bg-gray-100 disabled:opacity-50 text-gray-800 font-medium py-2.5 px-3 rounded-xl border border-gray-200 transition-colors cursor-pointer"
+                  className="min-h-[44px] w-full flex items-center justify-between text-left text-xs bg-gray-50 hover:bg-gray-100 disabled:opacity-50 text-gray-800 font-medium py-2.5 px-3 rounded-xl border border-gray-200 transition-colors cursor-pointer"
                 >
                   <span>{t("demo.boleCenter")}</span>
                   <MapPin className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" />
