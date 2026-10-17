@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Menu, Search, User as UserIcon, LogOut, Globe, ShieldCheck, Store, ChevronDown, X } from 'lucide-react';
+import { Menu, Search, User as UserIcon, LogOut, Globe, ShieldCheck, Store, ChevronDown, X, Smartphone } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from './AuthModal';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
@@ -11,9 +11,10 @@ import type { User } from '@supabase/supabase-js';
 interface HeaderProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  onSwitchToMiniApp?: () => void;
 }
 
-export default function Header({ searchQuery = '', onSearchChange }: HeaderProps) {
+export default function Header({ searchQuery = '', onSearchChange, onSwitchToMiniApp }: HeaderProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [profileName, setProfileName] = useState<string>('');
@@ -144,6 +145,18 @@ export default function Header({ searchQuery = '', onSearchChange }: HeaderProps
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4">
+            {onSwitchToMiniApp && (
+              <button
+                type="button"
+                onClick={onSwitchToMiniApp}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 transition-colors cursor-pointer"
+                title="Open M-PESA Mini App view"
+              >
+                <Smartphone className="w-4 h-4 text-emerald-600" />
+                <span>M-PESA Mini App</span>
+              </button>
+            )}
+
             {/* For shops Dropdown Menu */}
             <div className="relative" ref={forShopsRef}>
               <button
@@ -298,6 +311,22 @@ export default function Header({ searchQuery = '', onSearchChange }: HeaderProps
                 </div>
                 <span>{t("header.merchantLogin")}</span>
               </Link>
+
+              {onSwitchToMiniApp && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    onSwitchToMiniApp();
+                  }}
+                  className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 transition-colors w-full text-left"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-200 text-emerald-800 flex items-center justify-center shrink-0">
+                    <Smartphone className="w-4 h-4" />
+                  </div>
+                  <span>Launch M-PESA Mini App</span>
+                </button>
+              )}
             </div>
           </div>
         )}

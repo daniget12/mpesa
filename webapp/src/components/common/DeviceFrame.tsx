@@ -92,7 +92,7 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ children, onSwitchToWe
       </div>
 
       {/* Main Container Layout */}
-      <div className={`w-full ${frameMode === 'phone' ? 'max-w-5xl' : 'max-w-4xl'} my-0 md:my-6 grid grid-cols-1 ${frameMode === 'phone' ? 'lg:grid-cols-12 gap-8' : ''} items-start`}>
+      <div className={`w-full ${frameMode === 'phone' ? 'max-w-5xl' : 'max-w-6xl'} my-0 md:my-6 grid grid-cols-1 ${frameMode === 'phone' ? 'lg:grid-cols-12 gap-8' : ''} items-start`}>
         {/* Left Side (Desktop pitch helper card) */}
         {frameMode === 'phone' && (
           <div className="hidden lg:block lg:col-span-5 space-y-4 pt-2">
@@ -196,30 +196,38 @@ export const DeviceFrame: React.FC<DeviceFrameProps> = ({ children, onSwitchToWe
           </div>
         )}
 
-        {/* Center / Right Column: The Phone Frame */}
-        <div className={`w-full ${frameMode === 'phone' ? 'lg:col-span-7 flex justify-center' : 'flex justify-center'}`}>
-          <div className={`w-full ${frameMode === 'phone' ? 'max-w-[390px]' : 'max-w-[480px]'} bg-slate-100 min-h-screen md:min-h-[820px] md:max-h-[880px] md:rounded-[44px] shadow-2xl md:ring-8 md:ring-slate-800 md:ring-offset-4 md:ring-offset-slate-950 flex flex-col overflow-hidden relative border-x md:border border-slate-800`}>
+        {/* Center / Right Column: The Phone or Full Screen Frame */}
+        <div className={`w-full ${frameMode === 'phone' ? 'lg:col-span-7 flex justify-center' : 'w-full flex justify-center'}`}>
+          <div className={`w-full ${
+            frameMode === 'phone'
+              ? 'max-w-[390px] bg-slate-100 min-h-screen md:min-h-[820px] md:max-h-[880px] md:rounded-[44px] shadow-2xl md:ring-8 md:ring-slate-800 md:ring-offset-4 md:ring-offset-slate-950 border-x md:border border-slate-800'
+              : 'max-w-6xl w-full bg-slate-100 min-h-screen md:min-h-[780px] md:rounded-2xl shadow-2xl border border-slate-700/80'
+          } flex flex-col overflow-hidden relative`}>
             
-            {/* Phone Top Notch & Status Bar */}
-            <div className="bg-emerald-950 text-white px-6 pt-3 pb-1 flex items-center justify-between text-xs font-semibold select-none shrink-0 z-40">
-              <span className="text-[11px] tracking-tight font-mono">{currentTime}</span>
-              <div className="w-20 h-4 bg-slate-950 rounded-full mx-auto -mt-1 hidden sm:block border border-slate-800/80"></div>
-              <div className="flex items-center gap-1.5 text-slate-300">
-                <Signal className="w-3 h-3 text-emerald-400" />
-                <Wifi className="w-3 h-3" />
-                <Battery className="w-4 h-4 text-emerald-400 fill-emerald-400" />
+            {/* Phone Top Notch & Status Bar (ONLY shown in phone mode) */}
+            {frameMode === 'phone' && (
+              <div className="bg-emerald-950 text-white px-6 pt-3 pb-1 flex items-center justify-between text-xs font-semibold select-none shrink-0 z-40">
+                <span className="text-[11px] tracking-tight font-mono">{currentTime}</span>
+                <div className="w-20 h-4 bg-slate-950 rounded-full mx-auto -mt-1 hidden sm:block border border-slate-800/80"></div>
+                <div className="flex items-center gap-1.5 text-slate-300">
+                  <Signal className="w-3 h-3 text-emerald-400" />
+                  <Wifi className="w-3 h-3" />
+                  <Battery className="w-4 h-4 text-emerald-400 fill-emerald-400" />
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Inner App Canvas */}
             <div className="flex-1 overflow-y-auto bg-slate-100 flex flex-col relative text-slate-900 scroll-smooth">
               {children}
             </div>
 
-            {/* Phone Bottom Home Bar */}
-            <div className="h-4 bg-white shrink-0 flex items-center justify-center select-none pb-1">
-              <div className="w-28 h-1 bg-slate-300 rounded-full"></div>
-            </div>
+            {/* Phone Bottom Home Bar (ONLY shown in phone mode) */}
+            {frameMode === 'phone' && (
+              <div className="h-4 bg-white shrink-0 flex items-center justify-center select-none pb-1">
+                <div className="w-28 h-1 bg-slate-300 rounded-full"></div>
+              </div>
+            )}
           </div>
         </div>
       </div>

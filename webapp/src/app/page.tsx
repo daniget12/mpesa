@@ -9,19 +9,20 @@ export default function Home() {
   const [surfaceMode, setSurfaceMode] = useState<'miniapp' | 'website'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('view') === 'website') {
-        return 'website';
+      if (params.get('view') === 'miniapp') {
+        return 'miniapp';
       }
     }
-    return 'miniapp';
+    // Default to full-screen website for all browser/desktop visits!
+    return 'website';
   });
 
   return (
     <MiniAppProvider>
-      {surfaceMode === 'miniapp' ? (
-        <MainApp onSwitchToWebsite={() => setSurfaceMode('website')} />
-      ) : (
+      {surfaceMode === 'website' ? (
         <WebsiteHome onSwitchToMiniApp={() => setSurfaceMode('miniapp')} />
+      ) : (
+        <MainApp onSwitchToWebsite={() => setSurfaceMode('website')} />
       )}
     </MiniAppProvider>
   );

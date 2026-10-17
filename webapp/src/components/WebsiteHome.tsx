@@ -233,7 +233,7 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({ onSwitchToMiniApp }) =
         </div>
       )}
 
-      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} onSwitchToMiniApp={onSwitchToMiniApp} />
       
       <main className="container mx-auto px-4 py-6 sm:py-8 w-full max-w-full">
         {/* Proximity Alert Banner */}
