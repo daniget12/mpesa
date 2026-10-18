@@ -111,7 +111,7 @@ export default function DealCard({
               <IconComponent className="w-6 h-6 text-emerald-300" />
             </div>
             <span className="text-xs font-semibold tracking-wider uppercase text-emerald-200/90">
-              {t(`cat.${catKey}` as any) || category || 'Flash Deal'}
+              {t(`cat.${catKey}` as unknown as Parameters<typeof t>[0]) || category || 'Flash Deal'}
             </span>
           </div>
         )}
@@ -131,7 +131,7 @@ export default function DealCard({
             </div>
           ) : (
             <div className="bg-slate-900/80 text-slate-200 text-[11px] font-medium px-2.5 py-1 rounded-md backdrop-blur-xs">
-              {t(`cat.${catKey}` as any) || category || 'Special'}
+              {t(`cat.${catKey}` as unknown as Parameters<typeof t>[0]) || category || 'Special'}
             </div>
           )}
 

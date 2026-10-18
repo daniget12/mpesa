@@ -202,8 +202,37 @@ export const WebsiteHome: React.FC = () => {
   };
 
   useEffect(() => {
-    loadDeals(coords.lat, coords.lon);
-  }, []);
+    let ignore = false;
+    const fetch = async () => {
+      const coldStartTimer = setTimeout(() => {
+        if (!ignore) setIsWakingUp(true);
+      }, 4000);
+
+      try {
+        const data = await fetchNearbyDeals(coords.lat, coords.lon, 2000);
+        clearTimeout(coldStartTimer);
+        if (!ignore) {
+          if (Array.isArray(data) && data.length > 0) {
+            setDeals(data);
+          } else {
+            setDeals(getFallbackNearbyDeals(coords.lat, coords.lon));
+          }
+        }
+      } catch {
+        clearTimeout(coldStartTimer);
+        if (!ignore) setDeals(getFallbackNearbyDeals(coords.lat, coords.lon));
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+          setIsWakingUp(false);
+        }
+      }
+    };
+    fetch();
+    return () => {
+      ignore = true;
+    };
+  }, [coords.lat, coords.lon]);
 
   const filteredAndSortedDeals = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -452,7 +481,7 @@ export const WebsiteHome: React.FC = () => {
               {KNOWN_CATEGORIES.map((cat) => {
                 const isSelected = selectedCategory === cat.id;
                 const IconComponent = cat.icon;
-                const label = t(cat.labelKey as any) || cat.fallback;
+                const label = t(cat.labelKey as unknown as Parameters<typeof t>[0]) || cat.fallback;
                 return (
                   <button
                     key={cat.id}
@@ -477,7 +506,7 @@ export const WebsiteHome: React.FC = () => {
               <span className="text-xs text-slate-500 font-medium">{t('deals.sortLabel')}:</span>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as 'distance' | 'discount' | 'price')}
                 className="bg-white border border-slate-200 text-xs font-semibold text-slate-800 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 cursor-pointer"
               >
                 <option value="distance">{t('deals.sortNearest')}</option>
