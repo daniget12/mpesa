@@ -26,6 +26,7 @@ export const PostDeal: React.FC<PostDealProps> = ({ onBack, onSuccess }) => {
     `${currentMerchantShop.name.slice(0, 3).toUpperCase()}-101`
   );
   const [expiryHours, setExpiryHours] = useState<number>(6);
+  const [unitsAvailable, setUnitsAvailable] = useState<number>(isNewShop ? 10 : 50);
 
   const maxDiscountAllowed = isNewShop ? 50 : 90;
   const maxUnitsAllowed = isNewShop ? 20 : 500;

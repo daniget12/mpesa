@@ -20,6 +20,7 @@ interface DealAdminItem {
   title: string;
   merchant_name?: string;
   category?: string;
+  original_price?: number;
   discounted_price?: number;
   status?: string;
   created_at?: string;

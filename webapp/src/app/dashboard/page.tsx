@@ -15,6 +15,7 @@ import {
   DashboardOrder,
   MerchantMe,
   DashboardApiError,
+  MerchantStatus,
   redeemDealCode,
   RedeemResponse,
 } from '@/lib/dashboardApi';
@@ -650,7 +651,7 @@ export default function DashboardPage() {
                     {t('dashboard.category') || 'Category'}
                   </div>
                   <div className="font-medium text-slate-200 capitalize">
-                    {merchant.category ? (t(`cat.${merchant.category}`) || merchant.category) : 'Cafe'}
+                    {merchant.category ? (t(`cat.${merchant.category}` as any) || merchant.category) : 'Cafe'}
                   </div>
                 </div>
 

@@ -1,7 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { MapPin, CheckCircle2 } from 'lucide-react';
+import { MapPin, CheckCircle2, Coffee, Utensils, Store, Pill, Scissors, ShoppingBag } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  cafe: Coffee,
+  coffee: Coffee,
+  restaurant: Utensils,
+  food: Utensils,
+  grocery: Store,
+  pharmacy: Pill,
+  tailor: Scissors,
+  barbershop: Scissors,
+  bakery: Coffee,
+};
+
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  cafe: 'from-amber-700 to-amber-900',
+  coffee: 'from-amber-800 to-amber-950',
+  restaurant: 'from-emerald-800 to-emerald-950',
+  food: 'from-emerald-800 to-emerald-950',
+  grocery: 'from-teal-800 to-slate-900',
+  pharmacy: 'from-cyan-800 to-slate-900',
+  tailor: 'from-indigo-800 to-slate-950',
+  barbershop: 'from-violet-800 to-slate-950',
+  bakery: 'from-amber-700 to-orange-950',
+};
 
 const CATEGORY_IMAGES: Record<string, string> = {
   cafe: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&q=80&w=800',
@@ -41,82 +65,131 @@ interface DealProps {
   onClick?: () => void;
 }
 
-export default function DealCard({ 
-  title, 
-  merchant, 
-  location, 
+export default function DealCard({
+  title,
+  merchant,
+  location,
   category,
-  originalPrice, 
-  finalAmount, 
+  originalPrice,
+  finalAmount,
   discountPct,
   distanceMeters,
-  image, 
+  image,
   verified,
   bought = 0,
   onBuy,
-  onClick
+  onClick,
 }: DealProps) {
   const { t } = useLanguage();
-  const displayImage = image || (category && CATEGORY_IMAGES[category.toLowerCase()]) || DEFAULT_DEAL_IMAGE;
+  const [imageError, setImageError] = useState(false);
+  const catKey = (category || 'cafe').toLowerCase();
+  const IconComponent = CATEGORY_ICONS[catKey] || ShoppingBag;
+  const gradientClass = CATEGORY_GRADIENTS[catKey] || 'from-emerald-800 to-slate-900';
+  const displayImage = image || CATEGORY_IMAGES[catKey] || DEFAULT_DEAL_IMAGE;
   const distanceText = formatDistance(distanceMeters);
 
   return (
-    <div onClick={onClick} className={`bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 border border-gray-100 flex flex-col h-full ${onClick ? 'cursor-pointer' : ''}`}>
-      <div className="relative h-48 w-full bg-gray-200">
-        <Image 
-          src={displayImage} 
-          alt={title} 
-          fill
-          className="object-cover"
-        />
-        {discountPct !== undefined && discountPct > 0 && (
-          <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-md shadow-sm">
-            {discountPct}% OFF
+    <div
+      onClick={onClick}
+      className={`group bg-white rounded-2xl overflow-hidden border border-slate-200/90 hover:border-emerald-400 hover:shadow-xl transition-all duration-300 flex flex-col h-full ${
+        onClick ? 'cursor-pointer' : ''
+      }`}
+    >
+      {/* Visual Media Container with Resilient Fallback */}
+      <div className="relative h-48 w-full overflow-hidden bg-slate-900">
+        {!imageError ? (
+          <Image
+            src={displayImage}
+            alt={title}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex flex-col items-center justify-center p-6 text-white text-center`}>
+            <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-2">
+              <IconComponent className="w-6 h-6 text-emerald-300" />
+            </div>
+            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-200/90">{category || 'Flash Deal'}</span>
           </div>
         )}
-        {verified && (
-          <div
-            title={t("deal.approvedShop") || "Approved shop"}
-            aria-label={t("deal.approvedShop") || "Approved shop"}
-            className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-xs text-white text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm"
-          >
-            <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
-            <span>{t("deal.approvedShop") || "Approved shop"}</span>
-          </div>
-        )}
-      </div>
-      
-      <div className="p-4 flex flex-col flex-grow">
-        <h3 className="font-bold text-gray-900 text-lg line-clamp-2 mb-1">{title}</h3>
-        <p className="text-sm text-gray-500 mb-2">{merchant}</p>
-        
-        <div className="flex items-center text-xs text-gray-500 mb-4 gap-4 flex-wrap">
-          <span className="flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> 
-            {distanceText ? (
-              <span className="font-semibold text-emerald-800">{distanceText}</span>
-            ) : (
-              <span>{location || 'Addis Ababa'}</span>
-            )}
-          </span>
-          {bought > 0 && (
-            <span className="flex items-center gap-1 text-green-700">{bought}+ {t("deal.bought")}</span>
+
+        {/* Soft Vignette Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
+
+        {/* Top Badges */}
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
+          {verified ? (
+            <div
+              title={t("deal.approvedShop") || "Approved Shop"}
+              className="bg-emerald-600 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm backdrop-blur-xs"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>{t("deal.approvedShop") || "Approved"}</span>
+            </div>
+          ) : (
+            <div className="bg-slate-900/80 text-slate-200 text-[11px] font-medium px-2.5 py-1 rounded-md backdrop-blur-xs">
+              {category || 'Special'}
+            </div>
+          )}
+
+          {discountPct !== undefined && discountPct > 0 && (
+            <div className="bg-rose-600 text-white text-xs font-black px-2.5 py-1 rounded-md shadow-sm font-mono tracking-tight">
+              -{discountPct}%
+            </div>
           )}
         </div>
-        
-        <div className="mt-auto flex items-end justify-between pt-4 border-t border-gray-100">
+
+        {/* Bottom Image Sub-strip: Category & Proximity */}
+        <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-white/90 font-medium pointer-events-none">
+          <span className="flex items-center gap-1 drop-shadow-sm text-[11px]">
+            <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <span>{distanceText ? `${distanceText} away` : (location || 'Addis Ababa')}</span>
+          </span>
+          {bought > 0 && (
+            <span className="text-[10px] bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded text-emerald-300 font-mono">
+              {bought}+ claimed
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Card Body */}
+      <div className="p-4 sm:p-5 flex flex-col flex-grow">
+        <div className="mb-1">
+          <p className="text-xs font-semibold text-emerald-700 tracking-wide uppercase truncate">
+            {merchant}
+          </p>
+          <h3 className="font-bold text-slate-900 text-base sm:text-lg line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
+            {title}
+          </h3>
+        </div>
+
+        {/* Price & Action Container */}
+        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
           <div>
             {originalPrice !== undefined && originalPrice > finalAmount && (
-              <p className="text-sm text-gray-400 line-through">{originalPrice} ETB</p>
+              <p className="text-xs text-slate-400 line-through font-mono">
+                ETB {originalPrice}
+              </p>
             )}
-            <p className="text-xl font-bold text-green-700">{finalAmount} ETB</p>
+            <div className="flex items-baseline gap-1">
+              <span className="text-xs font-bold text-emerald-700">ETB</span>
+              <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tabular-nums tracking-tight">
+                {finalAmount}
+              </span>
+            </div>
           </div>
-          
-          <button 
-            onClick={(e) => { e.stopPropagation(); onBuy(); }}
-            className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 px-5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm cursor-pointer shadow-sm hover:shadow"
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBuy();
+            }}
+            className="min-h-[44px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-2.5 px-4 sm:px-5 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-xs sm:text-sm cursor-pointer whitespace-nowrap shrink-0"
           >
-            {t("deal.claim") || t("deal.buyNow")}
+            <span>{t("deal.claim") || "Pay with M-PESA"}</span>
           </button>
         </div>
       </div>
