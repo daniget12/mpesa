@@ -83,11 +83,7 @@ function getFallbackNearbyDeals(centerLat: number, centerLon: number): NearbyDea
   });
 }
 
-interface WebsiteHomeProps {
-  onSwitchToMiniApp?: () => void;
-}
-
-export const WebsiteHome: React.FC<WebsiteHomeProps> = ({ onSwitchToMiniApp }) => {
+export const WebsiteHome: React.FC = () => {
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<NearbyDeal | null>(null);
   const [selectedDealForBuy, setSelectedDealForBuy] = useState<NearbyDeal | null>(null);
   const [deals, setDeals] = useState<NearbyDeal[]>([]);
@@ -263,30 +259,9 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({ onSwitchToMiniApp }) =
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      {/* Top Banner announcing Mini App Switcher on desktop */}
-      {onSwitchToMiniApp && (
-        <aside aria-label="M-PESA Announcement" className="bg-emerald-950 text-white px-4 py-2.5 text-xs flex items-center justify-between border-b border-emerald-800">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span className="font-bold">{t('miniapp.banner')}</span>
-            <span className="hidden sm:inline text-emerald-200">
-              {t('miniapp.bannerDesc')}
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={onSwitchToMiniApp}
-            className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 active:scale-95 text-white font-bold rounded-lg transition-all cursor-pointer whitespace-nowrap"
-          >
-            {t('miniapp.launch')}
-          </button>
-        </aside>
-      )}
-
       <Header
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onSwitchToMiniApp={onSwitchToMiniApp}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-10">
@@ -653,7 +628,7 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({ onSwitchToMiniApp }) =
         </section>
       </main>
 
-      {/* Footer with Complete Translations */}
+      {/* Footer with Complete Translations (No Mini App Button) */}
       <footer className="bg-white border-t border-slate-200 mt-16 py-12 text-slate-600 text-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
@@ -676,13 +651,6 @@ export const WebsiteHome: React.FC<WebsiteHomeProps> = ({ onSwitchToMiniApp }) =
             <Link href="/login" className="hover:text-emerald-700 transition-colors">
               {t('footer.login')}
             </Link>
-            <button
-              type="button"
-              onClick={onSwitchToMiniApp}
-              className="hover:text-emerald-700 transition-colors cursor-pointer text-left"
-            >
-              {t('footer.miniApp')}
-            </button>
           </div>
         </div>
       </footer>

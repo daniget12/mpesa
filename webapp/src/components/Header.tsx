@@ -196,19 +196,6 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
 
           {/* Right: Controls & Actions */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Telegram Mini App Simulator Toggle */}
-            {onSwitchToMiniApp && (
-              <button
-                type="button"
-                onClick={onSwitchToMiniApp}
-                className="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
-                title="Open Telegram Mini App simulator drawer"
-              >
-                <Smartphone className="w-4 h-4 text-emerald-600" />
-                <span>Mini App</span>
-              </button>
-            )}
-
             {/* For Shops Dropdown */}
             <div className="relative" ref={forShopsRef}>
               <button
