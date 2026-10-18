@@ -18,9 +18,8 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from './AuthModal';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { useLanguage } from '@/context/LanguageContext';
-import type { User } from '@supabase/supabase-js';
+import { useAuth } from '@/context/AuthContext';
 
 interface HeaderProps {
   searchQuery?: string;
@@ -30,10 +29,7 @@ interface HeaderProps {
 
 export default function Header({ searchQuery = '', onSearchChange, onSwitchToMiniApp }: HeaderProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [profileName, setProfileName] = useState<string>('');
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isSeller, setIsSeller] = useState(false);
+  const { user, profileName, isAdmin, isMerchant, isBuyer, signOut } = useAuth();
   const { language, setLanguage, t } = useLanguage();
   const [isForShopsOpen, setIsForShopsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -65,69 +61,8 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
     };
   }, []);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    let isMounted = true;
-    const fetchUserAndProfile = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!isMounted) return;
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const { data } = await supabase
-            .from('profiles')
-            .select('role, account_type, full_name')
-            .eq('id', session.user.id)
-            .single();
-          if (!isMounted) return;
-          if (data) {
-            if (data.role === 'admin') setIsAdmin(true);
-            if (data.account_type === 'seller') setIsSeller(true);
-            if (data.full_name) setProfileName(data.full_name);
-          }
-        } else {
-          setIsAdmin(false);
-          setIsSeller(false);
-          setProfileName('');
-        }
-      } catch {
-        if (isMounted) {
-          setUser(null);
-          setIsAdmin(false);
-          setIsSeller(false);
-          setProfileName('');
-        }
-      }
-    };
-    fetchUserAndProfile();
-    try {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-        fetchUserAndProfile();
-      });
-      return () => {
-        isMounted = false;
-        subscription.unsubscribe();
-      };
-    } catch {
-      return () => {
-        isMounted = false;
-      };
-    }
-  }, []);
-
   const handleSignOut = async () => {
-    if (isSupabaseConfigured) {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        // Graceful
-      }
-    }
-    setUser(null);
-    setIsAdmin(false);
-    setIsSeller(false);
-    setProfileName('');
+    await signOut();
   };
 
   const getLanguageLabel = (code: string) => {
@@ -198,40 +133,42 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
           {/* Right: Controls & Actions */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {/* For Shops Dropdown */}
-            <div className="relative" ref={forShopsRef}>
-              <button
-                type="button"
-                onClick={() => setIsForShopsOpen((prev) => !prev)}
-                aria-haspopup="true"
-                aria-expanded={isForShopsOpen}
-                className="text-xs font-semibold text-slate-700 hover:text-emerald-700 transition-colors min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-lg hover:bg-slate-100 flex items-center gap-1.5 cursor-pointer"
-              >
-                <Store className="w-4 h-4 text-emerald-700" />
-                <span className="hidden sm:inline">{t('header.forShops') || 'For Shops'}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isForShopsOpen ? "rotate-180" : ""}`} />
-              </button>
+            {isMerchant && (
+              <div className="relative" ref={forShopsRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsForShopsOpen((prev) => !prev)}
+                  aria-haspopup="true"
+                  aria-expanded={isForShopsOpen}
+                  className="text-xs font-semibold text-slate-700 hover:text-emerald-700 transition-colors min-h-[38px] px-2.5 sm:px-3 py-1.5 rounded-lg hover:bg-slate-100 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Store className="w-4 h-4 text-emerald-700" />
+                  <span className="hidden sm:inline">{t('header.forShops') || 'For Shops'}</span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isForShopsOpen ? "rotate-180" : ""}`} />
+                </button>
 
-              {isForShopsOpen && (
-                <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-200 shadow-xl rounded-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <Link
-                    href="/merchant/register"
-                    onClick={() => setIsForShopsOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/60 transition-colors"
-                  >
-                    <Store className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{t('header.registerShop') || 'Register Shop'}</span>
-                  </Link>
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setIsForShopsOpen(false)}
-                    className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/60 transition-colors border-t border-slate-100"
-                  >
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span>{t('header.merchantLogin') || 'Merchant Dashboard'}</span>
-                  </Link>
-                </div>
-              )}
-            </div>
+                {isForShopsOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-200 shadow-xl rounded-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <Link
+                      href="/merchant/register"
+                      onClick={() => setIsForShopsOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/60 transition-colors"
+                    >
+                      <Store className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{t('header.registerShop') || 'Register Shop'}</span>
+                    </Link>
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setIsForShopsOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:text-emerald-700 hover:bg-emerald-50/60 transition-colors border-t border-slate-100"
+                    >
+                      <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>{t('header.merchantLogin') || 'Merchant Dashboard'}</span>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Language Dropdown */}
             <div className="relative" ref={langRef}>
@@ -247,7 +184,7 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
               </button>
 
               {isLangMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-slate-200 shadow-xl rounded-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-2 w-40 bg-white border border-slate-200 shadow-xl rounded-xl py-1 rounded-xl z-50 animate-in fade-in zoom-in-95 duration-150">
                   {(['en', 'am', 'om', 'ti'] as const).map((code) => (
                     <button
                       key={code}
@@ -265,14 +202,16 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
             </div>
 
             {/* My Claims / Tickets Button */}
-            <Link
-              href="/profile"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] text-xs font-semibold rounded-lg text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
-              title="View your claim tickets and orders"
-            >
-              <Ticket className="w-4 h-4 text-emerald-600" />
-              <span className="hidden md:inline">{t("header.myClaims") || "My Claims"}</span>
-            </Link>
+            {isBuyer && !isMerchant && (
+              <Link
+                href="/profile"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] text-xs font-semibold rounded-lg text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+                title="View your claim tickets and orders"
+              >
+                <Ticket className="w-4 h-4 text-emerald-600" />
+                <span className="hidden md:inline">{t("header.myClaims") || "My Claims"}</span>
+              </Link>
+            )}
 
             {/* User Account / Sign In */}
             {user ? (
@@ -285,18 +224,18 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
                     Admin
                   </Link>
                 )}
-                {isSeller && !isAdmin && (
+                {isMerchant && !isAdmin && (
                   <Link
-                    href="/seller"
+                    href="/dashboard"
                     className="text-xs font-bold bg-emerald-100 text-emerald-900 px-2 py-1 rounded-md hover:bg-emerald-200 transition-colors"
                   >
-                    Seller
+                    Merchant
                   </Link>
                 )}
                 <Link
-                  href="/profile"
+                  href={isMerchant ? "/dashboard" : "/profile"}
                   className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-emerald-700 transition-colors bg-slate-50 hover:bg-slate-100 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 min-h-[38px]"
-                  title="View Profile and Claim Tickets"
+                  title={isMerchant ? "View Merchant Dashboard" : "View Profile and Claim Tickets"}
                 >
                   <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
                   <span className="truncate max-w-[110px]">{profileName || user.user_metadata?.full_name || user.email?.split('@')[0]}</span>
@@ -322,13 +261,15 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
             )}
 
             {/* Mobile Claims / Profile Icon */}
-            <Link
-              href="/profile"
-              className="min-h-[38px] min-w-[38px] p-2 text-emerald-700 sm:hidden flex items-center justify-center rounded-lg hover:bg-emerald-50"
-              aria-label="My Claims & Profile"
-            >
-              <Ticket className="w-5 h-5" />
-            </Link>
+            {isBuyer && !isMerchant && (
+              <Link
+                href="/profile"
+                className="min-h-[38px] min-w-[38px] p-2 text-emerald-700 sm:hidden flex items-center justify-center rounded-lg hover:bg-emerald-50"
+                aria-label="My Claims & Profile"
+              >
+                <Ticket className="w-5 h-5" />
+              </Link>
+            )}
           </div>
         </div>
 
@@ -369,32 +310,38 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
             )}
 
             <div className="grid grid-cols-2 gap-2 pt-2">
-              <Link
-                href="/merchant/register"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-800"
-              >
-                <Store className="w-4 h-4 text-emerald-600" />
-                <span>Register Shop</span>
-              </Link>
-              <Link
-                href="/profile"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-gray-800 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
-              >
-                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                  <Ticket className="w-4 h-4" />
-                </div>
-                <span>{t("header.myClaims") || "My Profile & Claim Tickets"}</span>
-              </Link>
-              <Link
-                href="/dashboard"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-800"
-              >
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                <span>Merchant Hub</span>
-              </Link>
+              {isMerchant && (
+                <>
+                  <Link
+                    href="/merchant/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-800"
+                  >
+                    <Store className="w-4 h-4 text-emerald-600" />
+                    <span>Register Shop</span>
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-800"
+                  >
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                    <span>Merchant Hub</span>
+                  </Link>
+                </>
+              )}
+              {isBuyer && !isMerchant && (
+                <Link
+                  href="/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="col-span-2 flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-gray-800 hover:bg-emerald-50 hover:text-emerald-700 transition-colors bg-slate-50"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <Ticket className="w-4 h-4" />
+                  </div>
+                  <span>{t("header.myClaims") || "My Profile & Claim Tickets"}</span>
+                </Link>
+              )}
             </div>
           </div>
         )}

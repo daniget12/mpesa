@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { MapPin, CheckCircle2, Coffee, Utensils, Store, Pill, Scissors, ShoppingBag } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   cafe: Coffee,
@@ -81,6 +82,7 @@ export default function DealCard({
   onClick,
 }: DealProps) {
   const { t } = useLanguage();
+  const { isMerchant, isBuyer } = useAuth();
   const [imageError, setImageError] = useState(false);
   const catKey = (category || 'cafe').toLowerCase();
   const IconComponent = CATEGORY_ICONS[catKey] || ShoppingBag;
@@ -183,16 +185,22 @@ export default function DealCard({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onBuy();
-            }}
-            className="min-h-[44px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-2.5 px-4 sm:px-5 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-xs sm:text-sm cursor-pointer whitespace-nowrap shrink-0"
-          >
-            <span>{t("deal.claim") || "Pay with M-PESA"}</span>
-          </button>
+          {isBuyer && !isMerchant ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onBuy();
+              }}
+              className="min-h-[44px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-2.5 px-4 sm:px-5 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-xs sm:text-sm cursor-pointer whitespace-nowrap shrink-0"
+            >
+              <span>{t("deal.claim") || "Pay with M-PESA"}</span>
+            </button>
+          ) : isMerchant ? (
+            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
+              Merchant View
+            </span>
+          ) : null}
         </div>
       </div>
     </div>

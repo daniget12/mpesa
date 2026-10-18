@@ -30,6 +30,7 @@ import {
   Footprints,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { fetchNearbyDeals, NearbyDeal, ApiError } from '@/lib/api';
 import { INITIAL_SHOPS, INITIAL_DEALS, calculateFinalPrice } from '@/mockData/miniapp';
 
@@ -84,6 +85,7 @@ function getFallbackNearbyDeals(centerLat: number, centerLon: number): NearbyDea
 }
 
 export const WebsiteHome: React.FC = () => {
+  const { isMerchant, isBuyer } = useAuth();
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<NearbyDeal | null>(null);
   const [selectedDealForBuy, setSelectedDealForBuy] = useState<NearbyDeal | null>(null);
   const [deals, setDeals] = useState<NearbyDeal[]>([]);
@@ -671,12 +673,21 @@ export const WebsiteHome: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-6 font-medium">
-            <Link href="/merchant/register" className="hover:text-emerald-700 transition-colors">
-              {t('footer.register')}
-            </Link>
-            <Link href="/dashboard" className="hover:text-emerald-700 transition-colors">
-              {t('footer.dashboard')}
-            </Link>
+            {isMerchant && (
+              <>
+                <Link href="/merchant/register" className="hover:text-emerald-700 transition-colors">
+                  {t('footer.register')}
+                </Link>
+                <Link href="/dashboard" className="hover:text-emerald-700 transition-colors">
+                  {t('footer.dashboard')}
+                </Link>
+              </>
+            )}
+            {isBuyer && !isMerchant && (
+              <Link href="/profile" className="hover:text-emerald-700 transition-colors">
+                {t('header.myClaims') || 'My Claims'}
+              </Link>
+            )}
             <Link href="/login" className="hover:text-emerald-700 transition-colors">
               {t('footer.login')}
             </Link>

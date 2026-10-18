@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
-import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import type { User } from '@supabase/supabase-js';
+import { useAuth } from '@/context/AuthContext';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import {
   getCustomerClaimTickets,
   updateClaimTicketReview,
@@ -29,11 +29,7 @@ import {
 
 export default function ProfilePage() {
   const { t } = useLanguage();
-
-  // Authentication State
-  const [user, setUser] = useState<User | null>(null);
-  const [profileName, setProfileName] = useState<string>('');
-  const [accountType, setAccountType] = useState<string>('buyer');
+  const { user, profileName, accountType, isMerchant, isBuyer } = useAuth();
 
   // Tickets State
   const [tickets, setTickets] = useState<CustomerClaimTicket[]>([]);
@@ -47,32 +43,6 @@ export default function ProfilePage() {
   const [commentInput, setCommentInput] = useState<string>('');
   const [reviewSubmitting, setReviewSubmitting] = useState<boolean>(false);
   const [successToast, setSuccessToast] = useState<string | null>(null);
-
-  // Load user profile
-  useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    let isMounted = true;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isMounted) return;
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('full_name, account_type')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (data && isMounted) {
-              if (data.full_name) setProfileName(data.full_name);
-              if (data.account_type) setAccountType(data.account_type);
-            }
-          });
-      }
-    });
-    return () => {
-      isMounted = false;
-    };
-  }, []);
 
   // Load claims from storage
   const refreshClaims = useCallback(() => {
@@ -210,6 +180,29 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Merchant Portal Banner */}
+        {isMerchant && (
+          <section className="mb-8 p-6 bg-emerald-950/40 border border-emerald-500/30 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-md">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Store className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-white">Merchant Account Active</h3>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  Claim vouchers are for buyers. Manage your shop, check counter redemptions, and post deals on your Merchant Dashboard.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard"
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition-all shadow-md shrink-0 whitespace-nowrap min-h-[40px] flex items-center justify-center"
+            >
+              Go to Merchant Dashboard
+            </Link>
+          </section>
+        )}
+
         {/* Profile Card */}
         <section className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl relative overflow-hidden backdrop-blur-md">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-slate-800">
@@ -228,7 +221,7 @@ export default function ProfilePage() {
                   </h1>
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                     <Sparkles className="w-3 h-3" />
-                    {accountType === 'seller' ? 'Seller & Buyer' : (t('profile.verifiedBuyer') || 'Verified Buyer')}
+                    {isMerchant ? 'Merchant Account' : (t('profile.verifiedBuyer') || 'Verified Buyer')}
                   </span>
                 </div>
                 <p className="text-xs md:text-sm text-slate-400 mt-1">
@@ -337,18 +330,32 @@ export default function ProfilePage() {
                 <Ticket className="w-8 h-8" />
               </div>
               <h3 className="text-lg font-bold text-white">
-                {t('profile.noTicketsTitle') || 'No claim tickets found in this tab'}
+                {isMerchant
+                  ? 'Claim tickets are for buyers'
+                  : (t('profile.noTicketsTitle') || 'No claim tickets found in this tab')}
               </h3>
               <p className="text-xs md:text-sm text-slate-400 max-w-sm mx-auto">
-                {t('profile.noTicketsDesc') || 'Explore deals nearby in Addis Ababa to claim discounts and pay with M-PESA.'}
+                {isMerchant
+                  ? 'Your account is registered as a merchant. Customers present tickets at your counter to redeem offers.'
+                  : (t('profile.noTicketsDesc') || 'Explore deals nearby in Addis Ababa to claim discounts and pay with M-PESA.')}
               </p>
-              <Link
-                href="/"
-                className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors min-h-[44px]"
-              >
-                <ShoppingBag className="w-4 h-4" />
-                <span>{t('profile.browseDeals') || 'Browse Nearby Deals'}</span>
-              </Link>
+              {isMerchant ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors min-h-[44px]"
+                >
+                  <Store className="w-4 h-4" />
+                  <span>Go to Merchant Dashboard</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors min-h-[44px]"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>{t('profile.browseDeals') || 'Browse Nearby Deals'}</span>
+                </Link>
+              )}
             </div>
           )}
 

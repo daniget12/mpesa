@@ -2,6 +2,7 @@
 import React from 'react';
 import { X, MapPin } from 'lucide-react';
 import Image from 'next/image';
+import { useAuth } from '@/context/AuthContext';
 
 export interface ModalDeal {
   id?: string;
@@ -32,6 +33,7 @@ interface DealDetailsModalProps {
 }
 
 export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealDetailsModalProps) {
+  const { isMerchant, isBuyer } = useAuth();
   if (!isOpen || !deal) return null;
 
   const original = deal.price || deal.original_price;
@@ -74,12 +76,18 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
                 )}
                 <p className="text-3xl font-black text-green-600">{current} ETB</p>
               </div>
-              <button 
-                onClick={() => { onClose(); onBuy(); }} 
-                className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg shadow-green-600/30 cursor-pointer text-base"
-              >
-                Claim
-              </button>
+              {isBuyer && !isMerchant ? (
+                <button 
+                  onClick={() => { onClose(); onBuy(); }} 
+                  className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg shadow-green-600/30 cursor-pointer text-base"
+                >
+                  Claim
+                </button>
+              ) : isMerchant ? (
+                <span className="text-xs font-semibold text-slate-500 bg-white px-4 py-2.5 rounded-xl border border-slate-200">
+                  Merchant View
+                </span>
+              ) : null}
             </div>
             
             <div className="space-y-4">
@@ -106,20 +114,26 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
         </div>
 
         {/* Sticky Mobile Claim Bar */}
-        <div className="md:hidden sticky bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-lg z-20 flex items-center justify-between gap-3">
-          <div>
-            {original !== undefined && current !== undefined && original > current && (
-              <p className="text-xs text-gray-400 line-through">{original} ETB</p>
-            )}
-            <p className="text-2xl font-black text-green-600">{current} ETB</p>
+        {isBuyer && !isMerchant ? (
+          <div className="md:hidden sticky bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 px-4 py-3 shadow-lg z-20 flex items-center justify-between gap-3">
+            <div>
+              {original !== undefined && current !== undefined && original > current && (
+                <p className="text-xs text-gray-400 line-through">{original} ETB</p>
+              )}
+              <p className="text-2xl font-black text-green-600">{current} ETB</p>
+            </div>
+            <button 
+              onClick={() => { onClose(); onBuy(); }} 
+              className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-md shadow-green-600/30 flex items-center justify-center cursor-pointer text-sm"
+            >
+              Claim
+            </button>
           </div>
-          <button 
-            onClick={() => { onClose(); onBuy(); }} 
-            className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-md shadow-green-600/30 flex items-center justify-center cursor-pointer text-sm"
-          >
-            Claim
-          </button>
-        </div>
+        ) : isMerchant ? (
+          <div className="md:hidden sticky bottom-0 left-0 right-0 bg-slate-50 border-t border-slate-200 px-4 py-3 text-center text-xs font-semibold text-slate-500 z-20">
+            Merchant View Only
+          </div>
+        ) : null}
       </div>
     </div>
   );
