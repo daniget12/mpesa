@@ -10,8 +10,12 @@ export interface CustomerClaimTicket {
   discountPct?: number;
   redemptionCode: string;
   receipt?: string | null;
-  status: 'paid' | 'redeemed';
-  paidAt: string; // ISO date string
+  status: 'claimed' | 'paid' | 'redeemed' | 'expired';
+  claimedAt?: string; // ISO date string
+  holdMinutes?: number; // validity given by merchant
+  holdExpiresAt?: string; // ISO date string
+  paidAt?: string; // ISO date string
+  redeemedAt?: string; // ISO date string
   phone?: string;
   itemCode?: string | null;
   rating?: number; // 1 to 5 stars
@@ -19,7 +23,36 @@ export interface CustomerClaimTicket {
   reviewedAt?: string;
 }
 
+export interface DealQuotaConfig {
+  dealId: string;
+  totalQuota: number; // total discounts available posted by merchant
+  holdMinutes: number; // hold validity minutes given by merchant
+  merchantName?: string;
+  dealTitle?: string;
+  updatedAt?: string;
+}
+
+export interface DealQuotaInfo {
+  dealId: string;
+  totalQuota: number;
+  availableQuota: number;
+  activeHolds: number;
+  paidCount: number;
+  holdMinutes: number;
+  isSoldOut: boolean;
+}
+
 const STORAGE_KEY = 'tirf_customer_claims';
+const QUOTAS_STORAGE_KEY = 'tirf_deal_quotas';
+
+const DEFAULT_DEAL_QUOTAS: Record<string, { totalQuota: number; holdMinutes: number }> = {
+  'd0000000-0000-0000-0000-000000000001': { totalQuota: 12, holdMinutes: 30 },
+  'd0000000-0000-0000-0000-000000000002': { totalQuota: 15, holdMinutes: 45 },
+  'd0000000-0000-0000-0000-000000000003': { totalQuota: 8, holdMinutes: 20 },
+  'd0000000-0000-0000-0000-000000000004': { totalQuota: 10, holdMinutes: 30 },
+  'd0000000-0000-0000-0000-000000000005': { totalQuota: 14, holdMinutes: 60 },
+  'd0000000-0000-0000-0000-000000000006': { totalQuota: 6, holdMinutes: 25 },
+};
 
 const SEED_CLAIMS: CustomerClaimTicket[] = [
   {
@@ -35,6 +68,9 @@ const SEED_CLAIMS: CustomerClaimTicket[] = [
     redemptionCode: 'TIRF-8F1A01',
     receipt: 'NLJ7RT61SV',
     status: 'paid',
+    claimedAt: new Date(Date.now() - 35 * 60 * 1000).toISOString(),
+    holdMinutes: 30,
+    holdExpiresAt: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
     paidAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
     phone: '0911223344',
     itemCode: 'COFFEE-01',
@@ -52,12 +88,34 @@ const SEED_CLAIMS: CustomerClaimTicket[] = [
     redemptionCode: 'K7M4Q9XR',
     receipt: 'NLJ9QP41BM',
     status: 'redeemed',
+    claimedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 - 30 * 60 * 1000).toISOString(),
+    holdMinutes: 45,
     paidAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    redeemedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000 + 10 * 60 * 1000).toISOString(),
     phone: '0911223344',
     itemCode: 'KBR-002',
     rating: 5,
     reviewComment: 'Crisp sourdough and lovely warm service! Redeemed in under 30 seconds at the counter.',
     reviewedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'claim_sample_3',
+    orderId: 'tm_ord_hold_03',
+    dealId: 'd0000000-0000-0000-0000-000000000003',
+    dealTitle: 'Authentic Tomoca Espresso & Macchiato',
+    merchantId: 'm0000000-0000-0000-0000-000000000001',
+    merchantName: 'Bole Highland Cafe',
+    amount: 110,
+    originalPrice: 140,
+    discountPct: 21,
+    redemptionCode: 'TIRF-7X9P',
+    receipt: null,
+    status: 'claimed',
+    claimedAt: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
+    holdMinutes: 30,
+    holdExpiresAt: new Date(Date.now() + 22 * 60 * 1000).toISOString(),
+    phone: '0911223344',
+    itemCode: 'TOM-001',
   },
 ];
 
@@ -163,11 +221,375 @@ export function markClaimTicketRedeemed(ticketId: string): CustomerClaimTicket |
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event('tirf_claims_updated'));
+    window.dispatchEvent(new Event('tirf_quota_updated'));
     return updatedTicket;
   } catch (err) {
     console.error('Failed to mark claim as redeemed in localStorage:', err);
     return null;
   }
+}
+
+/**
+ * Returns any merchant-customized deal quota and hold duration configurations.
+ */
+export function getStoredDealQuotas(): Record<string, DealQuotaConfig> {
+  if (typeof window === 'undefined') return {};
+  try {
+    const raw = localStorage.getItem(QUOTAS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Persists a merchant's deal quota (discounts present) and claim hold validity window (in minutes).
+ */
+export function setCustomDealQuota(
+  dealId: string,
+  totalQuota: number,
+  holdMinutes: number,
+  merchantName?: string,
+  dealTitle?: string
+): DealQuotaConfig {
+  const quotas = getStoredDealQuotas();
+  const config: DealQuotaConfig = {
+    dealId,
+    totalQuota: Math.max(1, totalQuota),
+    holdMinutes: Math.max(5, holdMinutes),
+    merchantName,
+    dealTitle,
+    updatedAt: new Date().toISOString(),
+  };
+  quotas[dealId] = config;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(QUOTAS_STORAGE_KEY, JSON.stringify(quotas));
+      window.dispatchEvent(new Event('tirf_quota_updated'));
+    } catch (e) {
+      console.error('Failed to save quota config', e);
+    }
+  }
+  return config;
+}
+
+/**
+ * Returns real-time quota status summaries for all configured deals.
+ */
+export function getAllDealQuotasSummary(): (DealQuotaInfo & { dealTitle?: string; merchantName?: string })[] {
+  const customQuotas = getStoredDealQuotas();
+  const list: (DealQuotaInfo & { dealTitle?: string; merchantName?: string })[] = [];
+  const processed = new Set<string>();
+
+  // Add all custom configured deals
+  Object.keys(customQuotas).forEach((id) => {
+    processed.add(id);
+    const quota = getDealQuota(id);
+    list.push({
+      ...quota,
+      dealTitle: customQuotas[id].dealTitle || 'Custom Deal',
+      merchantName: customQuotas[id].merchantName,
+    });
+  });
+
+  // Add default deals
+  const defaultNames: Record<string, { title: string; merchant: string }> = {
+    'd0000000-0000-0000-0000-000000000001': { title: '20% off Specialty Macchiato & Croissant', merchant: 'Bole Highland Cafe' },
+    'd0000000-0000-0000-0000-000000000002': { title: 'Fresh Sourdough Rolls (Pack of 6)', merchant: 'Kebero Bakery' },
+    'd0000000-0000-0000-0000-000000000003': { title: 'Authentic Tomoca Espresso & Macchiato', merchant: 'Bole Highland Cafe' },
+  };
+
+  Object.keys(DEFAULT_DEAL_QUOTAS).forEach((id) => {
+    if (!processed.has(id) && defaultNames[id]) {
+      processed.add(id);
+      const quota = getDealQuota(id);
+      list.push({
+        ...quota,
+        dealTitle: defaultNames[id]?.title || 'Marketplace Deal',
+        merchantName: defaultNames[id]?.merchant,
+      });
+    }
+  });
+
+  return list;
+}
+
+/**
+ * Periodically checks all active holds ('claimed').
+ * If a customer has not paid within the merchant's validity time, the claim is auto-expired
+ * and the quota is reversed (+1 available) immediately back to the shop's available offers.
+ */
+export function checkAndExpireClaims(): CustomerClaimTicket[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const list = getCustomerClaimTickets();
+    const now = Date.now();
+    let changed = false;
+
+    const updated = list.map((t) => {
+      if (t.status === 'claimed' && t.holdExpiresAt) {
+        const expiresAt = new Date(t.holdExpiresAt).getTime();
+        if (now >= expiresAt) {
+          changed = true;
+          return {
+            ...t,
+            status: 'expired' as const,
+          };
+        }
+      }
+      return t;
+    });
+
+    if (changed) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      window.dispatchEvent(new Event('tirf_claims_updated'));
+      window.dispatchEvent(new Event('tirf_quota_updated'));
+    }
+    return updated;
+  } catch (err) {
+    console.error('Error expiring claims:', err);
+    return [];
+  }
+}
+
+/**
+ * Computes real-time quota metrics for a deal.
+ * If holds have expired, they are reversed back into available quota automatically.
+ */
+export function getDealQuota(
+  dealId?: string,
+  defaultTotal = 10,
+  defaultHoldMinutes = 30
+): DealQuotaInfo {
+  // Always evaluate expiry first so quota calculation is accurate
+  checkAndExpireClaims();
+
+  const id = dealId || 'default';
+  const customQuotas = getStoredDealQuotas();
+  const custom = customQuotas[id];
+  const baseline = DEFAULT_DEAL_QUOTAS[id];
+
+  const totalQuota = custom?.totalQuota ?? baseline?.totalQuota ?? defaultTotal;
+  const holdMinutes = custom?.holdMinutes ?? baseline?.holdMinutes ?? defaultHoldMinutes;
+
+  const tickets = getCustomerClaimTickets();
+  const matching = tickets.filter((t) => t.dealId === dealId);
+
+  // Active holds: claimed and hold time has not elapsed
+  const activeHolds = matching.filter((t) => t.status === 'claimed').length;
+  // Completed transactions: paid or redeemed
+  const paidCount = matching.filter((t) => t.status === 'paid' || t.status === 'redeemed').length;
+
+  const used = activeHolds + paidCount;
+  const availableQuota = Math.max(0, totalQuota - used);
+
+  return {
+    dealId: id,
+    totalQuota,
+    availableQuota,
+    activeHolds,
+    paidCount,
+    holdMinutes,
+    isSoldOut: availableQuota <= 0,
+  };
+}
+
+/**
+ * Claims an available offer with ZERO upfront payment.
+ * Reserves 1 unit from the quota and starts the merchant-defined validity countdown.
+ */
+export function claimDealOffer(
+  deal: {
+    id: string;
+    title: string;
+    merchantId?: string;
+    merchantName: string;
+    finalAmount: number;
+    originalPrice?: number;
+    discountPct?: number;
+    itemCode?: string | null;
+  },
+  phone?: string,
+  holdMinutesOverride?: number
+): { success: boolean; ticket?: CustomerClaimTicket; reason?: string; message?: string } {
+  if (typeof window === 'undefined') {
+    return { success: false, reason: 'ssr', message: 'Window not available' };
+  }
+
+  const quota = getDealQuota(deal.id);
+  if (quota.isSoldOut) {
+    return {
+      success: false,
+      reason: 'sold_out',
+      message: 'All available discounts for this offer have been claimed! Please check back later if a hold expires.',
+    };
+  }
+
+  const holdMinutes = holdMinutesOverride || quota.holdMinutes || 30;
+  const now = Date.now();
+  const holdExpiresAt = new Date(now + holdMinutes * 60 * 1000).toISOString();
+
+  // Generate crisp counter presentation code (e.g., TIRF-7X9P)
+  const randomChars = Math.random().toString(36).substring(2, 6).toUpperCase();
+  const redemptionCode = `TIRF-${randomChars}`;
+  const claimId = `claim_${now}_${Math.random().toString(36).substring(2, 6)}`;
+  const orderId = `tm_claim_${Math.random().toString(36).substring(2, 8)}`;
+
+  const ticket: CustomerClaimTicket = {
+    id: claimId,
+    orderId,
+    dealId: deal.id,
+    dealTitle: deal.title,
+    merchantId: deal.merchantId || '',
+    merchantName: deal.merchantName,
+    amount: deal.finalAmount,
+    originalPrice: deal.originalPrice,
+    discountPct: deal.discountPct,
+    redemptionCode,
+    receipt: null,
+    status: 'claimed',
+    claimedAt: new Date(now).toISOString(),
+    holdMinutes,
+    holdExpiresAt,
+    phone: phone || '',
+    itemCode: deal.itemCode || null,
+  };
+
+  saveCustomerClaimTicket(ticket);
+  window.dispatchEvent(new Event('tirf_quota_updated'));
+
+  return {
+    success: true,
+    ticket,
+  };
+}
+
+/**
+ * Completes payment for an active claim ticket when the buyer arrives at the shop counter.
+ */
+export function payClaimTicketAtShop(
+  ticketIdOrCode: string,
+  payment?: { receipt?: string | null; phone?: string; orderId?: string }
+): CustomerClaimTicket | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const list = getCustomerClaimTickets();
+    let updatedTicket: CustomerClaimTicket | null = null;
+
+    const updated = list.map((ticket) => {
+      if (
+        ticket.id === ticketIdOrCode ||
+        ticket.orderId === ticketIdOrCode ||
+        ticket.redemptionCode.toUpperCase() === ticketIdOrCode.toUpperCase()
+      ) {
+        updatedTicket = {
+          ...ticket,
+          status: 'paid' as const,
+          paidAt: new Date().toISOString(),
+          receipt: payment?.receipt || ticket.receipt || ('NLJ' + Math.random().toString(36).substring(2, 8).toUpperCase()),
+          phone: payment?.phone || ticket.phone,
+          orderId: payment?.orderId || ticket.orderId,
+        };
+        return updatedTicket;
+      }
+      return ticket;
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event('tirf_claims_updated'));
+    window.dispatchEvent(new Event('tirf_quota_updated'));
+    return updatedTicket;
+  } catch (err) {
+    console.error('Failed to pay claim ticket at shop:', err);
+    return null;
+  }
+}
+
+/**
+ * Allows a buyer to release/cancel their claim reservation before it expires.
+ * Quota is instantly returned (+1 available) to the marketplace feed.
+ */
+export function cancelClaimTicket(ticketId: string): CustomerClaimTicket | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const list = getCustomerClaimTickets();
+    let cancelledTicket: CustomerClaimTicket | null = null;
+
+    const updated = list.map((ticket) => {
+      if (ticket.id === ticketId || ticket.orderId === ticketId) {
+        cancelledTicket = {
+          ...ticket,
+          status: 'expired' as const,
+        };
+        return cancelledTicket;
+      }
+      return ticket;
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    window.dispatchEvent(new Event('tirf_claims_updated'));
+    window.dispatchEvent(new Event('tirf_quota_updated'));
+    return cancelledTicket;
+  } catch (err) {
+    console.error('Failed to cancel claim ticket:', err);
+    return null;
+  }
+}
+
+/**
+ * Cashier counter verification helper.
+ * Checks whether a redemption code is active, paid, already redeemed, or expired.
+ */
+export function verifyClaimCodeForMerchant(
+  code: string,
+  merchantName?: string
+): {
+  status: 'claimed_active' | 'paid_ready' | 'already_redeemed' | 'expired' | 'not_found';
+  ticket?: CustomerClaimTicket;
+  message: string;
+} {
+  checkAndExpireClaims();
+  const clean = code.trim().toUpperCase();
+  const list = getCustomerClaimTickets();
+
+  const ticket = list.find((t) => t.redemptionCode.toUpperCase() === clean);
+  if (!ticket) {
+    return {
+      status: 'not_found',
+      message: 'No reservation or order found for this redemption code.',
+    };
+  }
+
+  if (ticket.status === 'expired') {
+    return {
+      status: 'expired',
+      ticket,
+      message: 'This hold expired because payment was not completed within the validity time. Quota has been returned to your shop.',
+    };
+  }
+
+  if (ticket.status === 'redeemed') {
+    return {
+      status: 'already_redeemed',
+      ticket,
+      message: 'This deal voucher has already been redeemed at the counter.',
+    };
+  }
+
+  if (ticket.status === 'paid') {
+    return {
+      status: 'paid_ready',
+      ticket,
+      message: 'Payment confirmed via M-PESA! Ready for counter pickup and handover.',
+    };
+  }
+
+  // ticket.status === 'claimed'
+  return {
+    status: 'claimed_active',
+    ticket,
+    message: 'Active reservation! Buyer is at your counter to pay with M-PESA.',
+  };
 }
 
 export interface DealReview {
@@ -270,7 +692,7 @@ export function getAllReviews(): DealReview[] {
       authorName: t.phone ? `Customer (***${t.phone.slice(-4)})` : 'Verified Buyer',
       rating: t.rating!,
       comment: t.reviewComment || 'Great deal, fast counter redemption with M-PESA!',
-      date: t.reviewedAt || t.paidAt,
+      date: t.reviewedAt || t.paidAt || new Date().toISOString(),
       verifiedMpesa: true,
     }));
 

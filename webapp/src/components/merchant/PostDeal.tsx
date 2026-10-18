@@ -5,7 +5,8 @@ import { useApp } from '@/context/MiniAppContext';
 import { DealCard } from '../customer/DealCard';
 import { calculateFinalPrice } from '@/mockData/miniapp';
 import { Deal } from '@/types/miniapp';
-import { ArrowLeft, Sparkles } from 'lucide-react';
+import { ArrowLeft, Sparkles, Clock } from 'lucide-react';
+import { setCustomDealQuota } from '@/lib/claimsStorage';
 
 interface PostDealProps {
   onBack: () => void;
@@ -27,6 +28,7 @@ export const PostDeal: React.FC<PostDealProps> = ({ onBack, onSuccess }) => {
   );
   const [expiryHours, setExpiryHours] = useState<number>(6);
   const [unitsAvailable, setUnitsAvailable] = useState<number>(isNewShop ? 10 : 50);
+  const [holdMinutes, setHoldMinutes] = useState<number>(30); // Claim hold validity from merchant
 
   const maxDiscountAllowed = isNewShop ? 50 : 90;
   const maxUnitsAllowed = isNewShop ? 20 : 500;
@@ -58,6 +60,16 @@ export const PostDeal: React.FC<PostDealProps> = ({ onBack, onSuccess }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || originalPrice <= 0 || unitsAvailable <= 0) return;
+
+    const dealId = `d_miniapp_${Date.now()}`;
+    // Register custom quota and validity hold window in storage
+    setCustomDealQuota(
+      dealId,
+      Number(unitsAvailable),
+      Number(holdMinutes),
+      currentMerchantShop.name,
+      title.trim()
+    );
 
     postNewDeal({
       shopId: currentMerchantShop.id,
@@ -194,7 +206,7 @@ export const PostDeal: React.FC<PostDealProps> = ({ onBack, onSuccess }) => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-800 mb-1">
-                Units Available (1-{maxUnitsAllowed}) *
+                Discounts Present (Quota) *
               </label>
               <input
                 type="number"
@@ -209,7 +221,7 @@ export const PostDeal: React.FC<PostDealProps> = ({ onBack, onSuccess }) => {
 
             <div>
               <label className="block text-xs font-bold text-slate-800 mb-1">
-                Valid For
+                Deal Expiry
               </label>
               <select
                 value={expiryHours}
@@ -223,6 +235,32 @@ export const PostDeal: React.FC<PostDealProps> = ({ onBack, onSuccess }) => {
                 <option value={72}>3 Days</option>
               </select>
             </div>
+          </div>
+
+          {/* Claim Hold Validity Window */}
+          <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Claim Hold Validity Window (Merchant Duration)</span>
+              </label>
+              <span className="text-xs font-extrabold text-emerald-800">{holdMinutes} min</span>
+            </div>
+            <select
+              value={holdMinutes}
+              onChange={(e) => setHoldMinutes(parseInt(e.target.value))}
+              className="w-full h-10 px-2 rounded-xl bg-white border border-emerald-300 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
+            >
+              <option value={15}>15 Minutes</option>
+              <option value={20}>20 Minutes</option>
+              <option value={30}>30 Minutes (Recommended)</option>
+              <option value={45}>45 Minutes</option>
+              <option value={60}>60 Minutes (1 Hour)</option>
+              <option value={120}>120 Minutes (2 Hours)</option>
+            </select>
+            <p className="text-[10px] text-emerald-800 leading-tight">
+              Buyers claim with 0 ETB upfront. If they do not pay at your counter within this window, quota is reversed back to available offers automatically.
+            </p>
           </div>
 
           {/* LIVE CUSTOMER CARD PREVIEW */}

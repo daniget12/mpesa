@@ -10,8 +10,11 @@ import {
   updateClaimTicketReview,
   markClaimTicketRedeemed,
   getRatingForMerchant,
+  checkAndExpireClaims,
+  cancelClaimTicket,
   CustomerClaimTicket,
 } from '@/lib/claimsStorage';
+import MpesaModal from '@/components/MpesaModal';
 import {
   User as UserIcon,
   Ticket,
@@ -26,6 +29,9 @@ import {
   ShoppingBag,
   MessageSquarePlus,
   Edit3,
+  XCircle,
+  AlertTriangle,
+  X,
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -35,8 +41,10 @@ export default function ProfilePage() {
 
   // Tickets State
   const [tickets, setTickets] = useState<CustomerClaimTicket[]>([]);
-  const [activeTab, setActiveTab] = useState<'all' | 'ready' | 'reviewed'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'active' | 'ready' | 'reviewed'>('all');
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
+  const [selectedTicketForPayment, setSelectedTicketForPayment] = useState<CustomerClaimTicket | null>(null);
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
 
   // Review Editing State
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
@@ -48,19 +56,27 @@ export default function ProfilePage() {
 
   // Load claims from storage
   const refreshClaims = useCallback(() => {
+    checkAndExpireClaims();
     setTickets(getCustomerClaimTickets());
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      refreshClaims();
-    }, 0);
+    refreshClaims();
 
     const handleUpdate = () => refreshClaims();
     window.addEventListener('tirf_claims_updated', handleUpdate);
+    window.addEventListener('tirf_quota_updated', handleUpdate);
+
+    // Ticking interval every second for live countdowns & auto-expiry
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+      checkAndExpireClaims();
+    }, 1000);
+
     return () => {
-      clearTimeout(timer);
+      clearInterval(timer);
       window.removeEventListener('tirf_claims_updated', handleUpdate);
+      window.removeEventListener('tirf_quota_updated', handleUpdate);
     };
   }, [refreshClaims]);
 
@@ -71,6 +87,14 @@ export default function ProfilePage() {
       setCopiedCodeId(id);
       setTimeout(() => setCopiedCodeId(null), 2200);
     }
+  };
+
+  // Cancel reservation early (releases quota back to shop)
+  const handleCancelHold = (ticketId: string) => {
+    cancelClaimTicket(ticketId);
+    setSuccessToast('Reservation cancelled. 1 unit was returned to the shop quota.');
+    setTimeout(() => setSuccessToast(null), 3500);
+    refreshClaims();
   };
 
   // Start editing review
@@ -102,11 +126,13 @@ export default function ProfilePage() {
 
   // Filtered tickets
   const filteredTickets = tickets.filter((t) => {
+    if (activeTab === 'active') return t.status === 'claimed';
     if (activeTab === 'ready') return t.status === 'paid';
     if (activeTab === 'reviewed') return Boolean(t.rating);
     return true;
   });
 
+  const activeCount = tickets.filter((t) => t.status === 'claimed').length;
   const readyCount = tickets.filter((t) => t.status === 'paid').length;
   const reviewedCount = tickets.filter((t) => Boolean(t.rating)).length;
 
@@ -251,7 +277,7 @@ export default function ProfilePage() {
           </div>
 
           {/* Quick Metrics */}
-          <div className="grid grid-cols-3 gap-3 md:gap-4 pt-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 pt-6">
             <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 text-center">
               <div className="text-2xl md:text-3xl font-black text-white font-mono">
                 {tickets.length}
@@ -261,11 +287,20 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 text-center">
+            <div className="bg-slate-950/70 border border-amber-500/30 rounded-2xl p-4 text-center">
+              <div className="text-2xl md:text-3xl font-black text-amber-400 font-mono">
+                {activeCount}
+              </div>
+              <div className="text-[11px] md:text-xs font-bold text-amber-300 uppercase tracking-wider mt-1">
+                Active Holds
+              </div>
+            </div>
+
+            <div className="bg-slate-950/70 border border-emerald-500/30 rounded-2xl p-4 text-center">
               <div className="text-2xl md:text-3xl font-black text-emerald-400 font-mono">
                 {readyCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">
+              <div className="text-[11px] md:text-xs font-bold text-emerald-400 uppercase tracking-wider mt-1">
                 {t('profile.readyToRedeem') || 'Ready to Redeem'}
               </div>
             </div>
@@ -290,22 +325,22 @@ export default function ProfilePage() {
                 <span>{t('profile.claimTicketsTitle') || 'My Claim Tickets & Vouchers'}</span>
               </h2>
               <p className="text-xs md:text-sm text-slate-400 mt-1">
-                {t('profile.claimTicketsSubtitle') || 'Present these redemption codes at shop counters or rate your experiences below.'}
+                Present active holds to pay with M-PESA at shop counters or rate your past experiences.
               </p>
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-xl self-start sm:self-auto">
+            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-xl self-start sm:self-auto flex-wrap">
               <button
                 type="button"
-                onClick={() => setActiveTab('all')}
+                onClick={() => setActiveTab('active')}
                 className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all min-h-[34px] cursor-pointer ${
-                  activeTab === 'all'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                  activeTab === 'active'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'text-amber-400 hover:text-white'
                 }`}
               >
-                {t('profile.tabAll') || 'All'} ({tickets.length})
+                Active Holds ({activeCount})
               </button>
               <button
                 type="button"
@@ -317,6 +352,17 @@ export default function ProfilePage() {
                 }`}
               >
                 {t('profile.tabReady') || 'Ready to Redeem'} ({readyCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('all')}
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all min-h-[34px] cursor-pointer ${
+                  activeTab === 'all'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('profile.tabAll') || 'All'} ({tickets.length})
               </button>
               <button
                 type="button"
@@ -370,15 +416,30 @@ export default function ProfilePage() {
 
           {/* Ticket Cards Grid */}
           <div className="space-y-6">
-            {filteredTickets.map((ticket) => (
+            {filteredTickets.map((ticket) => {
+              const isClaimed = ticket.status === 'claimed';
+              const isPaid = ticket.status === 'paid';
+              const isRedeemed = ticket.status === 'redeemed';
+              const isExpired = ticket.status === 'expired';
+
+              let secondsLeft = 0;
+              if (isClaimed && ticket.holdExpiresAt) {
+                secondsLeft = Math.max(0, Math.floor((new Date(ticket.holdExpiresAt).getTime() - currentTime) / 1000));
+              }
+
+              return (
               <div
                 key={ticket.id}
-                className="bg-slate-900/90 border border-slate-800 rounded-3xl overflow-hidden shadow-xl hover:border-slate-700 transition-all backdrop-blur-md"
+                className={`bg-slate-900/90 border rounded-3xl overflow-hidden shadow-xl transition-all backdrop-blur-md ${
+                  isClaimed ? 'border-amber-500/50 shadow-amber-950/20' : isExpired ? 'border-rose-900/40 opacity-75' : 'border-slate-800 hover:border-slate-700'
+                }`}
               >
                 {/* Ticket Top Header */}
                 <div className="p-5 md:p-6 bg-slate-900 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                      isClaimed ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    }`}>
                       <Store className="w-5 h-5" />
                     </div>
                     <div>
@@ -391,31 +452,47 @@ export default function ProfilePage() {
                         </span>
                       </div>
                       <div className="text-xs text-slate-400">
-                        {formatDateTime(ticket.paidAt)}
+                        {isClaimed
+                          ? `Claimed ${formatDateTime(ticket.claimedAt)}`
+                          : isPaid
+                          ? `Paid ${formatDateTime(ticket.paidAt)}`
+                          : isRedeemed
+                          ? `Redeemed ${formatDateTime(ticket.redeemedAt || ticket.paidAt)}`
+                          : 'Hold Expired (Unpaid)'}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${
-                        ticket.status === 'paid'
-                          ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                          : 'bg-slate-800 text-slate-400 border-slate-700'
-                      }`}
-                    >
-                      {ticket.status === 'paid' ? (
-                        <>
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>{t('profile.readyToRedeem') || 'Ready to Redeem'}</span>
-                        </>
-                      ) : (
-                        <>
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{t('profile.redeemed') || 'Redeemed'}</span>
-                        </>
-                      )}
-                    </span>
+                    {isClaimed ? (
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${
+                          secondsLeft <= 180
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                        }`}
+                      >
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>
+                          Active Hold: {Math.floor(secondsLeft / 60)}m {secondsLeft % 60 < 10 ? '0' : ''}{secondsLeft % 60}s
+                        </span>
+                      </span>
+                    ) : isPaid ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>{t('profile.readyToRedeem') || 'Ready to Redeem'}</span>
+                      </span>
+                    ) : isRedeemed ? (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border bg-slate-800 text-slate-400 border-slate-700">
+                        <Check className="w-3.5 h-3.5" />
+                        <span>{t('profile.redeemed') || 'Redeemed'}</span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border bg-rose-950/40 text-rose-400 border-rose-500/30">
+                        <XCircle className="w-3.5 h-3.5" />
+                        <span>Expired • Quota Returned</span>
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -425,7 +502,7 @@ export default function ProfilePage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                       <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                        {t('dashboard.dealTitle') || 'Claimed Deal'}
+                        {isClaimed ? 'Reserved Offer (Pay at Counter)' : t('dashboard.dealTitle') || 'Claimed Deal'}
                       </div>
                       <h3 className="text-lg md:text-xl font-black text-white">
                         {ticket.dealTitle}
@@ -438,50 +515,99 @@ export default function ProfilePage() {
                     </div>
                     <div className="sm:text-right">
                       <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
-                        {t('dashboard.amount') || 'Amount Paid'}
+                        {isClaimed ? 'Due at Counter' : t('dashboard.amount') || 'Amount Paid'}
                       </div>
-                      <div className="text-2xl font-black text-emerald-400 font-mono">
-                        {ticket.amount.toLocaleString()} <span className="text-sm font-bold text-emerald-300">ETB</span>
+                      <div className={`text-2xl font-black font-mono ${isClaimed ? 'text-amber-400' : isExpired ? 'text-slate-500' : 'text-emerald-400'}`}>
+                        {ticket.amount.toLocaleString()} <span className="text-sm font-bold text-slate-300">ETB</span>
                       </div>
                     </div>
                   </div>
 
                   {/* VOUCHER REDEMPTION PASS (High-Contrast Counter Presentation) */}
-                  <div className="bg-slate-950 border-2 border-emerald-500/30 rounded-2xl p-5 md:p-6 relative overflow-hidden shadow-inner">
+                  <div className={`border-2 rounded-2xl p-5 md:p-6 relative overflow-hidden shadow-inner ${
+                    isClaimed
+                      ? 'bg-slate-950 border-amber-500/40'
+                      : isExpired
+                      ? 'bg-slate-950/60 border-rose-950/60'
+                      : 'bg-slate-950 border-emerald-500/30'
+                  }`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="space-y-1">
-                        <div className="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                        <div className={`text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 ${
+                          isClaimed ? 'text-amber-400' : isExpired ? 'text-rose-400' : 'text-emerald-400'
+                        }`}>
                           <Sparkles className="w-3.5 h-3.5" />
-                          <span>{t('mpesa.oneTimeCode') || 'Counter Redemption Code'}</span>
+                          <span>
+                            {isClaimed
+                              ? 'Counter Reservation Pass'
+                              : isExpired
+                              ? 'Hold Expired'
+                              : t('mpesa.oneTimeCode') || 'Counter Redemption Code'}
+                          </span>
                         </div>
-                        <div className="font-mono text-2xl md:text-4xl font-black text-white tracking-widest selection:bg-emerald-600">
+                        <div className={`font-mono text-2xl md:text-4xl font-black tracking-widest selection:bg-emerald-600 ${
+                          isExpired ? 'text-slate-500 line-through' : 'text-white'
+                        }`}>
                           {ticket.redemptionCode}
                         </div>
                         <p className="text-xs text-slate-400">
-                          {t('mpesa.showCodeAtCounter') || 'Show this code at the counter to redeem your deal.'}
+                          {isClaimed ? (
+                            <span>
+                              Present this code at <strong>{ticket.merchantName}</strong>. Pay with M-PESA at the counter within {ticket.holdMinutes || 30} minutes. If unpaid, quota is automatically restored to the shop.
+                            </span>
+                          ) : isExpired ? (
+                            <span>
+                              This hold expired. The 1 unit quota was restored to {ticket.merchantName}&apos;s available offers.
+                            </span>
+                          ) : (
+                            t('mpesa.showCodeAtCounter') || 'Show this code at the counter to redeem your deal.'
+                          )}
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(ticket.redemptionCode, ticket.id)}
-                          className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 min-h-[44px] cursor-pointer"
-                        >
-                          {copiedCodeId === ticket.id ? (
-                            <>
-                              <Check className="w-4 h-4 text-emerald-200" />
-                              <span>{t('mpesa.codeCopied') || 'Copied!'}</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-4 h-4" />
-                              <span>{t('mpesa.copyCode') || 'Copy Code'}</span>
-                            </>
-                          )}
-                        </button>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isClaimed && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTicketForPayment(ticket)}
+                            className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 min-h-[44px] cursor-pointer"
+                          >
+                            <span>Pay with M-PESA at Counter</span>
+                          </button>
+                        )}
 
-                        {ticket.status === 'paid' && (
+                        {!isExpired && (
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(ticket.redemptionCode, ticket.id)}
+                            className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 min-h-[44px] cursor-pointer border border-slate-700"
+                          >
+                            {copiedCodeId === ticket.id ? (
+                              <>
+                                <Check className="w-4 h-4 text-emerald-200" />
+                                <span>{t('mpesa.codeCopied') || 'Copied!'}</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-4 h-4" />
+                                <span>{t('mpesa.copyCode') || 'Copy Code'}</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+
+                        {isClaimed && (
+                          <button
+                            type="button"
+                            onClick={() => handleCancelHold(ticket.id)}
+                            className="bg-slate-900 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 text-xs font-semibold px-3 py-2.5 rounded-xl transition-colors min-h-[44px] border border-slate-800 hover:border-rose-900"
+                            title="Release hold early"
+                          >
+                            <span>Cancel Hold</span>
+                          </button>
+                        )}
+
+                        {isPaid && (
                           <button
                             type="button"
                             onClick={() => handleMarkRedeemed(ticket.id)}
@@ -642,10 +768,28 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         </section>
       </main>
+
+      {/* Counter M-PESA STK Payment Modal */}
+      {selectedTicketForPayment && (
+        <MpesaModal
+          isOpen={true}
+          onClose={() => {
+            setSelectedTicketForPayment(null);
+            refreshClaims();
+          }}
+          dealId={selectedTicketForPayment.dealId}
+          dealTitle={selectedTicketForPayment.dealTitle}
+          amount={selectedTicketForPayment.amount}
+          merchantName={selectedTicketForPayment.merchantName}
+          merchantId={selectedTicketForPayment.merchantId}
+          claimTicketId={selectedTicketForPayment.id}
+        />
+      )}
     </div>
   );
 }

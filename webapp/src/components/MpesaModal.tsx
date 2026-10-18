@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { X, Check, AlertCircle, Smartphone, ShieldCheck, RefreshCw, Zap, Copy, Ticket } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
-import { saveCustomerClaimTicket } from '@/lib/claimsStorage';
+import { saveCustomerClaimTicket, payClaimTicketAtShop } from '@/lib/claimsStorage';
 import { 
   createOrder, 
   getOrderStatus, 
@@ -28,6 +28,7 @@ interface MpesaModalProps {
   dealId?: string;
   merchantId?: string;
   merchantName?: string;
+  claimTicketId?: string;
 }
 
 export default function MpesaModal({
@@ -38,6 +39,7 @@ export default function MpesaModal({
   dealId = 'deal-1',
   merchantId,
   merchantName = 'Tirf Market Partner',
+  claimTicketId,
 }: MpesaModalProps) {
   const { t } = useLanguage();
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -184,20 +186,28 @@ export default function MpesaModal({
           stopPolling();
           try {
             sessionStorage.setItem('tm_paid_order_id', order.id);
-            saveCustomerClaimTicket({
-              id: order.id,
-              orderId: order.id,
-              dealId: dealId,
-              dealTitle: dealTitle,
-              merchantId: merchantId || '',
-              merchantName: merchantName || 'Approved Shop',
-              amount: Number(order.paidAmount || order.amount || amount),
-              redemptionCode: order.redemptionCode || ('TIRF-' + order.id.slice(-6).toUpperCase()),
-              receipt: order.mpesaReceipt || null,
-              status: 'paid',
-              paidAt: order.updatedAt || new Date().toISOString(),
-              phone: sanitizePhone(phoneNumber),
-            });
+            if (claimTicketId) {
+              payClaimTicketAtShop(claimTicketId, {
+                receipt: order.mpesaReceipt || null,
+                orderId: order.id,
+                phone: sanitizePhone(phoneNumber),
+              });
+            } else {
+              saveCustomerClaimTicket({
+                id: order.id,
+                orderId: order.id,
+                dealId: dealId,
+                dealTitle: dealTitle,
+                merchantId: merchantId || '',
+                merchantName: merchantName || 'Approved Shop',
+                amount: Number(order.paidAmount || order.amount || amount),
+                redemptionCode: order.redemptionCode || ('TIRF-' + order.id.slice(-6).toUpperCase()),
+                receipt: order.mpesaReceipt || null,
+                status: 'paid',
+                paidAt: order.updatedAt || new Date().toISOString(),
+                phone: sanitizePhone(phoneNumber),
+              });
+            }
           } catch {}
           setStatus('success');
         } else if (order.status === 'failed') {
@@ -281,20 +291,28 @@ export default function MpesaModal({
       setActiveOrder(updated);
       try {
         sessionStorage.setItem('tm_paid_order_id', updated.id);
-        saveCustomerClaimTicket({
-          id: updated.id,
-          orderId: updated.id,
-          dealId: dealId,
-          dealTitle: dealTitle,
-          merchantId: merchantId || '',
-          merchantName: merchantName || 'Approved Shop',
-          amount: Number(updated.paidAmount || updated.amount || amount),
-          redemptionCode: updated.redemptionCode || ('TIRF-' + updated.id.slice(-6).toUpperCase()),
-          receipt: updated.mpesaReceipt || null,
-          status: 'paid',
-          paidAt: updated.updatedAt || new Date().toISOString(),
-          phone: sanitizePhone(phoneNumber),
-        });
+        if (claimTicketId) {
+          payClaimTicketAtShop(claimTicketId, {
+            receipt: updated.mpesaReceipt || null,
+            orderId: updated.id,
+            phone: sanitizePhone(phoneNumber),
+          });
+        } else {
+          saveCustomerClaimTicket({
+            id: updated.id,
+            orderId: updated.id,
+            dealId: dealId,
+            dealTitle: dealTitle,
+            merchantId: merchantId || '',
+            merchantName: merchantName || 'Approved Shop',
+            amount: Number(updated.paidAmount || updated.amount || amount),
+            redemptionCode: updated.redemptionCode || ('TIRF-' + updated.id.slice(-6).toUpperCase()),
+            receipt: updated.mpesaReceipt || null,
+            status: 'paid',
+            paidAt: updated.updatedAt || new Date().toISOString(),
+            phone: sanitizePhone(phoneNumber),
+          });
+        }
       } catch {}
       stopPolling();
       setStatus('success');

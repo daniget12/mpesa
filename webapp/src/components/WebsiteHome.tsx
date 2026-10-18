@@ -28,11 +28,17 @@ import {
   Search,
   X,
   Footprints,
+  Copy,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { fetchNearbyDeals, NearbyDeal, ApiError } from '@/lib/api';
 import { INITIAL_SHOPS, INITIAL_DEALS, calculateFinalPrice } from '@/mockData/miniapp';
+import {
+  claimDealOffer,
+  checkAndExpireClaims,
+  CustomerClaimTicket,
+} from '@/lib/claimsStorage';
 
 const DEFAULT_LAT = 9.0000;
 const DEFAULT_LON = 38.7800;
@@ -88,6 +94,11 @@ export const WebsiteHome: React.FC = () => {
   const { isMerchant, isBuyer } = useAuth();
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<NearbyDeal | null>(null);
   const [selectedDealForBuy, setSelectedDealForBuy] = useState<NearbyDeal | null>(null);
+  const [activeClaimTicket, setActiveClaimTicket] = useState<CustomerClaimTicket | null>(null);
+  const [selectedTicketForPay, setSelectedTicketForPay] = useState<CustomerClaimTicket | null>(null);
+  const [claimToast, setClaimToast] = useState<string | null>(null);
+  const [copiedClaimCode, setCopiedClaimCode] = useState(false);
+  const [claimCountdownSec, setClaimCountdownSec] = useState<number>(0);
   const [deals, setDeals] = useState<NearbyDeal[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -109,6 +120,50 @@ export const WebsiteHome: React.FC = () => {
   });
 
   const { t, language } = useLanguage();
+
+  // Periodic auto-expiry engine check
+  useEffect(() => {
+    checkAndExpireClaims();
+    const interval = setInterval(() => {
+      checkAndExpireClaims();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Live countdown for active claimed ticket
+  useEffect(() => {
+    if (!activeClaimTicket?.holdExpiresAt) return;
+    const update = () => {
+      const exp = new Date(activeClaimTicket.holdExpiresAt!).getTime();
+      const left = Math.max(0, Math.floor((exp - Date.now()) / 1000));
+      setClaimCountdownSec(left);
+      if (left <= 0) {
+        checkAndExpireClaims();
+      }
+    };
+    update();
+    const timer = setInterval(update, 1000);
+    return () => clearInterval(timer);
+  }, [activeClaimTicket]);
+
+  const handleCardClaim = (deal: NearbyDeal) => {
+    const res = claimDealOffer({
+      id: deal.dealId,
+      title: deal.title,
+      merchantId: deal.merchantId,
+      merchantName: deal.merchantName,
+      finalAmount: deal.finalAmount,
+      originalPrice: deal.price,
+      discountPct: deal.discountPct,
+      itemCode: deal.itemCode,
+    });
+    if (res.success && res.ticket) {
+      setActiveClaimTicket(res.ticket);
+    } else {
+      setClaimToast(res.message || 'Unable to claim offer at this time.');
+      setTimeout(() => setClaimToast(null), 4000);
+    }
+  };
 
   const loadDeals = useCallback(async (lat: number, lon: number) => {
     setIsWakingUp(false);
@@ -603,7 +658,7 @@ export const WebsiteHome: React.FC = () => {
                   distanceMeters={deal.distanceMeters}
                   image={deal.image}
                   verified={deal.verified}
-                  onBuy={() => setSelectedDealForBuy(deal)}
+                  onBuy={() => handleCardClaim(deal)}
                   onClick={() => setSelectedDealForDetails(deal)}
                 />
               ))}
@@ -695,7 +750,17 @@ export const WebsiteHome: React.FC = () => {
         </div>
       </footer>
 
-      {/* M-PESA STK Push Checkout Modal */}
+      {/* Claim Error Toast */}
+      {claimToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[130] bg-rose-600 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2 animate-fade-in">
+          <span>{claimToast}</span>
+          <button onClick={() => setClaimToast(null)} className="ml-2 text-white/80 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Direct Buy M-PESA STK Push Modal */}
       {selectedDealForBuy && (
         <MpesaModal
           isOpen={true}
@@ -708,6 +773,129 @@ export const WebsiteHome: React.FC = () => {
         />
       )}
 
+      {/* Pay at Shop Counter Modal for Claimed Ticket */}
+      {selectedTicketForPay && (
+        <MpesaModal
+          isOpen={true}
+          onClose={() => setSelectedTicketForPay(null)}
+          dealId={selectedTicketForPay.dealId}
+          dealTitle={selectedTicketForPay.dealTitle}
+          amount={selectedTicketForPay.amount}
+          merchantName={selectedTicketForPay.merchantName}
+          merchantId={selectedTicketForPay.merchantId}
+          claimTicketId={selectedTicketForPay.id}
+        />
+      )}
+
+      {/* Active Claimed Offer Modal (Zero Upfront Pay-At-Shop Ticket) */}
+      {activeClaimTicket && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+          <div className="bg-slate-950 border-2 border-emerald-500/60 rounded-3xl w-full max-w-lg shadow-2xl p-6 sm:p-7 text-white relative space-y-5">
+            <button
+              onClick={() => setActiveClaimTicket(null)}
+              className="absolute top-4 right-4 min-h-[36px] min-w-[36px] flex items-center justify-center bg-slate-900 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Close"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-2 text-emerald-400 text-xs font-black uppercase tracking-wider">
+              <Sparkles className="w-4 h-4" />
+              <span>Offer Claimed • Counter Ticket Reserved</span>
+            </div>
+
+            <div>
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wide block">
+                {activeClaimTicket.merchantName}
+              </span>
+              <h3 className="text-xl sm:text-2xl font-black text-white mt-1 leading-snug">
+                {activeClaimTicket.dealTitle}
+              </h3>
+            </div>
+
+            {/* Countdown Badge */}
+            <div className="flex items-center justify-between p-3.5 bg-slate-900/90 rounded-2xl border border-slate-800">
+              <div className="flex items-center gap-2">
+                <Clock className={`w-5 h-5 ${claimCountdownSec <= 180 ? 'text-rose-400 animate-pulse' : 'text-amber-400'}`} />
+                <div>
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Hold Validity</span>
+                  <span className={`text-base font-mono font-black ${claimCountdownSec <= 180 ? 'text-rose-400' : 'text-amber-300'}`}>
+                    {Math.floor(claimCountdownSec / 60)}m {claimCountdownSec % 60 < 10 ? '0' : ''}{claimCountdownSec % 60}s remaining
+                  </span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">To Pay at Shop</span>
+                <span className="text-lg font-mono font-black text-emerald-400">
+                  {activeClaimTicket.amount} ETB
+                </span>
+              </div>
+            </div>
+
+            {/* Redemption Code Display */}
+            <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
+              <div>
+                <span className="text-[10px] text-slate-400 uppercase tracking-widest block mb-0.5">
+                  Counter Code
+                </span>
+                <span className="text-2xl sm:text-3xl font-mono font-black text-white tracking-widest">
+                  {activeClaimTicket.redemptionCode}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                    navigator.clipboard.writeText(activeClaimTicket.redemptionCode);
+                    setCopiedClaimCode(true);
+                    setTimeout(() => setCopiedClaimCode(false), 2000);
+                  }
+                }}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
+              >
+                {copiedClaimCode ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    <span>Copy Code</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Show this code to the cashier at <strong>{activeClaimTicket.merchantName}</strong>. You can pay with M-PESA when you arrive at the counter. If you do not pay before the countdown expires, this discount quota will automatically be reversed and returned to available offers.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const t = activeClaimTicket;
+                  setActiveClaimTicket(null);
+                  setSelectedTicketForPay(t);
+                }}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold py-3 px-4 rounded-xl text-xs sm:text-sm text-center shadow-lg transition-all cursor-pointer"
+              >
+                Pay with M-PESA at Counter
+              </button>
+              <Link
+                href="/profile"
+                onClick={() => setActiveClaimTicket(null)}
+                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm text-center border border-slate-700 transition-all flex items-center justify-center gap-1.5"
+              >
+                <span>View in My Claims</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Deal Details Modal */}
       {selectedDealForDetails && (
         <DealDetailsModal
@@ -717,7 +905,11 @@ export const WebsiteHome: React.FC = () => {
           onBuy={() => {
             const deal = selectedDealForDetails;
             setSelectedDealForDetails(null);
-            setSelectedDealForBuy(deal);
+            handleCardClaim(deal);
+          }}
+          onPayAtShop={(ticket) => {
+            setSelectedDealForDetails(null);
+            setSelectedTicketForPay(ticket);
           }}
         />
       )}

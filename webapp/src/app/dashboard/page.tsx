@@ -44,8 +44,21 @@ import {
   Receipt,
   Ticket,
   Star,
+  Plus,
 } from 'lucide-react';
-import { getRatingForMerchant, getReviewsForMerchant } from '@/lib/claimsStorage';
+import {
+  getRatingForMerchant,
+  getReviewsForMerchant,
+  verifyClaimCodeForMerchant,
+  payClaimTicketAtShop,
+  markClaimTicketRedeemed,
+  setCustomDealQuota,
+  getDealQuota,
+  getStoredDealQuotas,
+  getAllDealQuotasSummary,
+  checkAndExpireClaims,
+  CustomerClaimTicket,
+} from '@/lib/claimsStorage';
 
 // Smooth animated number hook using requestAnimationFrame with cubic ease-out
 function useAnimatedNumber(target: number, duration: number = 650): number {
@@ -123,6 +136,22 @@ export default function DashboardPage() {
   // Orders Search Query
   const [orderSearchQuery, setOrderSearchQuery] = useState<string>('');
 
+  // Post Deal Quotas & Validity State
+  const [isPostDealOpen, setIsPostDealOpen] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postOriginalPrice, setPostOriginalPrice] = useState<number>(200);
+  const [postDiscountPct, setPostDiscountPct] = useState<number>(25);
+  const [postQuota, setPostQuota] = useState<number>(10); // Amount of discounts present
+  const [postHoldMinutes, setPostHoldMinutes] = useState<number>(30); // Given validity time from merchant
+  const [postSuccessMessage, setPostSuccessMessage] = useState<string | null>(null);
+
+  // Cashier Counter Active Hold Verification
+  const [counterClaim, setCounterClaim] = useState<{
+    status: 'claimed_active' | 'paid_ready' | 'already_redeemed' | 'expired' | 'not_found';
+    ticket?: CustomerClaimTicket;
+    message: string;
+  } | null>(null);
+
   // Animated counters
   const animatedDealsRedeemed = useAnimatedNumber(stats?.dealsRedeemed ?? 0);
   const animatedSales = useAnimatedNumber(stats?.cashlessSales ?? 0);
@@ -140,17 +169,27 @@ export default function DashboardPage() {
     }
   };
 
-  // Synchronize reviews from claim tickets storage in real-time
+  // Synchronize reviews & quotas from claim tickets storage in real-time
   const [reviewsVersion, setReviewsVersion] = useState(0);
   useEffect(() => {
+    checkAndExpireClaims();
     const handleUpdate = () => setReviewsVersion((v) => v + 1);
     window.addEventListener('tirf_claims_updated', handleUpdate);
-    return () => window.removeEventListener('tirf_claims_updated', handleUpdate);
+    window.addEventListener('tirf_quota_updated', handleUpdate);
+    const interval = setInterval(() => {
+      checkAndExpireClaims();
+    }, 4000);
+    return () => {
+      window.removeEventListener('tirf_claims_updated', handleUpdate);
+      window.removeEventListener('tirf_quota_updated', handleUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   const merchantShopName = merchant?.shopName || merchant?.name || 'Bole Highland Cafe';
   const merchantRating = useMemo(() => getRatingForMerchant(merchantShopName), [merchantShopName, reviewsVersion]);
   const merchantReviews = useMemo(() => getReviewsForMerchant(merchantShopName), [merchantShopName, reviewsVersion]);
+  const merchantQuotas = useMemo(() => getAllDealQuotasSummary(), [reviewsVersion]);
 
   // Waking server detection (> 5s loading)
   useEffect(() => {
@@ -337,18 +376,89 @@ export default function DashboardPage() {
     }
   };
 
-  // Handle Redeem Code
+  // Handle Post Deal with Quotas and Validity Duration
+  const handlePostDealSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!postTitle.trim() || postOriginalPrice <= 0 || postQuota <= 0) return;
+
+    const dealId = `d_custom_${Date.now()}`;
+    setCustomDealQuota(
+      dealId,
+      Number(postQuota),
+      Number(postHoldMinutes),
+      merchantShopName,
+      postTitle.trim()
+    );
+
+    setPostSuccessMessage(`Deal published! Quota of ${postQuota} discounts present with ${postHoldMinutes}m claim validity window.`);
+    setTimeout(() => setPostSuccessMessage(null), 5000);
+    setPostTitle('');
+    setIsPostDealOpen(false);
+  };
+
+  // Cashier confirms payment made at counter
+  const handleConfirmCounterPayment = (ticket: CustomerClaimTicket) => {
+    payClaimTicketAtShop(ticket.id);
+    markClaimTicketRedeemed(ticket.id);
+    setCounterClaim(null);
+    setRedeemResult({
+      orderId: ticket.orderId,
+      dealTitle: ticket.dealTitle,
+      amount: ticket.amount,
+      redeemedAt: new Date().toISOString(),
+      isSample: true,
+    });
+    if (isMock || token) {
+      fetchStats(token || undefined, false);
+    }
+  };
+
+  // Handle Redeem / Verify Code
   const handleRedeemCode = async (e: React.FormEvent) => {
     e.preventDefault();
-    const code = redeemCodeInput.trim();
+    const code = redeemCodeInput.trim().toUpperCase();
     if (!code) return;
 
     setRedeemLoading(true);
     setRedeemError(null);
     setRedeemResult(null);
+    setCounterClaim(null);
 
     // Clear input after each attempt (Requirement: "Clear input after each attempt")
     setRedeemCodeInput('');
+
+    // Check local customer claim tickets
+    const localCheck = verifyClaimCodeForMerchant(code, merchantShopName);
+    if (localCheck.status !== 'not_found') {
+      setRedeemLoading(false);
+
+      if (localCheck.status === 'claimed_active' && localCheck.ticket) {
+        setCounterClaim(localCheck);
+        return;
+      }
+      if (localCheck.status === 'paid_ready' && localCheck.ticket) {
+        markClaimTicketRedeemed(localCheck.ticket.id);
+        setRedeemResult({
+          orderId: localCheck.ticket.orderId,
+          dealTitle: localCheck.ticket.dealTitle,
+          amount: localCheck.ticket.amount,
+          redeemedAt: new Date().toISOString(),
+          isSample: true,
+        });
+        if (isMock || token) {
+          fetchStats(token || undefined, false);
+        }
+        return;
+      }
+      if (localCheck.status === 'expired') {
+        setRedeemError(localCheck.message);
+        return;
+      }
+      if (localCheck.status === 'already_redeemed') {
+        setRedeemError(localCheck.message);
+        return;
+      }
+    }
 
     try {
       const result = await redeemDealCode(code, token || undefined);
@@ -625,6 +735,16 @@ export default function DashboardPage() {
               <ExternalLink className="w-3.5 h-3.5 text-emerald-400" />
               <span className="hidden sm:inline">Marketplace</span>
             </Link>
+
+            {/* Post Deal (Quotas & Validity) Button */}
+            <button
+              type="button"
+              onClick={() => setIsPostDealOpen((prev) => !prev)}
+              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isPostDealOpen ? 'Close Post Deal' : 'Post Deal'}</span>
+            </button>
           </div>
         </div>
       </header>
@@ -818,14 +938,24 @@ export default function DashboardPage() {
                     <span>Quick-Select Test Voucher:</span>
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {['SAMPLE-ORD-01', 'SAMPLE-ORD-02', 'SAMPLE-ORD-03', 'TIRF-8F1A01'].map((c) => (
+                    {[
+                      { code: 'SAMPLE-ORD-01', label: 'SAMPLE-ORD-01' },
+                      { code: 'SAMPLE-ORD-02', label: 'SAMPLE-ORD-02' },
+                      { code: 'SAMPLE-ORD-03', label: 'SAMPLE-ORD-03' },
+                      { code: 'TIRF-8F1A01', label: 'TIRF-8F1A01 (Paid)' },
+                      { code: 'TIRF-7X9P', label: 'TIRF-7X9P (Active Hold)' },
+                    ].map((item) => (
                       <button
-                        key={c}
+                        key={item.code}
                         type="button"
-                        onClick={() => setRedeemCodeInput(c)}
-                        className="px-2.5 py-1 font-mono text-xs font-black bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-500/40 rounded-lg transition-all active:scale-95 cursor-pointer shadow-xs"
+                        onClick={() => setRedeemCodeInput(item.code)}
+                        className={`px-2.5 py-1 font-mono text-xs font-black rounded-lg transition-all active:scale-95 cursor-pointer shadow-xs ${
+                          item.code === 'TIRF-7X9P'
+                            ? 'bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-200 border border-emerald-500/50'
+                            : 'bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-500/40'
+                        }`}
                       >
-                        {c}
+                        {item.label}
                       </button>
                     ))}
                   </div>
@@ -871,6 +1001,101 @@ export default function DashboardPage() {
                   )}
                 </button>
               </form>
+
+              {/* Active Counter Hold Verification Card */}
+              {counterClaim && counterClaim.ticket && (
+                <div className="mt-5 bg-gradient-to-br from-amber-950/60 via-slate-900/95 to-amber-950/40 border-2 border-amber-500/60 text-amber-200 p-6 sm:p-7 rounded-3xl shadow-2xl shadow-amber-950/50 animate-fade-in relative">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-amber-500/20">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-amber-500/20 text-amber-300 rounded-2xl border border-amber-500/40 shadow-inner">
+                        <Clock className="w-7 h-7 animate-pulse text-amber-400" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg sm:text-xl font-black text-amber-300">
+                            Active Customer Hold • Pay at Shop
+                          </h3>
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
+                            Zero Upfront Claim
+                          </span>
+                        </div>
+                        <p className="text-xs text-amber-400/80 mt-0.5">
+                          {counterClaim.message}
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCounterClaim(null)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
+                    <div>
+                      <div className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1">
+                        Reserved Deal
+                      </div>
+                      <div className="text-lg sm:text-xl font-black text-white leading-tight">
+                        {counterClaim.ticket.dealTitle}
+                      </div>
+                      <div className="text-xs font-mono text-amber-300/80 mt-1.5 flex items-center gap-1.5">
+                        <span>Code:</span>
+                        <span className="font-black text-amber-200 px-2 py-0.5 rounded bg-amber-500/20 tracking-wider">
+                          {counterClaim.ticket.redemptionCode}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1">
+                        Amount to Collect at Counter
+                      </div>
+                      <div className="text-2xl sm:text-3xl font-black text-amber-300 font-mono tracking-tight">
+                        {counterClaim.ticket.amount.toLocaleString()} <span className="text-base font-bold text-amber-200">ETB</span>
+                      </div>
+                      <div className="text-[11px] text-amber-400/70 font-semibold mt-1">
+                        Original: <span className="line-through">{counterClaim.ticket.originalPrice || counterClaim.ticket.amount} ETB</span> ({counterClaim.ticket.discountPct || 0}% OFF)
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1">
+                        Validity Window & Quota Rule
+                      </div>
+                      <div className="text-xs font-medium text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-amber-500/20 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-slate-400">Merchant Hold:</span>
+                          <span className="font-bold text-amber-300">{counterClaim.ticket.holdMinutes || 30} minutes</span>
+                        </div>
+                        <div className="text-[10px] text-amber-400/80 leading-tight">
+                          If customer leaves without paying, quota automatically returns to your store stock.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cashier Confirmation Action */}
+                  <div className="pt-4 border-t border-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-xs text-amber-300/90 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span>Customer presents M-PESA or cash at counter. Once received, confirm below:</span>
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() => handleConfirmCounterPayment(counterClaim.ticket!)}
+                      className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
+                    >
+                      <CheckCircle2 className="w-5 h-5 text-white" />
+                      <span>Confirm Counter Payment & Settle</span>
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Error Banner */}
               {redeemError && (
@@ -974,6 +1199,231 @@ export default function DashboardPage() {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Post Deal Success Alert Banner */}
+            {postSuccessMessage && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 p-4 rounded-2xl text-xs sm:text-sm flex items-center gap-3 animate-fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                <span className="font-semibold">{postSuccessMessage}</span>
+              </div>
+            )}
+
+            {/* Merchant Post Deal Section with Quota & Validity Duration */}
+            {isPostDealOpen && (
+              <div className="bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden animate-fade-in">
+                <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                      <Plus className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white">Post Deal with Quota & Claim Validity</h3>
+                      <p className="text-xs text-slate-400">Configure discounts present and set how long claims remain valid before reversing.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPostDealOpen(false)}
+                    className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
+                  >
+                    ✕ Close
+                  </button>
+                </div>
+
+                <form onSubmit={handlePostDealSubmit} className="space-y-5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        Deal Title *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={postTitle}
+                        onChange={(e) => setPostTitle(e.target.value)}
+                        placeholder="e.g. 25% Off Fresh Roast Coffee & Pastry"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                          Original Price (ETB) *
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          required
+                          value={postOriginalPrice}
+                          onChange={(e) => setPostOriginalPrice(Math.max(1, parseInt(e.target.value) || 1))}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                          Discount ({postDiscountPct}%)
+                        </label>
+                        <input
+                          type="number"
+                          min={5}
+                          max={90}
+                          value={postDiscountPct}
+                          onChange={(e) => setPostDiscountPct(Math.max(5, Math.min(90, parseInt(e.target.value) || 5)))}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quota & Validity Window Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-800/80">
+                    <div>
+                      <label className="block text-xs font-bold text-amber-400 mb-1.5 flex items-center gap-1.5">
+                        <span>Discounts Present (Total Quota Available) *</span>
+                      </label>
+                      <input
+                        type="number"
+                        min={1}
+                        max={500}
+                        required
+                        value={postQuota}
+                        onChange={(e) => setPostQuota(Math.max(1, parseInt(e.target.value) || 1))}
+                        className="w-full bg-slate-950 border border-amber-500/30 rounded-xl px-4 py-2.5 text-base font-mono font-bold text-amber-300 focus:outline-none focus:border-amber-400"
+                      />
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        Total discounts posted. Buyers claim with zero upfront payment.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-emerald-400 mb-1.5 flex items-center gap-1.5">
+                        <span>Claim Hold Validity Duration (Merchant Window) *</span>
+                      </label>
+                      <select
+                        value={postHoldMinutes}
+                        onChange={(e) => setPostHoldMinutes(parseInt(e.target.value))}
+                        className="w-full bg-slate-950 border border-emerald-500/30 rounded-xl px-4 py-2.5 text-sm font-bold text-emerald-300 focus:outline-none focus:border-emerald-400"
+                      >
+                        <option value={15}>15 Minutes</option>
+                        <option value={20}>20 Minutes</option>
+                        <option value={30}>30 Minutes (Recommended)</option>
+                        <option value={45}>45 Minutes</option>
+                        <option value={60}>60 Minutes (1 Hour)</option>
+                        <option value={120}>120 Minutes (2 Hours)</option>
+                      </select>
+                      <p className="text-[11px] text-slate-400 mt-1">
+                        If buyer does not pay at counter within this time, quota automatically reverses back to your store!
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400">Final customer counter price:</span>
+                    <span className="text-emerald-400 font-black text-sm">
+                      {Math.round(postOriginalPrice * (1 - postDiscountPct / 100))} ETB
+                    </span>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm rounded-xl shadow-lg transition-all cursor-pointer"
+                  >
+                    Publish Deal & Activate Quota
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* Deal Quotas & Counter Holds Real-Time Inventory Table */}
+            <div className="bg-slate-900/80 border border-slate-800/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-xl">
+              <div className="p-5 md:p-6 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white text-base md:text-lg flex items-center gap-2">
+                      <span>Posted Deals, Quotas & Claim Holds</span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Real-time inventory: discounts present, active counter holds, and auto-reversals
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsPostDealOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Post Another Deal</span>
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs sm:text-sm">
+                  <thead className="bg-slate-950/70 text-slate-400 text-xs uppercase font-semibold border-b border-slate-800/80">
+                    <tr>
+                      <th className="px-6 py-3.5">Deal</th>
+                      <th className="px-6 py-3.5 text-center">Discounts Present</th>
+                      <th className="px-6 py-3.5 text-center">Available Quota</th>
+                      <th className="px-6 py-3.5 text-center">Active Holds</th>
+                      <th className="px-6 py-3.5 text-center">Paid / Redeemed</th>
+                      <th className="px-6 py-3.5 text-center">Hold Validity</th>
+                      <th className="px-6 py-3.5 text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                    {merchantQuotas.map((q) => (
+                      <tr key={q.dealId} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="px-6 py-3.5 font-bold font-sans text-white max-w-xs truncate">
+                          {q.dealTitle || 'Special Offer'}
+                        </td>
+                        <td className="px-6 py-3.5 text-center font-bold text-slate-300">
+                          {q.totalQuota}
+                        </td>
+                        <td className="px-6 py-3.5 text-center">
+                          <span className={`px-2 py-0.5 rounded font-black ${
+                            q.availableQuota > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
+                          }`}>
+                            {q.availableQuota} left
+                          </span>
+                        </td>
+                        <td className="px-6 py-3.5 text-center">
+                          {q.activeHolds > 0 ? (
+                            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold animate-pulse">
+                              {q.activeHolds} pending pay
+                            </span>
+                          ) : (
+                            <span className="text-slate-500">0</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-3.5 text-center text-slate-400">
+                          {q.paidCount}
+                        </td>
+                        <td className="px-6 py-3.5 text-center text-slate-300">
+                          {q.holdMinutes} min
+                        </td>
+                        <td className="px-6 py-3.5 text-right font-sans">
+                          {q.isSoldOut ? (
+                            <span className="text-[11px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded-full">
+                              All Claimed
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                              Available
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Primary Metrics Grid (High-Contrast Projector Cards) */}
