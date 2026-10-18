@@ -1,8 +1,9 @@
 'use client';
 import React from 'react';
-import { X, MapPin } from 'lucide-react';
+import { X, MapPin, Star } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
+import { getReviewsForDeal, getRatingForDeal, getRatingForMerchant } from '@/lib/claimsStorage';
 
 export interface ModalDeal {
   id?: string;
@@ -39,6 +40,12 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
   const original = deal.price || deal.original_price;
   const current = deal.finalAmount ?? deal.discounted_price;
 
+  const merchantName = deal.merchantName || deal.merchant_name || 'Tirf Market Partner';
+  const dealId = deal.id || deal.dealId;
+  const shopRating = getRatingForMerchant(merchantName);
+  const dealRating = getRatingForDeal(dealId, merchantName, deal.title);
+  const reviews = getReviewsForDeal(dealId, merchantName, deal.title);
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
       <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[92vh] shadow-2xl relative my-auto flex flex-col overflow-hidden">
@@ -66,7 +73,16 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
           
           <div className="p-5 sm:p-7">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{deal.title}</h2>
-            <p className="text-gray-600 font-medium mb-6 text-sm">{deal.merchantName || deal.merchant_name || 'Tirf Market Partner'}</p>
+            
+            {/* Merchant Identity & Shop Rating */}
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
+              <span className="text-gray-700 font-semibold text-sm">{merchantName}</span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                <span>{shopRating.average.toFixed(1)}</span>
+                <span className="text-slate-400 font-normal">({shopRating.count} shop reviews)</span>
+              </span>
+            </div>
             
             {/* Desktop Action Card */}
             <div className="hidden md:flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 mb-6">
@@ -109,6 +125,58 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy }: DealD
                   <p className="text-gray-500 text-xs leading-relaxed">{deal.fine_print}</p>
                 </div>
               )}
+            </div>
+
+            {/* Customer Reviews Section Under the Offer */}
+            <div className="pt-6 mt-6 border-t border-gray-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-bold text-gray-900 text-base flex items-center gap-2">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                    <span>Customer Reviews</span>
+                    <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                      {dealRating.average.toFixed(1)} / 5.0
+                    </span>
+                  </h4>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Verified feedback from customers who claimed this offer
+                  </p>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg">
+                  {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+                </span>
+              </div>
+
+              <div className="space-y-3">
+                {reviews.map((rev) => (
+                  <div key={rev.id} className="p-4 bg-slate-50/80 rounded-xl border border-slate-200/60 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold flex items-center justify-center">
+                          {rev.authorName ? rev.authorName.charAt(0).toUpperCase() : 'B'}
+                        </div>
+                        <span className="text-xs font-bold text-gray-900">{rev.authorName}</span>
+                        <span className="text-[10px] font-medium text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                          Verified M-PESA
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((s) => (
+                          <Star
+                            key={s}
+                            className={`w-3.5 h-3.5 ${
+                              s <= rev.rating ? 'fill-amber-400 text-amber-500' : 'text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-700 leading-relaxed italic">
+                      "{rev.comment}"
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

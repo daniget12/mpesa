@@ -9,6 +9,7 @@ import {
   getCustomerClaimTickets,
   updateClaimTicketReview,
   markClaimTicketRedeemed,
+  getRatingForMerchant,
   CustomerClaimTicket,
 } from '@/lib/claimsStorage';
 import {
@@ -30,6 +31,7 @@ import {
 export default function ProfilePage() {
   const { t } = useLanguage();
   const { user, profileName, accountType, isMerchant, isBuyer } = useAuth();
+  const merchantRating = getRatingForMerchant(profileName || 'Bole Highland Cafe');
 
   // Tickets State
   const [tickets, setTickets] = useState<CustomerClaimTicket[]>([]);
@@ -188,7 +190,14 @@ export default function ProfilePage() {
                 <Store className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Merchant Account Active</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-bold text-white">Merchant Account Active</h3>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                    <span>{merchantRating.average.toFixed(1)}</span>
+                    <span className="text-slate-400 font-normal">({merchantRating.count} reviews)</span>
+                  </span>
+                </div>
                 <p className="text-xs text-slate-300 mt-0.5">
                   Claim vouchers are for buyers. Manage your shop, check counter redemptions, and post deals on your Merchant Dashboard.
                 </p>
