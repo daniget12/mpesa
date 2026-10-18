@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { X, MapPin, Star, Ticket, Clock, Sparkles, Copy, Check, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
+import { QrCodeSvg } from '@/components/common/QrCodeSvg';
 import {
   getReviewsForDeal,
   getRatingForDeal,
@@ -206,32 +207,35 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
                   </span>
                 </div>
 
-                <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <span className="text-[10px] text-slate-400 uppercase tracking-widest block mb-0.5">
-                      Counter Redemption Code
-                    </span>
-                    <span className="text-3xl font-mono font-black text-white tracking-widest">
-                      {claimedTicket.redemptionCode}
-                    </span>
+                <div className="p-4 bg-slate-900 rounded-xl border border-slate-800 flex flex-col items-center justify-center text-center gap-3">
+                  <QrCodeSvg value={claimedTicket.redemptionCode} size={140} className="mx-auto" />
+                  <div className="w-full flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-800">
+                    <div className="text-left">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-widest block mb-0.5">
+                        Counter Redemption Code
+                      </span>
+                      <span className="text-3xl font-mono font-black text-white tracking-widest">
+                        {claimedTicket.redemptionCode}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCopyCode(claimedTicket.redemptionCode)}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 min-h-[40px] cursor-pointer"
+                    >
+                      {copiedCode ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-200" />
+                          <span>Copied!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" />
+                          <span>Copy Code</span>
+                        </>
+                      )}
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyCode(claimedTicket.redemptionCode)}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-1.5 min-h-[40px] cursor-pointer"
-                  >
-                    {copiedCode ? (
-                      <>
-                        <Check className="w-4 h-4 text-emerald-200" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-4 h-4" />
-                        <span>Copy Code</span>
-                      </>
-                    )}
-                  </button>
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed">

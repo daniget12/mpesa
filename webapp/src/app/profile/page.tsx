@@ -15,6 +15,7 @@ import {
   CustomerClaimTicket,
 } from '@/lib/claimsStorage';
 import MpesaModal from '@/components/MpesaModal';
+import { QrCodeSvg } from '@/components/common/QrCodeSvg';
 import {
   User as UserIcon,
   Ticket,
@@ -531,38 +532,45 @@ export default function ProfilePage() {
                       ? 'bg-slate-950/60 border-rose-950/60'
                       : 'bg-slate-950 border-emerald-500/30'
                   }`}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div className="space-y-1">
-                        <div className={`text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 ${
-                          isClaimed ? 'text-amber-400' : isExpired ? 'text-rose-400' : 'text-emerald-400'
-                        }`}>
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>
-                            {isClaimed
-                              ? 'Counter Reservation Pass'
-                              : isExpired
-                              ? 'Hold Expired'
-                              : t('mpesa.oneTimeCode') || 'Counter Redemption Code'}
-                          </span>
-                        </div>
-                        <div className={`font-mono text-2xl md:text-4xl font-black tracking-widest selection:bg-emerald-600 ${
-                          isExpired ? 'text-slate-500 line-through' : 'text-white'
-                        }`}>
-                          {ticket.redemptionCode}
-                        </div>
-                        <p className="text-xs text-slate-400">
-                          {isClaimed ? (
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                        {!isExpired && (
+                          <div className="shrink-0">
+                            <QrCodeSvg value={ticket.redemptionCode} size={92} />
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          <div className={`text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 ${
+                            isClaimed ? 'text-amber-400' : isExpired ? 'text-rose-400' : 'text-emerald-400'
+                          }`}>
+                            <Sparkles className="w-3.5 h-3.5" />
                             <span>
-                              Present this code at <strong>{ticket.merchantName}</strong>. Pay with M-PESA at the counter within {ticket.holdMinutes || 30} minutes. If unpaid, quota is automatically restored to the shop.
+                              {isClaimed
+                                ? 'Counter Reservation Pass'
+                                : isExpired
+                                ? 'Hold Expired'
+                                : t('mpesa.oneTimeCode') || 'Counter Redemption Code'}
                             </span>
-                          ) : isExpired ? (
-                            <span>
-                              This hold expired. The 1 unit quota was restored to {ticket.merchantName}&apos;s available offers.
-                            </span>
-                          ) : (
-                            t('mpesa.showCodeAtCounter') || 'Show this code at the counter to redeem your deal.'
-                          )}
-                        </p>
+                          </div>
+                          <div className={`font-mono text-2xl md:text-3xl font-black tracking-widest selection:bg-emerald-600 ${
+                            isExpired ? 'text-slate-500 line-through' : 'text-white'
+                          }`}>
+                            {ticket.redemptionCode}
+                          </div>
+                          <p className="text-xs text-slate-400 max-w-md">
+                            {isClaimed ? (
+                              <span>
+                                Present this code at <strong>{ticket.merchantName}</strong>. Pay with M-PESA at the counter within {ticket.holdMinutes || 30} minutes. If unpaid, quota is automatically restored to the shop.
+                              </span>
+                            ) : isExpired ? (
+                              <span>
+                                This hold expired. The 1 unit quota was restored to {ticket.merchantName}&apos;s available offers.
+                              </span>
+                            ) : (
+                              t('mpesa.showCodeAtCounter') || 'Show this code at the counter to redeem your deal.'
+                            )}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 flex-wrap">

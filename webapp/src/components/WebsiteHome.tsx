@@ -6,6 +6,8 @@ import Header from '@/components/Header';
 import DealCard from '@/components/DealCard';
 import MpesaModal from '@/components/MpesaModal';
 import DealDetailsModal from '@/components/DealDetailsModal';
+import { ShopsMap } from '@/components/ShopsMap';
+import { QrCodeSvg } from '@/components/common/QrCodeSvg';
 import {
   Utensils,
   Coffee,
@@ -29,6 +31,8 @@ import {
   X,
   Footprints,
   Copy,
+  Map,
+  List,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
@@ -113,6 +117,8 @@ export const WebsiteHome: React.FC = () => {
   const [selectedLocationId, setSelectedLocationId] = useState<string>('bole');
   const [dismissedMerchantId, setDismissedMerchantId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'distance' | 'discount' | 'price'>('distance');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [radiusMeters, setRadiusMeters] = useState<number>(2000);
 
   const [coords, setCoords] = useState<{ lat: number; lon: number }>({
     lat: DEFAULT_LAT,
@@ -165,7 +171,7 @@ export const WebsiteHome: React.FC = () => {
     }
   };
 
-  const loadDeals = useCallback(async (lat: number, lon: number) => {
+  const loadDeals = useCallback(async (lat: number, lon: number, radius?: number) => {
     setIsWakingUp(false);
     setLoading(true);
     setError(null);
@@ -175,7 +181,7 @@ export const WebsiteHome: React.FC = () => {
     }, 4000);
 
     try {
-      const data = await fetchNearbyDeals(lat, lon, 2000);
+      const data = await fetchNearbyDeals(lat, lon, radius || radiusMeters);
       clearTimeout(coldStartTimer);
       if (Array.isArray(data) && data.length > 0) {
         setDeals(data);
@@ -189,7 +195,7 @@ export const WebsiteHome: React.FC = () => {
       setLoading(false);
       setIsWakingUp(false);
     }
-  }, []);
+  }, [radiusMeters]);
 
   // GPS User Location Detection
   const requestUserLocation = useCallback(() => {
@@ -266,7 +272,7 @@ export const WebsiteHome: React.FC = () => {
       }, 4000);
 
       try {
-        const data = await fetchNearbyDeals(coords.lat, coords.lon, 2000);
+        const data = await fetchNearbyDeals(coords.lat, coords.lon, radiusMeters);
         clearTimeout(coldStartTimer);
         if (!ignore) {
           if (Array.isArray(data) && data.length > 0) {
@@ -289,7 +295,7 @@ export const WebsiteHome: React.FC = () => {
     return () => {
       ignore = true;
     };
-  }, [coords.lat, coords.lon]);
+  }, [coords.lat, coords.lon, radiusMeters]);
 
   const filteredAndSortedDeals = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
@@ -351,31 +357,41 @@ export const WebsiteHome: React.FC = () => {
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 sm:space-y-10">
-        {/* Proximity Alert Banner (Interactive Location Feature) */}
+        {/* Proximity Alert Banner (Interactive Hyperlocal Radar) */}
         {isBannerVisible && nearestDeal && (
-          <aside aria-label="Proximity Alert" className="bg-gradient-to-r from-emerald-600 via-green-600 to-teal-700 text-white rounded-2xl p-4 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <aside aria-label="Proximity Alert" className="relative bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white rounded-2xl p-4 shadow-xl border border-emerald-700/60 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 overflow-hidden">
+            <div className="absolute -right-6 -bottom-6 w-28 h-28 bg-emerald-500/20 rounded-full blur-xl pointer-events-none" />
+
             <div
               onClick={() => setSelectedDealForDetails(nearestDeal)}
-              className="flex items-center gap-3 cursor-pointer flex-1 min-w-0"
+              className="flex items-center gap-3 cursor-pointer flex-1 min-w-0 relative z-10"
             >
-              <div className="p-2 bg-white/20 rounded-xl shrink-0">
-                <Sparkles className="w-5 h-5 text-amber-300" />
+              <div className="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-md">
+                <Navigation className="w-5 h-5 fill-slate-950" />
               </div>
               <div className="text-xs sm:text-sm font-medium truncate">
-                <span className="font-bold text-amber-300">
-                  {t('alert.near')} {nearestDeal.merchantName}:
-                </span>{' '}
-                <span>{nearestDeal.title}</span>,{' '}
-                <span className="font-black font-mono underline decoration-amber-400">{nearestDeal.finalAmount} ETB</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider">
+                    {language === 'am' ? 'አቅራቢያዎ ያለ ቅናሽ' : 'Nearby Alert · 120 m'}
+                  </span>
+                </div>
+                <div className="truncate font-bold text-white text-sm sm:text-base mt-0.5">
+                  <span>{nearestDeal.merchantName}:</span>{' '}
+                  <span>{nearestDeal.title}</span>
+                </div>
+                <div className="text-xs text-emerald-200 mt-0.5">
+                  Pay at shop: <span className="font-mono font-black text-amber-300">{nearestDeal.finalAmount} ETB</span> (was {nearestDeal.price} ETB)
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 justify-end shrink-0">
+            <div className="flex items-center gap-2 justify-end shrink-0 relative z-10">
               <button
                 type="button"
                 onClick={() => setSelectedDealForDetails(nearestDeal)}
-                className="min-h-[40px] text-xs bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-4 py-2 rounded-xl transition-colors cursor-pointer flex items-center justify-center shadow-xs"
+                className="min-h-[40px] text-xs bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-4 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-md active:scale-95"
               >
-                {t('alert.view')}
+                <span>{t('alert.view')}</span>
+                <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 type="button"
@@ -384,7 +400,7 @@ export const WebsiteHome: React.FC = () => {
                   setDismissedMerchantId(nearestDeal.merchantId);
                 }}
                 aria-label={t('alert.dismiss')}
-                className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 hover:bg-white/20 rounded-xl text-white/80 hover:text-white transition-colors cursor-pointer"
+                className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 hover:bg-white/10 rounded-xl text-white/70 hover:text-white transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -606,11 +622,70 @@ export const WebsiteHome: React.FC = () => {
 
         {/* Deals Feed */}
         <section id="deals" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              {t('trending.title')}
-            </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                <span>{t('trending.title')}</span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Hyperlocal discounts in {currentLocationLabel} with zero upfront claim reservations
+              </p>
+            </div>
+
+            {/* List / Map View Switcher */}
+            <div className="flex p-1 bg-slate-200/90 rounded-2xl shrink-0 border border-slate-300/60 shadow-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+                  viewMode === 'list'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-950'
+                }`}
+              >
+                <List className="w-4 h-4" />
+                <span>List View</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('map')}
+                className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all min-h-[36px] cursor-pointer ${
+                  viewMode === 'map'
+                    ? 'bg-white text-emerald-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-950'
+                }`}
+              >
+                <Map className="w-4 h-4" />
+                <span>Map View</span>
+              </button>
+            </div>
           </div>
+
+          {/* Interactive Map of Shops & Deals */}
+          {viewMode === 'map' && (
+            <div className="space-y-4 animate-fade-in">
+              <ShopsMap
+                userLat={coords.lat}
+                userLon={coords.lon}
+                radiusMeters={radiusMeters}
+                deals={filteredAndSortedDeals}
+                onSelectDeal={setSelectedDealForDetails}
+                onClaimDeal={handleCardClaim}
+                onChangeRadius={(r) => setRadiusMeters(r)}
+                onLocateMe={requestUserLocation}
+              />
+
+              <div className="flex items-center justify-between pt-1 px-1">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Nearby Deals on Map ({filteredAndSortedDeals.length} found)
+                </span>
+                <span className="text-xs text-slate-500 font-medium">
+                  Tap any shop pin to preview or claim with 0 ETB upfront
+                </span>
+              </div>
+            </div>
+          )}
 
           {loading ? (
             <div className="py-16 text-center space-y-3">
@@ -710,6 +785,21 @@ export const WebsiteHome: React.FC = () => {
                 {t('how.step3Desc')}
               </p>
             </div>
+          </div>
+        </section>
+
+        {/* TirfMarket Trust & Compliance Assurance */}
+        <section className="p-4 sm:p-5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50/50 rounded-2xl border border-emerald-200/80 text-xs text-emerald-950 flex items-start gap-3.5 shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+            <ShieldCheck className="w-4 h-4" />
+          </div>
+          <div className="space-y-1">
+            <p className="font-bold text-emerald-950 text-sm">
+              TirfMarket Trust System
+            </p>
+            <p className="text-emerald-800 leading-relaxed text-xs">
+              We never hold customer money. Pay-at-shop claims are 100% free with zero upfront charges. All purchases go directly through M-PESA at verified shop counters. If an active hold expires before pickup, quota is automatically restored without penalties.
+            </p>
           </div>
         </section>
       </main>
@@ -832,39 +922,42 @@ export const WebsiteHome: React.FC = () => {
               </div>
             </div>
 
-            {/* Redemption Code Display */}
-            <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-widest block mb-0.5">
-                  Counter Code
-                </span>
-                <span className="text-2xl sm:text-3xl font-mono font-black text-white tracking-widest">
-                  {activeClaimTicket.redemptionCode}
-                </span>
+            {/* QR Code & Redemption Code Display */}
+            <div className="p-4 bg-slate-900 rounded-2xl border border-slate-800 flex flex-col items-center justify-center text-center gap-3">
+              <QrCodeSvg value={activeClaimTicket.redemptionCode} size={150} className="mx-auto" />
+              <div className="w-full flex items-center justify-between pt-1 border-t border-slate-800">
+                <div className="text-left">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-widest block mb-0.5">
+                    Counter Code
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-mono font-black text-white tracking-widest">
+                    {activeClaimTicket.redemptionCode}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                      navigator.clipboard.writeText(activeClaimTicket.redemptionCode);
+                      setCopiedClaimCode(true);
+                      setTimeout(() => setCopiedClaimCode(false), 2000);
+                    }
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  {copiedClaimCode ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-200" />
+                      <span>Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4" />
+                      <span>Copy Code</span>
+                    </>
+                  )}
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof navigator !== 'undefined' && navigator.clipboard) {
-                    navigator.clipboard.writeText(activeClaimTicket.redemptionCode);
-                    setCopiedClaimCode(true);
-                    setTimeout(() => setCopiedClaimCode(false), 2000);
-                  }
-                }}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer shrink-0"
-              >
-                {copiedClaimCode ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 text-emerald-200" />
-                    <span>Copied!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4" />
-                    <span>Copy Code</span>
-                  </>
-                )}
-              </button>
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
