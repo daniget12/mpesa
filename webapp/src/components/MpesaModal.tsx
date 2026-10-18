@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, AlertCircle, Smartphone, ShieldCheck, RefreshCw, Zap, Copy } from 'lucide-react';
+import Link from 'next/link';
+import { X, Check, AlertCircle, Smartphone, ShieldCheck, RefreshCw, Zap, Copy, Ticket } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { saveCustomerClaimTicket } from '@/lib/claimsStorage';
 import { 
   createOrder, 
   getOrderStatus, 
@@ -182,6 +184,20 @@ export default function MpesaModal({
           stopPolling();
           try {
             sessionStorage.setItem('tm_paid_order_id', order.id);
+            saveCustomerClaimTicket({
+              id: order.id,
+              orderId: order.id,
+              dealId: dealId,
+              dealTitle: dealTitle,
+              merchantId: merchantId || '',
+              merchantName: merchantName || 'Approved Shop',
+              amount: Number(order.paidAmount || order.amount || amount),
+              redemptionCode: order.redemptionCode || ('TIRF-' + order.id.slice(-6).toUpperCase()),
+              receipt: order.mpesaReceipt || null,
+              status: 'paid',
+              paidAt: order.updatedAt || new Date().toISOString(),
+              phone: sanitizePhone(phoneNumber),
+            });
           } catch {}
           setStatus('success');
         } else if (order.status === 'failed') {
@@ -265,6 +281,20 @@ export default function MpesaModal({
       setActiveOrder(updated);
       try {
         sessionStorage.setItem('tm_paid_order_id', updated.id);
+        saveCustomerClaimTicket({
+          id: updated.id,
+          orderId: updated.id,
+          dealId: dealId,
+          dealTitle: dealTitle,
+          merchantId: merchantId || '',
+          merchantName: merchantName || 'Approved Shop',
+          amount: Number(updated.paidAmount || updated.amount || amount),
+          redemptionCode: updated.redemptionCode || ('TIRF-' + updated.id.slice(-6).toUpperCase()),
+          receipt: updated.mpesaReceipt || null,
+          status: 'paid',
+          paidAt: updated.updatedAt || new Date().toISOString(),
+          phone: sanitizePhone(phoneNumber),
+        });
       } catch {}
       stopPolling();
       setStatus('success');
@@ -674,13 +704,24 @@ export default function MpesaModal({
                 </div>
               </div>
 
-              {/* Large Done Button */}
-              <button
-                onClick={handleClose}
-                className="w-full min-h-[50px] bg-gray-900 hover:bg-black text-white font-bold py-3.5 px-4 rounded-xl transition-colors cursor-pointer text-base"
-              >
-                Done
-              </button>
+              {/* Actions: View in My Claims & Done Button */}
+              <div className="flex flex-col sm:flex-row gap-2 mt-2">
+                <Link
+                  href="/profile"
+                  onClick={handleClose}
+                  className="flex-1 min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl transition-colors cursor-pointer text-sm flex items-center justify-center gap-1.5 shadow-md"
+                >
+                  <Ticket className="w-4 h-4" />
+                  <span>{t("profile.viewInClaims") || "View in My Claims"}</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="flex-1 min-h-[48px] bg-gray-900 hover:bg-black text-white font-bold py-3 px-4 rounded-xl transition-colors cursor-pointer text-sm"
+                >
+                  Done
+                </button>
+              </div>
             </div>
           )}
         </div>

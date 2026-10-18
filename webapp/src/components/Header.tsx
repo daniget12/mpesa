@@ -14,6 +14,7 @@ import {
   Smartphone,
   Sparkles,
   ShoppingBag,
+  Ticket,
 } from 'lucide-react';
 import Link from 'next/link';
 import AuthModal from './AuthModal';
@@ -263,17 +264,19 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
               )}
             </div>
 
+            {/* My Claims / Tickets Button */}
+            <Link
+              href="/profile"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[38px] text-xs font-semibold rounded-lg text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors cursor-pointer"
+              title="View your claim tickets and orders"
+            >
+              <Ticket className="w-4 h-4 text-emerald-600" />
+              <span className="hidden md:inline">{t("header.myClaims") || "My Claims"}</span>
+            </Link>
+
             {/* User Account / Sign In */}
             {user ? (
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:flex flex-col text-right leading-none">
-                  <span className="text-xs font-bold text-slate-900 truncate max-w-[120px]">
-                    {profileName || user.email?.split('@')[0] || 'User'}
-                  </span>
-                  <span className="text-[10px] text-emerald-600 font-semibold">
-                    {isAdmin ? 'Admin' : isSeller ? 'Seller' : 'Buyer'}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 sm:gap-3">
                 {isAdmin && (
                   <Link
                     href="/admin"
@@ -282,11 +285,28 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
                     Admin
                   </Link>
                 )}
+                {isSeller && !isAdmin && (
+                  <Link
+                    href="/seller"
+                    className="text-xs font-bold bg-emerald-100 text-emerald-900 px-2 py-1 rounded-md hover:bg-emerald-200 transition-colors"
+                  >
+                    Seller
+                  </Link>
+                )}
+                <Link
+                  href="/profile"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-emerald-700 transition-colors bg-slate-50 hover:bg-slate-100 px-2.5 sm:px-3 py-1.5 rounded-lg border border-slate-200 min-h-[38px]"
+                  title="View Profile and Claim Tickets"
+                >
+                  <UserIcon className="w-3.5 h-3.5 text-emerald-600" />
+                  <span className="truncate max-w-[110px]">{profileName || user.user_metadata?.full_name || user.email?.split('@')[0]}</span>
+                </Link>
                 <button
                   type="button"
                   onClick={handleSignOut}
                   className="p-2 text-slate-500 hover:text-rose-600 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
                   title="Sign Out"
+                  aria-label="Sign out"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -300,6 +320,15 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
                 <span>{t('header.signin') || 'Sign In'}</span>
               </Link>
             )}
+
+            {/* Mobile Claims / Profile Icon */}
+            <Link
+              href="/profile"
+              className="min-h-[38px] min-w-[38px] p-2 text-emerald-700 sm:hidden flex items-center justify-center rounded-lg hover:bg-emerald-50"
+              aria-label="My Claims & Profile"
+            >
+              <Ticket className="w-5 h-5" />
+            </Link>
           </div>
         </div>
 
@@ -347,6 +376,16 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
               >
                 <Store className="w-4 h-4 text-emerald-600" />
                 <span>Register Shop</span>
+              </Link>
+              <Link
+                href="/profile"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl text-sm font-semibold text-gray-800 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                  <Ticket className="w-4 h-4" />
+                </div>
+                <span>{t("header.myClaims") || "My Profile & Claim Tickets"}</span>
               </Link>
               <Link
                 href="/dashboard"
