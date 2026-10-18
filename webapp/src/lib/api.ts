@@ -11,6 +11,7 @@ export interface Order {
   checkoutRequestId?: string;
   mpesaReceipt?: string;
   paidAmount?: number;
+  redemptionCode?: string;
   failureReason?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -32,6 +33,7 @@ export interface NearbyDeal {
   lon: number;
   distanceMeters: number;
   verified?: boolean;
+  itemCode?: string | null;
 }
 
 export interface BackendHealth {
@@ -240,6 +242,7 @@ export interface MerchantRegisterPayload {
   shopName: string;
   ownerName: string;
   licenseNumber: string;
+  tinNumber: string;
   email: string;
   ownerPhone: string;
   mpesaPhone: string;

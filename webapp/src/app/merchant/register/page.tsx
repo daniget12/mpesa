@@ -42,12 +42,12 @@ const CATEGORIES = [
 export default function MerchantRegisterPage() {
   const { t, language, setLanguage } = useLanguage();
   const [isMock] = useState<boolean>(() => isMockRegister());
-  const [showTillField] = useState<boolean>(() => process.env.NEXT_PUBLIC_TILL_FIELD === 'true');
 
   // Form State (strictly kept in-memory, never persisted to localStorage or logged)
   const [shopName, setShopName] = useState('');
   const [ownerName, setOwnerName] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
+  const [tinNumber, setTinNumber] = useState('');
   const [email, setEmail] = useState('');
   const [ownerPhone, setOwnerPhone] = useState('');
   const [mpesaPhone, setMpesaPhone] = useState('');
@@ -147,6 +147,16 @@ export default function MerchantRegisterPage() {
       errors.licenseNumber = 'licenseNumber must be between 4 and 40 characters';
     }
 
+    const cleanTin = tinNumber.replace(/[\s-]/g, '');
+    if (!cleanTin || !/^\d{5,20}$/.test(cleanTin)) {
+      errors.tinNumber = 'Business TIN must be digits only, between 5 and 20 digits';
+    }
+
+    const cleanTill = tillNumber.replace(/[\s-]/g, '');
+    if (cleanTill && !/^\d{5,6}$/.test(cleanTill)) {
+      errors.tillNumber = 'Till number must be 5 or 6 digits';
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email.trim() || !emailRegex.test(email.trim())) {
       errors.email = 'Invalid email address format';
@@ -186,10 +196,14 @@ export default function MerchantRegisterPage() {
 
     setSubmitting(true);
 
+    const cleanTin = tinNumber.replace(/[\s-]/g, '');
+    const cleanTill = tillNumber.replace(/[\s-]/g, '');
+
     const payload: MerchantRegisterPayload = {
       shopName: shopName.trim(),
       ownerName: ownerName.trim(),
       licenseNumber: licenseNumber.trim(),
+      tinNumber: cleanTin,
       email: email.trim(),
       ownerPhone: sanitizePhone(ownerPhone),
       mpesaPhone: sanitizePhone(mpesaPhone),
@@ -197,7 +211,7 @@ export default function MerchantRegisterPage() {
       lat: parseFloat(parseFloat(lat).toFixed(5)),
       lon: parseFloat(parseFloat(lon).toFixed(5)),
       photo: photoData!.dataUrl,
-      ...(showTillField && tillNumber.trim() ? { tillNumber: tillNumber.trim() } : {}),
+      ...(cleanTill ? { tillNumber: cleanTill } : {}),
     };
 
     try {
@@ -300,11 +314,11 @@ export default function MerchantRegisterPage() {
             </div>
 
             <h1 className="text-xl sm:text-2xl font-black text-gray-900 mb-2">
-              {t('register.successTitle') || 'Application Submitted'}
+              {t('register.successTitle') || 'Under review'}
             </h1>
 
             <p className="text-sm sm:text-base text-gray-700 font-medium mb-6 leading-relaxed max-w-md mx-auto">
-              {t('register.successMsg') || 'Submitted. Our team checks your trade license before your shop goes live'}
+              {t('register.successMsg') || 'Submitted. Your registration is under review before your shop goes live.'}
             </p>
 
             {assignedMerchantId && (
@@ -319,10 +333,10 @@ export default function MerchantRegisterPage() {
                 {t('register.nextSteps') || 'What happens next?'}
               </h3>
               <p className="text-xs text-emerald-800 leading-relaxed">
-                {t('register.step1Desc') || '1. We verify your license with the Ministry of Trade e-Trade registry.'}
+                {t('register.step1Desc') || '1. Our team reviews your business information and tax details.'}
               </p>
               <p className="text-xs text-emerald-800 leading-relaxed">
-                {t('register.step2Desc') || '2. Once approved, you can log in to your Merchant Dashboard with your registered email.'}
+                {t('register.step2Desc') || '2. Once approved, log in to your Merchant Dashboard at /dashboard with your registered email using an OTP verification code.'}
               </p>
             </div>
 
@@ -441,7 +455,7 @@ export default function MerchantRegisterPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1 leading-snug">
-                    {t('register.licenseNumber') || 'Trade license number from the Ministry of Trade e-Trade registry'} <span className="text-red-500">*</span>
+                    {t('register.licenseNumber') || 'Business trade license number'} <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -461,6 +475,32 @@ export default function MerchantRegisterPage() {
                   {fieldErrors.licenseNumber && (
                     <p className="text-[11px] text-red-600 mt-1">{fieldErrors.licenseNumber}</p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1 leading-snug">
+                    {t('register.tinNumber') || 'Business TIN (tax identification number)'} <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    placeholder={t('register.tinPlaceholder') || 'e.g. 1234567890 (digits only, 5 to 20 characters)'}
+                    className={`w-full min-h-[46px] px-3.5 py-2.5 bg-gray-50 border rounded-xl font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 text-sm ${
+                      fieldErrors.tinNumber ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                    }`}
+                    value={tinNumber}
+                    onChange={(e) => {
+                      setTinNumber(e.target.value);
+                      if (fieldErrors.tinNumber) setFieldErrors(prev => ({ ...prev, tinNumber: '' }));
+                    }}
+                  />
+                  {fieldErrors.tinNumber && (
+                    <p className="text-[11px] text-red-600 mt-1">{fieldErrors.tinNumber}</p>
+                  )}
+                  <p className="text-[11px] text-gray-500 mt-1">
+                    {t('register.tinNote') || 'Used by our team to review your shop. Never shown publicly.'}
+                  </p>
                 </div>
 
                 <div>
@@ -559,26 +599,30 @@ export default function MerchantRegisterPage() {
                   </div>
                 </div>
 
-                {/* Optional Till Number (shown only if NEXT_PUBLIC_TILL_FIELD === 'true') */}
-                {showTillField && (
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      {t('register.tillNumber') || 'M-PESA Till Number (Optional)'}
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder={t('register.tillPlaceholder') || 'e.g. 543210 (digits only)'}
-                      className="w-full min-h-[46px] px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 text-sm"
-                      value={tillNumber}
-                      onChange={(e) => {
-                        // Strict digits only
-                        const digitsOnly = e.target.value.replace(/\D/g, '');
-                        setTillNumber(digitsOnly);
-                      }}
-                    />
-                  </div>
-                )}
+                {/* Optional Till Number (always shown now) */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    {t('register.tillNumber') || 'M-PESA Till Number (Optional)'}
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder={t('register.tillPlaceholder') || 'e.g. 543210 (digits only, 5 to 6 digits)'}
+                    className={`w-full min-h-[46px] px-3.5 py-2.5 bg-gray-50 border rounded-xl font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 text-sm ${
+                      fieldErrors.tillNumber ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                    }`}
+                    value={tillNumber}
+                    onChange={(e) => {
+                      // Strict digits only
+                      const digitsOnly = e.target.value.replace(/\D/g, '');
+                      setTillNumber(digitsOnly);
+                      if (fieldErrors.tillNumber) setFieldErrors(prev => ({ ...prev, tillNumber: '' }));
+                    }}
+                  />
+                  {fieldErrors.tillNumber && (
+                    <p className="text-[11px] text-red-600 mt-1">{fieldErrors.tillNumber}</p>
+                  )}
+                </div>
               </div>
 
               {/* Section 3: Coordinates in Addis Ababa */}

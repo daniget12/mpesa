@@ -1,6 +1,6 @@
 # TirfMarket API Contract
 
-**Version:** 1.0.0 (2026-10-17)
+**Version:** 1.1.0 (2026-10-18)
 
 > **MANDATORY RULE:** Any change to a route path, request field, response field, or HTTP status code in the backend code MUST update this file and the changelog below in the same commit. The frontend relies strictly on this contract.
 
@@ -8,6 +8,11 @@
 
 ## Changelog
 
+- **v1.1.0 (2026-10-18):**
+  - Added `itemCode` (`string | null`) to `GET /api/deals/nearby` items (13 fields total per item).
+  - Added `redemptionCode` (`string`) to `GET /api/orders/:id` for orders in `"paid"` status.
+  - Added `tinNumber` (required, 5 to 20 digits) and `tillNumber` (optional, 5 to 6 digits) to `POST /api/merchants/register`.
+  - Added `POST /api/merchant/redeem` endpoint: validates voucher redemption codes (`{ code }`), requires Bearer token, returns `{ orderId, dealTitle, itemCode, amount, redeemedAt }`, with 401 Unauthorized, 404 Not Found, and 409 Conflict.
 - **v1.0.0 (2026-10-17):**
   - Published comprehensive API contract verified against local server execution (`STORE=memory`, `MPESA_MODE=mock`, `AUTH_MODE=dev`).
   - Confirmed `GET /api/merchant/stats` response shape: `{ merchantId, dealsRedeemed, cashlessSales, pending, failed, recent: [ { orderId, dealTitle, amount, receipt, paidAt } ] }`.
@@ -157,7 +162,8 @@ The backend currently DOES NOT support and will return errors for:
     "lat": 9.0018,
     "lon": 38.7812,
     "distanceMeters": 160,
-    "verified": true
+    "verified": true,
+    "itemCode": null
   }
 ]
 ```
@@ -217,6 +223,7 @@ The backend currently DOES NOT support and will return errors for:
   "checkoutRequestId": "mock_ws_CO_sample_123",
   "mpesaReceipt": "MOCKFORCED",
   "paidAmount": 160,
+  "redemptionCode": "TIRF-7B2C9A",
   "failureReason": null,
   "updatedAt": "2026-10-17T07:13:04.000Z"
 }
@@ -268,6 +275,8 @@ The backend currently DOES NOT support and will return errors for:
   - `shopName` *(string, required)*: 2 to 60 characters.
   - `ownerName` *(string, required)*: 2 to 60 characters.
   - `licenseNumber` *(string, required)*: 4 to 40 characters.
+  - `tinNumber` *(string, required)*: Digits only, 5 to 20 characters (spaces/dashes stripped).
+  - `tillNumber` *(string, optional)*: Digits only, 5 to 6 characters.
   - `email` *(string, required)*: Valid email address.
   - `ownerPhone` *(string, required)*: Valid Ethiopian mobile number.
   - `mpesaPhone` *(string, required)*: Valid Ethiopian mobile number for payouts.
@@ -526,6 +535,32 @@ The backend currently DOES NOT support and will return errors for:
   - `401 Unauthorized`
   - `403 Forbidden`
   - `500 Internal Server Error`: `{"error": "Failed to fetch merchant stats"}`
+
+---
+
+### 17. Redeem Customer Deal Code
+`POST /api/merchant/redeem`
+- **Auth:** Merchant (`Authorization: Bearer <token>`, requires `status === 'approved'`)
+- **Rate Limit:** None
+- **Request Body (`application/json`):**
+  - `code` *(string, required)*: Redemption code presented by customer at counter.
+- **Success (200 OK):**
+```json
+{
+  "orderId": "e037b51b-0925-4127-b08e-5b2326b47c0b",
+  "dealTitle": "Docs Special Latte & Croissant",
+  "itemCode": null,
+  "amount": 144,
+  "redeemedAt": "2026-10-18T07:13:00.000Z"
+}
+```
+- **Errors:**
+  - `400 Bad Request`: `{"error": "Redemption code is required"}`
+  - `401 Unauthorized`: `{"error": "Unauthorized: missing authorization header"}`
+  - `403 Forbidden`: `{"error": "Merchant is not approved"}`
+  - `404 Not Found`: `{"error": "Code not found for this shop"}`
+  - `409 Conflict`: `{"error": "This code was already used"}`
+  - `500 Internal Server Error`: `{"error": "Failed to redeem code"}`
 
 ---
 

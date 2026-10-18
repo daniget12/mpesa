@@ -75,8 +75,13 @@ export default function DealCard({
           </div>
         )}
         {verified && (
-          <div className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-xs text-white text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
-            <CheckCircle2 className="w-3 h-3" /> Verified
+          <div
+            title={t("deal.approvedShop") || "Approved shop"}
+            aria-label={t("deal.approvedShop") || "Approved shop"}
+            className="absolute top-2 left-2 bg-emerald-600/90 backdrop-blur-xs text-white text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-sm"
+          >
+            <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+            <span>{t("deal.approvedShop") || "Approved shop"}</span>
           </div>
         )}
       </div>

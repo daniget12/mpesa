@@ -15,6 +15,8 @@ import {
   DashboardOrder,
   MerchantMe,
   DashboardApiError,
+  redeemDealCode,
+  RedeemResponse,
 } from '@/lib/dashboardApi';
 import {
   DollarSign,
@@ -33,6 +35,7 @@ import {
   Sparkles,
   ChevronDown,
   Store,
+  Tag,
 } from 'lucide-react';
 
 // Smooth animated number hook using requestAnimationFrame with cubic ease-out
@@ -100,6 +103,12 @@ export default function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [statusOverride, setStatusOverride] = useState<string | null>(null);
+
+  // Redeem Code State
+  const [redeemCodeInput, setRedeemCodeInput] = useState<string>('');
+  const [redeemLoading, setRedeemLoading] = useState<boolean>(false);
+  const [redeemResult, setRedeemResult] = useState<RedeemResponse | null>(null);
+  const [redeemError, setRedeemError] = useState<string | null>(null);
 
   // Animated counters
   const animatedDealsRedeemed = useAnimatedNumber(stats?.dealsRedeemed ?? 0);
@@ -335,6 +344,51 @@ export default function DashboardPage() {
     }
   };
 
+  // Handle Redeem Code
+  const handleRedeemCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = redeemCodeInput.trim();
+    if (!code) return;
+
+    setRedeemLoading(true);
+    setRedeemError(null);
+    setRedeemResult(null);
+
+    // Clear input after each attempt (Requirement: "Clear input after each attempt")
+    setRedeemCodeInput('');
+
+    try {
+      const result = await redeemDealCode(code, token || undefined);
+      setRedeemResult(result);
+      if (isMock || token) {
+        fetchStats(token || undefined, false);
+      }
+    } catch (err: unknown) {
+      if (err instanceof DashboardApiError) {
+        if (err.status === 401) {
+          clearStoredToken();
+          setToken(null);
+          setMerchant(null);
+          setStats(null);
+          return;
+        }
+        if (err.status === 404) {
+          setRedeemError(t('dashboard.codeNotFound') || 'Code not found for this shop');
+          return;
+        }
+        if (err.status === 409) {
+          setRedeemError(t('dashboard.codeAlreadyUsed') || 'This code was already used');
+          return;
+        }
+        setRedeemError(err.message || t('dashboard.redeemError') || 'Could not redeem code. Please try again.');
+      } else {
+        setRedeemError(t('dashboard.redeemError') || 'Could not redeem code. Please try again.');
+      }
+    } finally {
+      setRedeemLoading(false);
+    }
+  };
+
   // Handle Log Out
   const handleLogout = () => {
     clearStoredToken();
@@ -347,6 +401,9 @@ export default function DashboardPage() {
     setAuthError(null);
     setAuthMessage(null);
     setStatusOverride(null);
+    setRedeemResult(null);
+    setRedeemError(null);
+    setRedeemCodeInput('');
   };
 
   // Render Login Form in Real Mode when unauthenticated
@@ -725,6 +782,159 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
+            {/* Redeem Code Box (Phone on counter / projector friendly) */}
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 md:p-8 mb-8 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                    <Tag className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg md:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                      {t('dashboard.redeemTitle')}
+                      {isMock && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 uppercase tracking-wider">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          {t('dashboard.sampleData')}
+                        </span>
+                      )}
+                    </h2>
+                    <p className="text-xs md:text-sm text-slate-400">
+                      {t('dashboard.redeemSubtitle')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Sample Hint in Mock Mode */}
+              {isMock && (
+                <div className="mb-4 text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-2.5 flex flex-wrap items-center gap-2">
+                  <span className="font-semibold">{t('dashboard.sampleRedeemHint')}:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['SAMPLE-ORD-01', 'SAMPLE-ORD-02', 'SAMPLE-ORD-03', 'TIRF-8F1A01'].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setRedeemCodeInput(c)}
+                        className="px-2 py-0.5 font-mono text-[11px] font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 rounded transition-colors"
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Form Input & Button */}
+              <form onSubmit={handleRedeemCode} className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <input
+                    type="text"
+                    value={redeemCodeInput}
+                    onChange={(e) => setRedeemCodeInput(e.target.value.toUpperCase())}
+                    placeholder={t('dashboard.redeemPlaceholder')}
+                    disabled={redeemLoading}
+                    className="w-full bg-slate-950/90 border border-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl px-4 py-3.5 text-lg md:text-2xl font-mono tracking-wider md:tracking-widest text-white placeholder:font-sans placeholder:text-sm md:placeholder:text-base placeholder:tracking-normal placeholder:text-slate-500 uppercase transition-all min-h-[52px]"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={redeemLoading}
+                  className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold text-base md:text-lg px-8 py-3.5 rounded-xl transition-all shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2 min-h-[52px] cursor-pointer whitespace-nowrap"
+                >
+                  {redeemLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>{t('dashboard.redeeming')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-5 h-5" />
+                      <span>{t('dashboard.redeemButton')}</span>
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Error Banner */}
+              {redeemError && (
+                <div className="mt-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-xl text-sm md:text-base flex items-center justify-between gap-3 animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                    <span className="font-medium">{redeemError}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRedeemError(null)}
+                    className="text-rose-400 hover:text-rose-200 text-xs font-semibold px-2 py-1 rounded"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* Green Confirmation Card */}
+              {redeemResult && (
+                <div className="mt-4 bg-emerald-950/40 border-2 border-emerald-500/50 text-emerald-200 p-6 md:p-7 rounded-2xl shadow-xl shadow-emerald-950/40 animate-fade-in relative">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-4 border-b border-emerald-500/20">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg md:text-xl font-black text-emerald-300">
+                          {t('dashboard.redeemSuccess')}
+                        </h3>
+                        <p className="text-xs text-emerald-400/80">
+                          {t('dashboard.redeemedAt') || 'Redeemed at'}: {formatTime(redeemResult.redeemedAt)}
+                        </p>
+                      </div>
+                    </div>
+                    {redeemResult.isSample && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 uppercase tracking-wider">
+                        <Sparkles className="w-3 h-3" />
+                        {t('dashboard.sampleData')}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div>
+                      <div className="text-xs font-semibold text-emerald-400/70 uppercase tracking-wider mb-1">
+                        Deal Title
+                      </div>
+                      <div className="text-xl md:text-2xl font-black text-white">
+                        {redeemResult.dealTitle}
+                      </div>
+                      {redeemResult.itemCode && (
+                        <div className="text-xs font-mono text-emerald-300/80 mt-1">
+                          Item Code: <span className="font-bold text-white">{redeemResult.itemCode}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-semibold text-emerald-400/70 uppercase tracking-wider mb-1">
+                        Amount Paid
+                      </div>
+                      <div className="text-2xl md:text-3xl font-black text-emerald-400 font-mono">
+                        {redeemResult.amount.toLocaleString()} <span className="text-lg font-bold text-emerald-300">ETB</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-semibold text-emerald-400/70 uppercase tracking-wider mb-1">
+                        Order ID
+                      </div>
+                      <div className="text-sm md:text-base font-mono text-slate-300 break-all">
+                        {redeemResult.orderId}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Primary Metrics Grid (High-Contrast Projector Cards) */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8">
               {/* Deals Redeemed */}

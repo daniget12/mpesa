@@ -440,3 +440,171 @@ export async function fetchDashboardStats(token?: string): Promise<DashboardStat
 
   return mapStats(data as StatsResponse);
 }
+
+// ==========================================
+// REDEEM VOUCHER CODE API
+// ==========================================
+
+export interface RedeemResponse {
+  orderId: string;
+  dealTitle: string;
+  itemCode?: string | null;
+  amount: number;
+  redeemedAt: string;
+  isSample?: boolean;
+}
+
+interface MockRedeemRecord {
+  orderId: string;
+  dealTitle: string;
+  itemCode?: string | null;
+  amount: number;
+  redeemed: boolean;
+  redeemedAt?: string;
+}
+
+const mockRedemptionStore: Record<string, MockRedeemRecord> = {
+  'SAMPLE-ORD-01': {
+    orderId: 'tm_ord_8f1a01',
+    dealTitle: '20% off Specialty Macchiato & Croissant',
+    itemCode: 'COFFEE-01',
+    amount: 144,
+    redeemed: false,
+  },
+  'SAMPLE-ORD-02': {
+    orderId: 'tm_ord_8f1a02',
+    dealTitle: '25% off Double Cheeseburger Combo',
+    itemCode: 'BURGER-02',
+    amount: 260,
+    redeemed: false,
+  },
+  'SAMPLE-ORD-03': {
+    orderId: 'tm_ord_8f1a03',
+    dealTitle: '15% off Roasted Coffee Beans (House Blend)',
+    itemCode: null,
+    amount: 102,
+    redeemed: false,
+  },
+  'TIRF-8F1A01': {
+    orderId: 'tm_ord_8f1a01',
+    dealTitle: '20% off Specialty Macchiato & Croissant',
+    itemCode: 'COFFEE-01',
+    amount: 144,
+    redeemed: false,
+  },
+  'TIRF-8F1A02': {
+    orderId: 'tm_ord_8f1a02',
+    dealTitle: '25% off Double Cheeseburger Combo',
+    itemCode: 'BURGER-02',
+    amount: 260,
+    redeemed: false,
+  },
+};
+
+const mockDynamicRedeemedCodes = new Set<string>();
+
+/**
+ * Redeems a customer voucher code.
+ * In mock mode: works against sample codes generated with sample orders without calling network,
+ * returning 409 on second use of same code.
+ * In real mode: calls POST /api/merchant/redeem with Bearer token (15s timeout).
+ */
+export async function redeemDealCode(code: string, token?: string): Promise<RedeemResponse> {
+  const cleanCode = String(code || '').trim().toUpperCase();
+
+  if (!cleanCode) {
+    throw new DashboardApiError(400, 'Please enter a redemption code');
+  }
+
+  if (isMockDashboard()) {
+    // Artificial latency for tactile UI response
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Check predefined sample records
+    if (cleanCode in mockRedemptionStore) {
+      const record = mockRedemptionStore[cleanCode];
+      if (record.redeemed) {
+        throw new DashboardApiError(409, 'This code was already used');
+      }
+      record.redeemed = true;
+      record.redeemedAt = new Date().toISOString();
+      return {
+        orderId: record.orderId,
+        dealTitle: record.dealTitle,
+        itemCode: record.itemCode ?? null,
+        amount: record.amount,
+        redeemedAt: record.redeemedAt,
+        isSample: true,
+      };
+    }
+
+    // Check dynamic sample codes starting with SAMPLE or TIRF
+    if (cleanCode.startsWith('SAMPLE') || cleanCode.startsWith('TIRF')) {
+      if (mockDynamicRedeemedCodes.has(cleanCode)) {
+        throw new DashboardApiError(409, 'This code was already used');
+      }
+      mockDynamicRedeemedCodes.add(cleanCode);
+      return {
+        orderId: 'tm_ord_' + Math.random().toString(16).substring(2, 8),
+        dealTitle: 'Specialty Coffee & Pastry',
+        itemCode: null,
+        amount: 160,
+        redeemedAt: new Date().toISOString(),
+        isSample: true,
+      };
+    }
+
+    // Unrecognized code in mock mode
+    throw new DashboardApiError(404, 'Code not found for this shop');
+  }
+
+  // Real Mode: Requires Bearer authentication
+  const authToken = token || getStoredToken();
+  if (!authToken) {
+    clearStoredToken();
+    throw new DashboardApiError(401, 'Unauthorized');
+  }
+
+  let res: Response;
+  try {
+    res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/redeem`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({ code: cleanCode }),
+    });
+  } catch (err: unknown) {
+    if (err instanceof DashboardApiError) throw err;
+    throw new DashboardApiError(0, 'Network error. Please check your connection and retry.');
+  }
+
+  if (res.status === 401) {
+    clearStoredToken();
+    throw new DashboardApiError(401, 'Unauthorized');
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  if (res.status === 404) {
+    throw new DashboardApiError(404, data?.error || 'Code not found for this shop');
+  }
+
+  if (res.status === 409) {
+    throw new DashboardApiError(409, data?.error || 'This code was already used');
+  }
+
+  if (!res.ok) {
+    throw new DashboardApiError(res.status, data?.error || 'Failed to redeem code. Please try again.');
+  }
+
+  return {
+    orderId: String(data.orderId || ''),
+    dealTitle: String(data.dealTitle || 'Deal'),
+    itemCode: data.itemCode ?? null,
+    amount: Number(data.amount || 0),
+    redeemedAt: String(data.redeemedAt || new Date().toISOString()),
+    isSample: false,
+  };
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Check, AlertCircle, Smartphone, ShieldCheck, RefreshCw, Zap } from 'lucide-react';
+import { X, Check, AlertCircle, Smartphone, ShieldCheck, RefreshCw, Zap, Copy } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { 
   createOrder, 
@@ -13,15 +13,6 @@ import {
   ApiError, 
   Order 
 } from '@/lib/api';
-
-function maskPhoneNumber(phone: string): string {
-  const clean = phone.trim().replace(/[\s-]/g, '');
-  if (clean.length < 6) return clean;
-  const first4 = clean.slice(0, 4);
-  const last2 = clean.slice(-2);
-  const starCount = Math.max(clean.length - 6, 4);
-  return `${first4}${'*'.repeat(starCount)}${last2}`;
-}
 
 const COUNTDOWN_TOTAL_SECONDS = 90;
 const CIRCLE_RADIUS = 40;
@@ -55,6 +46,7 @@ export default function MpesaModal({
   const [pollCountdown, setPollCountdown] = useState(COUNTDOWN_TOTAL_SECONDS);
   const [backendMode, setBackendMode] = useState<string | null>(null);
   const [mockReceipt] = useState(() => 'MOCK' + Math.random().toString(36).substring(2, 8).toUpperCase());
+  const [copied, setCopied] = useState(false);
 
   // Check URL query param ?demo=1 lazily without cascading effect renders
   const [isDemoParam] = useState<boolean>(() => {
@@ -84,6 +76,38 @@ export default function MpesaModal({
       isCancelled = true;
     };
   }, [isOpen]);
+
+  // Restore paid order from sessionStorage on open (stores order.id ONLY, never code or phone)
+  useEffect(() => {
+    if (!isOpen) return;
+    try {
+      const savedOrderId = sessionStorage.getItem('tm_paid_order_id');
+      if (savedOrderId && !activeOrder) {
+        getOrderStatus(savedOrderId)
+          .then((restored) => {
+            if (restored && restored.status === 'paid') {
+              setActiveOrder(restored);
+              setStatus('success');
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {
+      // sessionStorage access failed
+    }
+  }, [isOpen, activeOrder]);
+
+  const handleCopyCode = async () => {
+    const code = activeOrder?.redemptionCode || (isDemoParam ? 'SAMPLE' : '');
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard write failed
+    }
+  };
 
   const stopPolling = useCallback(() => {
     if (pollTimerRef.current) {
@@ -156,6 +180,9 @@ export default function MpesaModal({
 
         if (order.status === 'paid') {
           stopPolling();
+          try {
+            sessionStorage.setItem('tm_paid_order_id', order.id);
+          } catch {}
           setStatus('success');
         } else if (order.status === 'failed') {
           stopPolling();
@@ -199,6 +226,9 @@ export default function MpesaModal({
       setActiveOrder(order);
 
       if (order.status === 'paid') {
+        try {
+          sessionStorage.setItem('tm_paid_order_id', order.id);
+        } catch {}
         setStatus('success');
         return;
       }
@@ -233,6 +263,9 @@ export default function MpesaModal({
     try {
       const updated = await forceMockResult(activeOrder.id, 'paid');
       setActiveOrder(updated);
+      try {
+        sessionStorage.setItem('tm_paid_order_id', updated.id);
+      } catch {}
       stopPolling();
       setStatus('success');
     } catch (e: unknown) {
@@ -259,6 +292,10 @@ export default function MpesaModal({
     setErrorMessage('');
     setPhoneError('');
     setActiveOrder(null);
+    setCopied(false);
+    try {
+      sessionStorage.removeItem('tm_paid_order_id');
+    } catch {}
     onClose();
   };
 
@@ -556,7 +593,7 @@ export default function MpesaModal({
           )}
 
           {/* STATE: SUCCESS / DIGITAL VOUCHER & RECEIPT CARD */}
-          {status === 'success' && (
+          {status === 'success' && activeOrder?.status === 'paid' && (
             <div className="py-1 text-center animate-scale-up">
               <div className="w-14 h-14 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
                 <Check className="w-8 h-8 text-emerald-600 stroke-[3]" />
@@ -570,9 +607,16 @@ export default function MpesaModal({
               <div className="bg-gradient-to-b from-gray-900 to-gray-950 text-white rounded-2xl p-4 sm:p-5 mb-4 text-left shadow-xl border border-gray-800 relative overflow-hidden">
                 <div className="flex justify-between items-start border-b border-gray-800 pb-3 mb-3">
                   <div className="pr-2">
-                    <span className="text-[10px] text-green-400 font-bold uppercase tracking-wider block">
-                      Digital Voucher Ticket
-                    </span>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px] text-green-400 font-bold uppercase tracking-wider block">
+                        Digital Voucher Ticket
+                      </span>
+                      {isDemoParam && (
+                        <span className="text-[10px] font-bold text-amber-400 bg-amber-950/80 border border-amber-500/40 px-1.5 py-0.2 rounded uppercase">
+                          Sample
+                        </span>
+                      )}
+                    </div>
                     <h4 className="font-bold text-sm text-yellow-400 line-clamp-1">{dealTitle}</h4>
                     <p className="text-xs text-gray-300 line-clamp-1">{merchantName}</p>
                     {merchantId && (
@@ -589,28 +633,43 @@ export default function MpesaModal({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                  <div>
+                {/* Receipt, Amount & Copy button row */}
+                <div className="flex items-center justify-between gap-2 text-xs mb-3 bg-gray-950/60 p-2.5 rounded-xl border border-gray-800/70">
+                  <div className="overflow-hidden">
                     <span className="text-[10px] text-gray-400 uppercase tracking-wider block">M-PESA Receipt</span>
-                    <span className="font-mono font-bold text-yellow-300 break-all">
+                    <span className="font-mono font-bold text-yellow-300 truncate block">
                       {activeOrder?.mpesaReceipt || mockReceipt}
                     </span>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Customer Line</span>
-                    <span className="font-mono text-gray-200">
-                      {maskPhoneNumber(phoneNumber)}
-                    </span>
+                  <div className="text-right shrink-0 flex items-center gap-2">
+                    <div>
+                      <span className="text-[10px] text-gray-400 uppercase tracking-wider block">Amount</span>
+                      <span className="font-mono font-bold text-gray-100 block">
+                        {Number(activeOrder?.paidAmount || activeOrder?.amount || amount).toLocaleString()} ETB
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyCode}
+                      className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 bg-gray-800 hover:bg-gray-700 text-yellow-300 rounded-lg border border-gray-700 transition-colors cursor-pointer min-h-[36px]"
+                      title={t("mpesa.copyCode") || "Copy code"}
+                      aria-label="Copy redemption code"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copied ? (t("mpesa.codeCopied") || "Copied!") : (t("mpesa.copyCode") || "Copy")}</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Counter notice and voucher pass code */}
-                <div className="pt-3 border-t border-dashed border-gray-700/80 text-center space-y-1.5">
-                  <div className="inline-block text-[11px] font-mono tracking-widest text-emerald-300 bg-emerald-950/60 px-3 py-1 rounded-md border border-emerald-800/40">
-                    VOUCHER: TIRF-{(activeOrder?.id || 'DEMO').slice(0, 8).toUpperCase()}
+                {/* Very large monospace redemption code */}
+                <div className="pt-2 border-t border-dashed border-gray-700/80 text-center space-y-1.5">
+                  <div className="bg-black/80 rounded-xl py-4 px-3 border border-gray-800 shadow-inner">
+                    <span className="text-3xl sm:text-4xl font-mono font-black tracking-widest text-emerald-400 select-all block break-all">
+                      {activeOrder?.redemptionCode || (isDemoParam ? 'SAMPLE' : '')}
+                    </span>
                   </div>
-                  <p className="text-xs font-semibold text-yellow-300 flex items-center justify-center gap-1">
-                    <span>⭐</span> {t("mpesa.counterNote") || "Show this at the counter"}
+                  <p className="text-xs font-semibold text-yellow-300 flex items-center justify-center gap-1 pt-1">
+                    <span>⭐</span> {t("mpesa.showCodeAtCounter") || t("mpesa.counterNote") || "Show this code at the counter"}
                   </p>
                 </div>
               </div>

@@ -1,20 +1,21 @@
 #!/usr/bin/env node
 /**
- * TirfMarket Contract Check Script (docs/API-CONTRACT.md v1.0.0)
+ * TirfMarket Contract Check Script (docs/API-CONTRACT.md v1.1.0)
  * 
  * Verifies backend compatibility:
  *   a. GET /health -> status 200, status "ok", mode "mock" | "live"
- *   b. GET /api/deals/nearby?lat=9.0054&lon=38.7840&radiusKm=2 -> 200, array matching schema
+ *   b. GET /api/deals/nearby?lat=9.0054&lon=38.7840&radiusKm=2 -> 200, array matching exact 13-field schema and types
  *   c. POST /api/orders with invalid phone -> 400
  *   d. POST /api/orders with non-existent deal UUID -> 404
  *   e. GET /api/orders/00000000-0000-0000-0000-000000000000 -> 404
  *   f. GET /api/merchants/me without auth -> 401
+ *   g. POST /api/merchant/redeem without auth -> 401
  */
 
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tirfmarket-backend.onrender.com').replace(/\/$/, '');
 
 console.log('='.repeat(70));
-console.log('TIRF MARKET API CONTRACT VERIFICATION (v1.0.0)');
+console.log('TIRF MARKET API CONTRACT VERIFICATION (v1.1.0)');
 console.log(`Backend Target: ${BACKEND_URL}`);
 console.log('NOTE: Rate limit is 5 req/min per IP on POST /api/orders.');
 console.log('      This test suite consumes 2 order requests.');
@@ -43,7 +44,8 @@ const EXPECTED_DEAL_KEYS = [
   'lat',
   'lon',
   'distanceMeters',
-  'verified'
+  'verified',
+  'itemCode'
 ];
 
 const results = [];
@@ -80,7 +82,7 @@ async function main() {
   });
 
   // Check (b): GET /api/deals/nearby?lat=9.0054&lon=38.7840&radiusKm=2
-  await runCheck('b. GET /api/deals/nearby schema validation', async () => {
+  await runCheck('b. GET /api/deals/nearby schema validation (13 fields & types)', async () => {
     const res = await fetchWithTimeout(`${BACKEND_URL}/api/deals/nearby?lat=9.0054&lon=38.7840&radiusKm=2`);
     if (res.status !== 200) {
       throw new Error(`Expected HTTP 200, got ${res.status}`);
@@ -96,29 +98,50 @@ async function main() {
     const expectedSet = new Set(EXPECTED_DEAL_KEYS);
     const missingKeysSet = new Set();
     const extraKeysSet = new Set();
+    const typeErrors = [];
 
     deals.forEach((deal, idx) => {
       const keys = Object.keys(deal);
+      if (keys.length !== 13) {
+        typeErrors.push(`deal[${idx}] has ${keys.length} keys instead of exactly 13`);
+      }
+
       EXPECTED_DEAL_KEYS.forEach(k => {
         if (!(k in deal)) missingKeysSet.add(`deal[${idx}].${k}`);
       });
       keys.forEach(k => {
         if (!expectedSet.has(k)) extraKeysSet.add(`deal[${idx}].${k}`);
       });
+
+      // Type checks
+      if (typeof deal.dealId !== 'string') typeErrors.push(`deal[${idx}].dealId expected string, got ${typeof deal.dealId}`);
+      if (typeof deal.title !== 'string') typeErrors.push(`deal[${idx}].title expected string, got ${typeof deal.title}`);
+      if (typeof deal.price !== 'number') typeErrors.push(`deal[${idx}].price expected number, got ${typeof deal.price}`);
+      if (typeof deal.discountPct !== 'number') typeErrors.push(`deal[${idx}].discountPct expected number, got ${typeof deal.discountPct}`);
+      if (typeof deal.finalAmount !== 'number') typeErrors.push(`deal[${idx}].finalAmount expected number, got ${typeof deal.finalAmount}`);
+      if (typeof deal.merchantId !== 'string') typeErrors.push(`deal[${idx}].merchantId expected string, got ${typeof deal.merchantId}`);
+      if (typeof deal.merchantName !== 'string') typeErrors.push(`deal[${idx}].merchantName expected string, got ${typeof deal.merchantName}`);
+      if (typeof deal.category !== 'string') typeErrors.push(`deal[${idx}].category expected string, got ${typeof deal.category}`);
+      if (typeof deal.lat !== 'number') typeErrors.push(`deal[${idx}].lat expected number, got ${typeof deal.lat}`);
+      if (typeof deal.lon !== 'number') typeErrors.push(`deal[${idx}].lon expected number, got ${typeof deal.lon}`);
+      if (typeof deal.distanceMeters !== 'number') typeErrors.push(`deal[${idx}].distanceMeters expected number, got ${typeof deal.distanceMeters}`);
+      if (typeof deal.verified !== 'boolean') typeErrors.push(`deal[${idx}].verified expected boolean, got ${typeof deal.verified}`);
+      if (deal.itemCode !== null && typeof deal.itemCode !== 'string') typeErrors.push(`deal[${idx}].itemCode expected string | null, got ${typeof deal.itemCode}`);
     });
 
-    const report = [];
-    report.push(`Checked ${EXPECTED_DEAL_KEYS.length} schema keys: [${EXPECTED_DEAL_KEYS.join(', ')}]`);
-    report.push(`Received ${deals.length} deals.`);
     if (missingKeysSet.size > 0) {
       throw new Error(`Missing required keys: ${Array.from(missingKeysSet).join(', ')}`);
     }
     if (extraKeysSet.size > 0) {
-      report.push(`Extra keys found: ${Array.from(extraKeysSet).join(', ')}`);
-    } else {
-      report.push(`No extra or missing keys detected.`);
+      throw new Error(`Unexpected extra keys found: ${Array.from(extraKeysSet).join(', ')}`);
+    }
+    if (typeErrors.length > 0) {
+      throw new Error(`Schema type violations: ${typeErrors.slice(0, 3).join('; ')}`);
     }
 
+    const report = [];
+    report.push(`Validated exactly ${EXPECTED_DEAL_KEYS.length} schema keys & types: [${EXPECTED_DEAL_KEYS.join(', ')}]`);
+    report.push(`Received ${deals.length} deals with 100% type conformance.`);
     return report.join('\n   └─ ');
   });
 
@@ -186,6 +209,20 @@ async function main() {
     }
     const data = await res.json().catch(() => ({}));
     return `status 401 on ${pathUsed} ("${data.error || 'Unauthorized'}")`;
+  });
+
+  // Check (g): POST /api/merchant/redeem without auth -> 401
+  await runCheck('g. POST /api/merchant/redeem without auth -> 401', async () => {
+    const res = await fetchWithTimeout(`${BACKEND_URL}/api/merchant/redeem`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: 'RANDOM-TEST-CODE-NONEXISTENT' })
+    });
+    if (res.status !== 401) {
+      throw new Error(`Expected HTTP 401, got ${res.status}`);
+    }
+    const data = await res.json().catch(() => ({}));
+    return `status 401 ("${data.error || 'Unauthorized'}")`;
   });
 
   // Summary
