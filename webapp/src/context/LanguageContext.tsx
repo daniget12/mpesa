@@ -6,7 +6,7 @@ import { translations, Language } from '@/locales/translations';
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: keyof typeof translations.en) => string;
+  t: (key: keyof typeof translations.en | string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -35,8 +35,10 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const t = (key: keyof typeof translations.en) => {
-    return translations[language][key] || translations['en'][key] || key;
+  const t = (key: keyof typeof translations.en | string) => {
+    const langDict = (translations as Record<string, Record<string, string>>)[language];
+    const enDict = translations.en as Record<string, string>;
+    return langDict?.[key] || enDict?.[key] || key;
   };
 
   return (

@@ -110,7 +110,9 @@ export default function DealCard({
             <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-2">
               <IconComponent className="w-6 h-6 text-emerald-300" />
             </div>
-            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-200/90">{category || 'Flash Deal'}</span>
+            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-200/90">
+              {t(`cat.${catKey}` as any) || category || 'Flash Deal'}
+            </span>
           </div>
         )}
 
@@ -129,7 +131,7 @@ export default function DealCard({
             </div>
           ) : (
             <div className="bg-slate-900/80 text-slate-200 text-[11px] font-medium px-2.5 py-1 rounded-md backdrop-blur-xs">
-              {category || 'Special'}
+              {t(`cat.${catKey}` as any) || category || 'Special'}
             </div>
           )}
 
@@ -144,11 +146,11 @@ export default function DealCard({
         <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-white/90 font-medium pointer-events-none">
           <span className="flex items-center gap-1 drop-shadow-sm text-[11px]">
             <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>{distanceText ? `${distanceText} away` : (location || 'Addis Ababa')}</span>
+            <span>{distanceText ? `${distanceText} ${t("deal.away") || "away"}` : (location || 'Addis Ababa')}</span>
           </span>
           {bought > 0 && (
             <span className="text-[10px] bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded text-emerald-300 font-mono">
-              {bought}+ claimed
+              {bought}+ {t("deal.claimedCount") || "claimed"}
             </span>
           )}
         </div>
