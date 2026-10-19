@@ -1,17 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Inter, Noto_Sans_Ethiopic } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider } from "@/context/AuthContext";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Display font for hero headers, large deal titles, and prominent statistics
+const fontDisplay = Plus_Jakarta_Sans({
+  variable: "--font-display",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["500", "600", "700", "800"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// Primary body font for clean UI typography and Latin scripts (including Afaan Oromoo)
+const fontBody = Inter({
+  variable: "--font-body",
   subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
+
+// Ethiopic font for Ge'ez script used in Amharic and Tigrinya, paired with native OS fallbacks
+const fontEthiopic = Noto_Sans_Ethiopic({
+  variable: "--font-ethiopic",
+  subsets: ["ethiopic"],
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+  fallback: ["Nyala", "Abyssinica SIL", "Kefa", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -23,9 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${fontDisplay.variable} ${fontBody.variable} ${fontEthiopic.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col font-sans">
         <LanguageProvider>
           <AuthProvider>
             {children}

@@ -1,29 +1,333 @@
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/* -------------------------------------------------------------------------
+ * Visual Design Tokens
+ * 1. M-PESA green for pay buttons and success only
+ * 2. Yellow highlight
+ * 3. Neutral greys
+ * 4. Dark slate for dashboard
+ * 5. Card radius 16-24px, full pill for buttons and chips
+ * 6. Soft diffuse shadows
+ * 7. Prefers-reduced-motion respect & all animation durations < 400ms
+ * ------------------------------------------------------------------------- */
+
 :root {
+  /* Core Base Colors */
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
+
+  /* shadcn/ui Standard Theme Variables */
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+  --primary: #0f172a;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0f172a;
+
+  /* Brand Token: M-PESA Green (Strictly for Pay Buttons & Success States Only) */
+  --color-mpesa-green: #00a859;
+  --color-mpesa-green-hover: #00934e;
+  --color-mpesa-green-active: #007e43;
+  --color-mpesa-green-subtle: #e6f7ef;
+  --color-mpesa-green-subtle-border: #a3e5c4;
+  --color-mpesa-green-foreground: #ffffff;
+  --color-success: #00a859;
+  --color-success-foreground: #ffffff;
+
+  /* Brand Token: Yellow Highlight */
+  --color-highlight-yellow: #ffcb05;
+  --color-highlight-yellow-hover: #e5b600;
+  --color-highlight-yellow-subtle: #fef9c3;
+  --color-highlight-yellow-foreground: #1c1917;
+
+  /* Neutral Greys (Full Scale) */
+  --color-grey-50: #f8fafc;
+  --color-grey-100: #f1f5f9;
+  --color-grey-200: #e2e8f0;
+  --color-grey-300: #cbd5e1;
+  --color-grey-400: #94a3b8;
+  --color-grey-500: #64748b;
+  --color-grey-600: #475569;
+  --color-grey-700: #334155;
+  --color-grey-800: #1e293b;
+  --color-grey-900: #0f172a;
+  --color-grey-950: #020617;
+
+  /* Dark Slate for Dashboard */
+  --color-dashboard-bg: #020617;
+  --color-dashboard-surface: #0b1120;
+  --color-dashboard-card: #0f172a;
+  --color-dashboard-card-hover: #1e293b;
+  --color-dashboard-border: #1e293b;
+  --color-dashboard-border-subtle: #334155;
+  --color-dashboard-foreground: #f8fafc;
+  --color-dashboard-muted: #94a3b8;
+
+  /* Border Radii: 16-24px for cards, full pill for buttons and chips */
+  --radius-card-sm: 16px;
+  --radius-card-md: 20px;
+  --radius-card-lg: 24px;
+  --radius-card: 20px;
+  --radius-pill: 9999px;
+  --radius-button: 9999px;
+  --radius-chip: 9999px;
+  --radius: 20px;
+
+  /* Soft Shadows: Layered, diffuse elevations without harsh edges */
+  --shadow-soft-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-soft-sm: 0 2px 6px -1px rgba(15, 23, 42, 0.06), 0 1px 4px -1px rgba(15, 23, 42, 0.04);
+  --shadow-soft-md: 0 8px 20px -3px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+  --shadow-soft-lg: 0 16px 32px -4px rgba(15, 23, 42, 0.07), 0 6px 14px -3px rgba(15, 23, 42, 0.04);
+  --shadow-soft-xl: 0 24px 48px -6px rgba(15, 23, 42, 0.09), 0 10px 20px -4px rgba(15, 23, 42, 0.04);
+
+  /* Animation Timings (Strictly under 400ms) */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-moderate: 350ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #020617;
+    --foreground: #f8fafc;
+    --card: #0f172a;
+    --card-foreground: #f8fafc;
+    --popover: #0f172a;
+    --popover-foreground: #f8fafc;
+    --primary: #f8fafc;
+    --primary-foreground: #020617;
+    --secondary: #1e293b;
+    --secondary-foreground: #f8fafc;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --accent: #1e293b;
+    --accent-foreground: #f8fafc;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: #1e293b;
+    --input: #1e293b;
+    --ring: #94a3b8;
+  }
+}
+
+.dark {
+  --background: #020617;
+  --foreground: #f8fafc;
+  --card: #0f172a;
+  --card-foreground: #f8fafc;
+  --popover: #0f172a;
+  --popover-foreground: #f8fafc;
+  --primary: #f8fafc;
+  --primary-foreground: #020617;
+  --secondary: #1e293b;
+  --secondary-foreground: #f8fafc;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --accent: #1e293b;
+  --accent-foreground: #f8fafc;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #1e293b;
+  --input: #1e293b;
+  --ring: #94a3b8;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-mpesa-green: var(--color-mpesa-green);
+  --color-mpesa-green-hover: var(--color-mpesa-green-hover);
+  --color-mpesa-green-active: var(--color-mpesa-green-active);
+  --color-mpesa-green-subtle: var(--color-mpesa-green-subtle);
+  --color-mpesa-green-subtle-border: var(--color-mpesa-green-subtle-border);
+  --color-mpesa-green-foreground: var(--color-mpesa-green-foreground);
+  --color-success: var(--color-success);
+  --color-success-foreground: var(--color-success-foreground);
+
+  --color-highlight-yellow: var(--color-highlight-yellow);
+  --color-highlight-yellow-hover: var(--color-highlight-yellow-hover);
+  --color-highlight-yellow-subtle: var(--color-highlight-yellow-subtle);
+  --color-highlight-yellow-foreground: var(--color-highlight-yellow-foreground);
+
+  --color-grey-50: var(--color-grey-50);
+  --color-grey-100: var(--color-grey-100);
+  --color-grey-200: var(--color-grey-200);
+  --color-grey-300: var(--color-grey-300);
+  --color-grey-400: var(--color-grey-400);
+  --color-grey-500: var(--color-grey-500);
+  --color-grey-600: var(--color-grey-600);
+  --color-grey-700: var(--color-grey-700);
+  --color-grey-800: var(--color-grey-800);
+  --color-grey-900: var(--color-grey-900);
+  --color-grey-950: var(--color-grey-950);
+
+  --color-dashboard-bg: var(--color-dashboard-bg);
+  --color-dashboard-surface: var(--color-dashboard-surface);
+  --color-dashboard-card: var(--color-dashboard-card);
+  --color-dashboard-card-hover: var(--color-dashboard-card-hover);
+  --color-dashboard-border: var(--color-dashboard-border);
+  --color-dashboard-border-subtle: var(--color-dashboard-border-subtle);
+  --color-dashboard-foreground: var(--color-dashboard-foreground);
+  --color-dashboard-muted: var(--color-dashboard-muted);
+
+  --radius-card-sm: 16px;
+  --radius-card-md: 20px;
+  --radius-card-lg: 24px;
+  --radius-card: 20px;
+  --radius-pill: 9999px;
+  --radius-button: 9999px;
+  --radius-chip: 9999px;
+
+  --shadow-soft-xs: var(--shadow-soft-xs);
+  --shadow-soft-sm: var(--shadow-soft-sm);
+  --shadow-soft-md: var(--shadow-soft-md);
+  --shadow-soft-lg: var(--shadow-soft-lg);
+  --shadow-soft-xl: var(--shadow-soft-xl);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-ethiopic: var(--font-ethiopic);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Base Body with System Fallback Stack */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), var(--font-ethiopic), Nyala, 'Abyssinica SIL', Kefa, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display Font Class for Headings & Prominent Titles */
+.font-display {
+  font-family: var(--font-display), var(--font-ethiopic), Nyala, 'Abyssinica SIL', Kefa, system-ui, -apple-system, sans-serif;
+}
+
+/* Card Shape Utilities (16px to 24px) */
+.card-rounded-sm {
+  border-radius: var(--radius-card-sm);
+}
+.card-rounded-md {
+  border-radius: var(--radius-card-md);
+}
+.card-rounded-lg {
+  border-radius: var(--radius-card-lg);
+}
+
+/* Full Pill Radius Utilities */
+.pill-rounded {
+  border-radius: var(--radius-pill);
+}
+
+/* Soft Shadows Utilities */
+.shadow-soft-xs {
+  box-shadow: var(--shadow-soft-xs);
+}
+.shadow-soft-sm {
+  box-shadow: var(--shadow-soft-sm);
+}
+.shadow-soft-md {
+  box-shadow: var(--shadow-soft-md);
+}
+.shadow-soft-lg {
+  box-shadow: var(--shadow-soft-lg);
+}
+.shadow-soft-xl {
+  box-shadow: var(--shadow-soft-xl);
+}
+
+/* Keyframe Animations (Strictly under 400ms) */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes zoomOut {
+  from { transform: scale(1); opacity: 1; }
+  to { transform: scale(0.96); opacity: 0; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-out {
+  animation: fadeOut 150ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-zoom-in {
+  animation: zoomIn 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-zoom-out {
+  animation: zoomOut 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Accessibility: Respect prefers-reduced-motion across all elements */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+    animation-delay: 0ms !important;
+  }
+
+  .stagger-card {
+    animation: none !important;
+    animation-delay: 0ms !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
 }
 
 /* Hide scrollbar for clean mobile tabs while allowing touch scrolling */
@@ -62,5 +366,3 @@ body {
   font-family: inherit !important;
   z-index: 10;
 }
-
-

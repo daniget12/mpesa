@@ -1,9 +1,21 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { MapPin, CheckCircle2, Coffee, Utensils, Store, Pill, Scissors, ShoppingBag, Star, Clock, Ticket } from 'lucide-react';
+import {
+  MapPin,
+  CheckCircle2,
+  Coffee,
+  Utensils,
+  Store,
+  Pill,
+  Scissors,
+  ShoppingBag,
+  Smartphone,
+} from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
-import { useAuth } from '@/context/AuthContext';
-import { getRatingForDeal, getDealQuota } from '@/lib/claimsStorage';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   cafe: Coffee,
@@ -15,18 +27,6 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   tailor: Scissors,
   barbershop: Scissors,
   bakery: Coffee,
-};
-
-const CATEGORY_GRADIENTS: Record<string, string> = {
-  cafe: 'from-amber-700 to-amber-900',
-  coffee: 'from-amber-800 to-amber-950',
-  restaurant: 'from-emerald-800 to-emerald-950',
-  food: 'from-emerald-800 to-emerald-950',
-  grocery: 'from-teal-800 to-slate-900',
-  pharmacy: 'from-cyan-800 to-slate-900',
-  tailor: 'from-indigo-800 to-slate-950',
-  barbershop: 'from-violet-800 to-slate-950',
-  bakery: 'from-amber-700 to-orange-950',
 };
 
 const CATEGORY_IMAGES: Record<string, string> = {
@@ -68,7 +68,6 @@ interface DealProps {
 }
 
 export default function DealCard({
-  id,
   title,
   merchant,
   location,
@@ -78,145 +77,93 @@ export default function DealCard({
   discountPct,
   distanceMeters,
   image,
-  verified,
-  bought = 0,
+  verified = true,
   onBuy,
   onClick,
 }: DealProps) {
   const { t } = useLanguage();
-  const { isMerchant, isBuyer } = useAuth();
-  const ratingInfo = getRatingForDeal(id, merchant, title);
   const [imageError, setImageError] = useState(false);
-  const [quotaVersion, setQuotaVersion] = useState(0);
 
-  useEffect(() => {
-    const handleUpdate = () => setQuotaVersion((v) => v + 1);
-    window.addEventListener('tirf_quota_updated', handleUpdate);
-    window.addEventListener('tirf_claims_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('tirf_quota_updated', handleUpdate);
-      window.removeEventListener('tirf_claims_updated', handleUpdate);
-    };
-  }, []);
-
-  const quota = getDealQuota(id);
   const catKey = (category || 'cafe').toLowerCase();
   const IconComponent = CATEGORY_ICONS[catKey] || ShoppingBag;
-  const gradientClass = CATEGORY_GRADIENTS[catKey] || 'from-emerald-800 to-slate-900';
   const displayImage = image || CATEGORY_IMAGES[catKey] || DEFAULT_DEAL_IMAGE;
   const distanceText = formatDistance(distanceMeters);
 
   return (
     <div
       onClick={onClick}
-      className={`group bg-white rounded-2xl overflow-hidden border border-slate-200/90 hover:border-emerald-400 hover:shadow-xl transition-all duration-300 flex flex-col h-full ${
+      className={`group bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-soft-sm hover:shadow-soft-md transition-all duration-300 flex flex-col h-full relative ${
         onClick ? 'cursor-pointer' : ''
       }`}
     >
-      {/* Visual Media Container with Resilient Fallback */}
-      <div className="relative h-48 w-full overflow-hidden bg-slate-900">
+      {/* Visual Media Container with Rounded Elements & Inset Calm Aesthetic */}
+      <div className="relative h-44 sm:h-48 w-full overflow-hidden rounded-2xl bg-slate-100 mb-4">
         {!imageError ? (
           <Image
             src={displayImage}
             alt={title}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
             onError={() => setImageError(true)}
           />
         ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${gradientClass} flex flex-col items-center justify-center p-6 text-white text-center`}>
+          <div className="w-full h-full bg-gradient-to-br from-emerald-800 via-teal-900 to-slate-900 flex flex-col items-center justify-center p-6 text-white text-center">
             <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center mb-2">
               <IconComponent className="w-6 h-6 text-emerald-300" />
             </div>
-            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-200/90">
-              {t(`cat.${catKey}` as unknown as Parameters<typeof t>[0]) || category || 'Flash Deal'}
+            <span className="text-xs font-semibold tracking-wider uppercase text-emerald-200">
+              {category || 'Deal'}
             </span>
           </div>
         )}
 
         {/* Soft Vignette Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
 
-        {/* Top Badges */}
-        <div className="absolute top-3 left-3 right-3 flex items-center justify-between pointer-events-none">
-          {verified ? (
-            <div
-              title={t("deal.approvedShop") || "Approved Shop"}
-              className="bg-emerald-600 text-white text-[11px] font-semibold px-2.5 py-1 rounded-md flex items-center gap-1.5 shadow-sm backdrop-blur-xs"
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{t("deal.approvedShop") || "Approved"}</span>
-            </div>
-          ) : (
-            <div className="bg-slate-900/80 text-slate-200 text-[11px] font-medium px-2.5 py-1 rounded-md backdrop-blur-xs">
-              {t(`cat.${catKey}` as unknown as Parameters<typeof t>[0]) || category || 'Special'}
-            </div>
-          )}
-
-          {discountPct !== undefined && discountPct > 0 && (
-            <div className="bg-rose-600 text-white text-xs font-black px-2.5 py-1 rounded-md shadow-sm font-mono tracking-tight">
-              -{discountPct}%
-            </div>
-          )}
+        {/* Category Icon Tile (Lucide) - Upper Left */}
+        <div className="absolute top-3 left-3 w-10 h-10 rounded-2xl bg-white/95 backdrop-blur-md text-emerald-700 flex items-center justify-center shadow-soft-sm border border-white/60 pointer-events-none">
+          <IconComponent className="w-5 h-5 text-emerald-700" />
         </div>
 
-        {/* Bottom Image Sub-strip: Category & Proximity */}
-        <div className="absolute bottom-2.5 left-3 right-3 flex items-center justify-between text-xs text-white/90 font-medium pointer-events-none">
-          <span className="flex items-center gap-1 drop-shadow-sm text-[11px]">
-            <MapPin className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            <span>{distanceText ? `${distanceText} ${t("deal.away") || "away"}` : (location || 'Addis Ababa')}</span>
-          </span>
-          {bought > 0 && (
-            <span className="text-[10px] bg-black/40 backdrop-blur-xs px-2 py-0.5 rounded text-emerald-300 font-mono">
-              {bought}+ {t("deal.claimedCount") || "claimed"}
-            </span>
+        {/* Distance Badge & Discount Pill - Upper Right */}
+        <div className="absolute top-3 right-3 flex items-center gap-1.5 pointer-events-none">
+          {discountPct !== undefined && discountPct > 0 && (
+            <Badge variant="highlight" className="font-mono font-bold text-xs rounded-full shadow-soft-xs">
+              -{discountPct}%
+            </Badge>
           )}
+
+          <Badge className="bg-white/95 text-slate-800 backdrop-blur-md rounded-full border border-white/60 shadow-soft-xs text-[11px] font-medium gap-1">
+            <MapPin className="w-3 h-3 text-emerald-600 shrink-0" />
+            <span>{distanceText || (location || 'Addis Ababa')}</span>
+          </Badge>
         </div>
       </div>
 
       {/* Card Body */}
-      <div className="p-4 sm:p-5 flex flex-col flex-grow">
-        <div className="mb-1">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <p className="text-xs font-semibold text-emerald-700 tracking-wide uppercase truncate">
-              {merchant}
-            </p>
-            <span className="flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded-md shrink-0 shadow-2xs">
-              <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
-              <span>{ratingInfo.average.toFixed(1)}</span>
-              <span className="text-[10px] text-slate-400 font-normal">({ratingInfo.count})</span>
-            </span>
-          </div>
-          <h3 className="font-bold text-slate-900 text-base sm:text-lg line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors">
-            {title}
-          </h3>
+      <div className="flex flex-col flex-grow">
+        {/* Merchant Name & Approved Shop Tick */}
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider truncate">
+            {merchant}
+          </span>
 
-          {/* Quota & Merchant Hold Duration Badge Strip */}
-          <div className="flex items-center gap-2 mt-2 flex-wrap">
-            {quota.isSoldOut ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-md">
-                <span>All Claimed</span>
-              </span>
-            ) : quota.availableQuota <= 2 ? (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md animate-pulse">
-                <span>Only {quota.availableQuota} left!</span>
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                <Ticket className="w-3 h-3 text-emerald-600" />
-                <span>{quota.availableQuota} of {quota.totalQuota} available</span>
-              </span>
-            )}
-
-            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-600 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md">
-              <Clock className="w-3 h-3 text-slate-400" />
-              <span>Hold: {quota.holdMinutes}m</span>
+          {verified && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 rounded-full px-2.5 py-0.5 shrink-0">
+              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              <span>{t("deal.approvedShop") || "Approved shop"}</span>
             </span>
-          </div>
+          )}
         </div>
 
-        {/* Price & Action Container */}
-        <div className="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+        {/* Deal Title */}
+        <h3 className="font-bold text-slate-900 text-base sm:text-lg line-clamp-2 leading-snug group-hover:text-emerald-700 transition-colors mb-4">
+          {title}
+        </h3>
+
+        {/* Pricing & Large Pay Button Footer (>= 44px) */}
+        <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
           <div>
             {originalPrice !== undefined && originalPrice > finalAmount && (
               <p className="text-xs text-slate-400 line-through font-mono">
@@ -224,40 +171,27 @@ export default function DealCard({
               </p>
             )}
             <div className="flex items-baseline gap-1">
-              <span className="text-xs font-bold text-emerald-700">ETB</span>
+              <span className="text-xs font-bold text-emerald-700 font-mono">ETB</span>
               <span className="text-xl sm:text-2xl font-black text-slate-900 font-mono tabular-nums tracking-tight">
                 {finalAmount}
               </span>
             </div>
           </div>
 
-          {isBuyer && !isMerchant ? (
-            quota.isSoldOut ? (
-              <button
-                type="button"
-                disabled
-                className="min-h-[44px] bg-slate-100 text-slate-400 font-bold py-2.5 px-4 rounded-xl border border-slate-200 text-xs sm:text-sm cursor-not-allowed whitespace-nowrap shrink-0"
-              >
-                All Claimed
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onBuy();
-                }}
-                className="min-h-[44px] bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white font-bold py-2.5 px-4 sm:px-5 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-1.5 text-xs sm:text-sm cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <Ticket className="w-3.5 h-3.5" />
-                <span>{t("deal.claim") || "Claim Offer"}</span>
-              </button>
-            )
-          ) : isMerchant ? (
-            <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-3 py-2 rounded-xl border border-slate-200">
-              Merchant View
-            </span>
-          ) : null}
+          {/* Large Pill Pay Button (at least 44px) */}
+          <Button
+            type="button"
+            variant="mpesa"
+            size="default"
+            onClick={(e) => {
+              e.stopPropagation();
+              onBuy();
+            }}
+            className="min-h-[44px] h-11 sm:h-12 px-5 rounded-full font-bold text-xs sm:text-sm shadow-soft-sm hover:shadow-soft-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+          >
+            <Smartphone className="w-4 h-4" />
+            <span>{t("deal.payMpesa") || "Pay with M-PESA"}</span>
+          </Button>
         </div>
       </div>
     </div>

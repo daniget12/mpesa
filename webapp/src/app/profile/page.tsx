@@ -41,11 +41,16 @@ export default function ProfilePage() {
   const merchantRating = getRatingForMerchant(profileName || 'Bole Highland Cafe');
 
   // Tickets State
-  const [tickets, setTickets] = useState<CustomerClaimTicket[]>([]);
+  const [tickets, setTickets] = useState<CustomerClaimTicket[]>(() => {
+    if (typeof window !== 'undefined') {
+      return getCustomerClaimTickets();
+    }
+    return [];
+  });
   const [activeTab, setActiveTab] = useState<'all' | 'active' | 'ready' | 'reviewed'>('all');
   const [copiedCodeId, setCopiedCodeId] = useState<string | null>(null);
   const [selectedTicketForPayment, setSelectedTicketForPayment] = useState<CustomerClaimTicket | null>(null);
-  const [currentTime, setCurrentTime] = useState<number>(Date.now());
+  const [currentTime, setCurrentTime] = useState<number>(0);
 
   // Review Editing State
   const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
@@ -62,8 +67,6 @@ export default function ProfilePage() {
   }, []);
 
   useEffect(() => {
-    refreshClaims();
-
     const handleUpdate = () => refreshClaims();
     window.addEventListener('tirf_claims_updated', handleUpdate);
     window.addEventListener('tirf_quota_updated', handleUpdate);

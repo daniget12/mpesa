@@ -1663,7 +1663,7 @@ export default function DashboardPage() {
                       )}
 
                       <p className="text-xs text-slate-300 leading-relaxed italic">
-                        "{rev.comment}"
+                        &ldquo;{rev.comment}&rdquo;
                       </p>
 
                       <div className="text-[10px] text-slate-500 font-mono">

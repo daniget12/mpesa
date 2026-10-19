@@ -130,7 +130,7 @@
   position: absolute;
   top: 0;
   height: 100%;
-  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: all 0.35s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .modern-auth-container .sign-in {
@@ -154,7 +154,7 @@
   transform: translateX(100%);
   opacity: 1;
   z-index: 5;
-  animation: modernAuthMove 0.6s;
+  animation: modernAuthMove 0.35s;
 }
 
 @keyframes modernAuthMove {
@@ -207,7 +207,7 @@
   width: 50%;
   height: 100%;
   overflow: hidden;
-  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: all 0.35s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   border-radius: 150px 0 0 100px;
   z-index: 10;
 }
@@ -225,7 +225,7 @@
   height: 100%;
   width: 200%;
   transform: translateX(0);
-  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: all 0.35s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .modern-auth-container.active .toggle {
@@ -244,7 +244,7 @@
   text-align: center;
   top: 0;
   transform: translateX(0);
-  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transition: all 0.35s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
 .modern-auth-container .toggle-left {
@@ -301,5 +301,18 @@
 
   .modern-auth-container form {
     padding: 24px 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modern-auth-container,
+  .modern-auth-container *,
+  .modern-auth-container .form-container,
+  .modern-auth-container .toggle-container,
+  .modern-auth-container .toggle,
+  .modern-auth-container .toggle-panel {
+    transition: none !important;
+    animation: none !important;
+    transform: none !important;
   }
 }

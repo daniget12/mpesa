@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import Header from '@/components/Header';
 import DealCard from '@/components/DealCard';
@@ -15,31 +15,28 @@ import {
   Pill,
   Scissors,
   MapPin,
-  RefreshCw,
   Navigation,
-  Compass,
   Sliders,
   ChevronRight,
   ShieldCheck,
-  Zap,
-  Smartphone,
   CheckCircle2,
   Clock,
   Sparkles,
-  ArrowRight,
-  Search,
   X,
   Footprints,
   Copy,
   Map,
   List,
+  AlertCircle,
+  RefreshCw,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
-import { fetchNearbyDeals, NearbyDeal, ApiError } from '@/lib/api';
+import { fetchNearbyDeals, NearbyDeal } from '@/lib/api';
 import { INITIAL_SHOPS, INITIAL_DEALS, calculateFinalPrice } from '@/mockData/miniapp';
 import {
-  claimDealOffer,
   checkAndExpireClaims,
   CustomerClaimTicket,
 } from '@/lib/claimsStorage';
@@ -47,25 +44,7 @@ import {
 const DEFAULT_LAT = 9.0000;
 const DEFAULT_LON = 38.7800;
 
-// Preset prominent Addis Ababa hubs for instant local radar targeting
-const ADDIS_LOCATIONS = [
-  { id: 'bole', name: 'Bole Medhanealem', nameAm: 'ቦሌ መድኃኔዓለም', lat: 9.0000, lon: 38.7800 },
-  { id: '4kilo', name: '4 Kilo AAU Campus', nameAm: '4 ኪሎ ዩኒቨርሲቲ', lat: 9.0350, lon: 38.7610 },
-  { id: '5kilo', name: '5 Kilo Engineering', nameAm: '5 ኪሎ ቴክኖሎጂ', lat: 9.0430, lon: 38.7620 },
-  { id: 'kazanchis', name: 'Kazanchis / UNECA', nameAm: 'ካዛንቺስ', lat: 9.0180, lon: 38.7700 },
-  { id: 'piazza', name: 'Piazza Historical', nameAm: 'ፒያሳ', lat: 9.0350, lon: 38.7520 },
-  { id: 'mexico', name: 'Mexico Square', nameAm: 'ሜክሲኮ አደባባይ', lat: 9.0100, lon: 38.7470 },
-];
 
-const KNOWN_CATEGORIES = [
-  { id: 'all', labelKey: 'cat.all', fallback: 'All Deals', icon: Sparkles },
-  { id: 'cafe', labelKey: 'cat.cafe', fallback: 'Café & Coffee', icon: Coffee },
-  { id: 'restaurant', labelKey: 'cat.restaurant', fallback: 'Restaurants', icon: Utensils },
-  { id: 'bakery', labelKey: 'cat.bakery', fallback: 'Bakeries', icon: Coffee },
-  { id: 'grocery', labelKey: 'cat.grocery', fallback: 'Groceries', icon: Store },
-  { id: 'pharmacy', labelKey: 'cat.pharmacy', fallback: 'Pharmacy', icon: Pill },
-  { id: 'barbershop', labelKey: 'cat.barbershop', fallback: 'Grooming & Salon', icon: Scissors },
-];
 
 function getFallbackNearbyDeals(centerLat: number, centerLon: number): NearbyDeal[] {
   return INITIAL_DEALS.map((deal, idx) => {
@@ -94,8 +73,18 @@ function getFallbackNearbyDeals(centerLat: number, centerLon: number): NearbyDea
   });
 }
 
+function subscribeNoop() {
+  return () => {};
+}
+
+function getIsDemoSnapshot(): boolean {
+  if (typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('demo') === '1';
+}
+
 export const WebsiteHome: React.FC = () => {
-  const { isMerchant, isBuyer } = useAuth();
+  const { t, language } = useLanguage();
+  const { isMerchant } = useAuth();
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<NearbyDeal | null>(null);
   const [selectedDealForBuy, setSelectedDealForBuy] = useState<NearbyDeal | null>(null);
   const [activeClaimTicket, setActiveClaimTicket] = useState<CustomerClaimTicket | null>(null);
@@ -107,14 +96,39 @@ export const WebsiteHome: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isWakingUp, setIsWakingUp] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const isDemoMode = useSyncExternalStore(subscribeNoop, getIsDemoSnapshot, () => false);
+
+  // Dynamic categories built from loaded deals
+  const dynamicCategories = useMemo(() => {
+    const categorySet = new Set<string>();
+    deals.forEach((deal) => {
+      if (deal.category) {
+        categorySet.add(deal.category.toLowerCase().trim());
+      }
+    });
+
+    const categoryList = Array.from(categorySet).sort();
+    return [
+      { id: 'all', label: t('cat.all') || 'All Deals', icon: Sparkles },
+      ...categoryList.map((cat) => {
+        let icon = Store;
+        if (cat.includes('cafe') || cat.includes('coffee')) icon = Coffee;
+        else if (cat.includes('restaurant') || cat.includes('food')) icon = Utensils;
+        else if (cat.includes('pharmacy')) icon = Pill;
+        else if (cat.includes('barber') || cat.includes('salon')) icon = Scissors;
+
+        const label = t(`cat.${cat}` as unknown as Parameters<typeof t>[0]) || (cat.charAt(0).toUpperCase() + cat.slice(1));
+        return { id: cat, label, icon };
+      }),
+    ];
+  }, [deals, t]);
 
   // Full Location State
   const [isLiveLocation, setIsLiveLocation] = useState(false);
   const [isSimulatedLocation, setIsSimulatedLocation] = useState(false);
   const [isRequestingLocation, setIsRequestingLocation] = useState(false);
-  const [selectedLocationId, setSelectedLocationId] = useState<string>('bole');
   const [dismissedMerchantId, setDismissedMerchantId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'distance' | 'discount' | 'price'>('distance');
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
@@ -124,8 +138,6 @@ export const WebsiteHome: React.FC = () => {
     lat: DEFAULT_LAT,
     lon: DEFAULT_LON,
   });
-
-  const { t, language } = useLanguage();
 
   // Periodic auto-expiry engine check
   useEffect(() => {
@@ -152,30 +164,10 @@ export const WebsiteHome: React.FC = () => {
     return () => clearInterval(timer);
   }, [activeClaimTicket]);
 
-  const handleCardClaim = (deal: NearbyDeal) => {
-    const res = claimDealOffer({
-      id: deal.dealId,
-      title: deal.title,
-      merchantId: deal.merchantId,
-      merchantName: deal.merchantName,
-      finalAmount: deal.finalAmount,
-      originalPrice: deal.price,
-      discountPct: deal.discountPct,
-      itemCode: deal.itemCode,
-    });
-    if (res.success && res.ticket) {
-      setActiveClaimTicket(res.ticket);
-    } else {
-      setClaimToast(res.message || 'Unable to claim offer at this time.');
-      setTimeout(() => setClaimToast(null), 4000);
-    }
-  };
-
   const loadDeals = useCallback(async (lat: number, lon: number, radius?: number) => {
     setIsWakingUp(false);
     setLoading(true);
-    setError(null);
-
+    setLoadError(null);
     const coldStartTimer = setTimeout(() => {
       setIsWakingUp(true);
     }, 4000);
@@ -190,7 +182,12 @@ export const WebsiteHome: React.FC = () => {
       }
     } catch {
       clearTimeout(coldStartTimer);
-      setDeals(getFallbackNearbyDeals(lat, lon));
+      const fallbacks = getFallbackNearbyDeals(lat, lon);
+      if (fallbacks.length > 0) {
+        setDeals(fallbacks);
+      } else {
+        setLoadError('Failed to load deals');
+      }
     } finally {
       setLoading(false);
       setIsWakingUp(false);
@@ -207,7 +204,6 @@ export const WebsiteHome: React.FC = () => {
         (pos) => {
           setIsRequestingLocation(false);
           setIsLiveLocation(true);
-          setSelectedLocationId('gps');
           const userLat = pos.coords.latitude;
           const userLon = pos.coords.longitude;
           setCoords({ lat: userLat, lon: userLon });
@@ -240,7 +236,6 @@ export const WebsiteHome: React.FC = () => {
     setIsSimulatedLocation(true);
     setIsLiveLocation(false);
     setDismissedMerchantId(null);
-    setSelectedLocationId('walk');
     setCoords({ lat: simLat, lon: simLon });
     loadDeals(simLat, simLon);
   };
@@ -250,19 +245,11 @@ export const WebsiteHome: React.FC = () => {
     setIsSimulatedLocation(false);
     setIsLiveLocation(false);
     setDismissedMerchantId(null);
-    setSelectedLocationId('bole');
     setCoords({ lat: DEFAULT_LAT, lon: DEFAULT_LON });
     loadDeals(DEFAULT_LAT, DEFAULT_LON);
   };
 
-  const selectPredefinedLocation = (loc: typeof ADDIS_LOCATIONS[0]) => {
-    setSelectedLocationId(loc.id);
-    setIsSimulatedLocation(false);
-    setIsLiveLocation(false);
-    setDismissedMerchantId(null);
-    setCoords({ lat: loc.lat, lon: loc.lon });
-    loadDeals(loc.lat, loc.lon);
-  };
+
 
   useEffect(() => {
     let ignore = false;
@@ -332,16 +319,6 @@ export const WebsiteHome: React.FC = () => {
     nearestDeal.merchantId !== dismissedMerchantId
   );
 
-  const currentLocationLabel = useMemo(() => {
-    if (isLiveLocation) return t('deals.liveLocation');
-    if (isSimulatedLocation) return t('deals.simulatedLocation');
-    const found = ADDIS_LOCATIONS.find((l) => l.id === selectedLocationId);
-    if (found) {
-      return language === 'am' ? found.nameAm : found.name;
-    }
-    return t('deals.defaultLocation');
-  }, [isLiveLocation, isSimulatedLocation, selectedLocationId, language, t]);
-
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
@@ -380,7 +357,7 @@ export const WebsiteHome: React.FC = () => {
                   <span>{nearestDeal.title}</span>
                 </div>
                 <div className="text-xs text-emerald-200 mt-0.5">
-                  Pay at shop: <span className="font-mono font-black text-amber-300">{nearestDeal.finalAmount} ETB</span> (was {nearestDeal.price} ETB)
+                  Final price: <span className="font-mono font-black text-amber-300">{nearestDeal.finalAmount} ETB</span> (was {nearestDeal.price} ETB)
                 </div>
               </div>
             </div>
@@ -408,140 +385,87 @@ export const WebsiteHome: React.FC = () => {
           </aside>
         )}
 
-        {/* Architectural Hero Banner */}
-        <section className="relative rounded-3xl bg-gradient-to-br from-emerald-950 via-slate-900 to-emerald-900 text-white p-6 sm:p-10 lg:p-12 overflow-hidden shadow-xl border border-emerald-900/60">
-          <div className="relative z-10 max-w-3xl space-y-5">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{t('hero.badge')}</span>
+        {/* Restyled Hero: Calm white background, curved gradient shape echoing login panel, one clear promise, large pill button */}
+        <section className="relative rounded-[32px] sm:rounded-[40px] bg-white border border-slate-100 shadow-soft-md p-6 sm:p-10 lg:p-14 overflow-hidden">
+          {/* Large curved gradient shape echoing the login panel toggle */}
+          <div
+            aria-hidden="true"
+            className="absolute -top-16 -right-16 sm:-top-20 sm:-right-20 w-72 h-72 sm:w-[460px] sm:h-[460px] lg:w-[560px] lg:h-[560px] rounded-[160px_40px_140px_80px] bg-gradient-to-br from-[#15803d] via-[#0d9488] to-[#2563eb] opacity-90 sm:opacity-95 shadow-soft-xl pointer-events-none transform rotate-6 transition-transform duration-300"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute top-1/2 -right-8 -translate-y-1/2 w-48 h-48 sm:w-80 sm:h-80 rounded-full bg-emerald-400/25 blur-3xl pointer-events-none"
+          />
+
+          {/* Content Layer */}
+          <div className="relative z-10 max-w-2xl space-y-5 sm:space-y-6">
+            {/* Top Micro-badge Chip */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-xs font-semibold shadow-soft-xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Safaricom M-PESA Ethiopia</span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.15] text-white">
-              {t('hero.title')}
+            {/* One Clear Promise */}
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] text-slate-900 font-display">
+              {t('hero.promise')}
             </h1>
 
-            <p className="text-slate-300 text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl">
+            {/* Subtitle */}
+            <p className="text-slate-500 text-sm sm:text-base md:text-lg leading-relaxed max-w-xl font-normal">
               {t('hero.subtitle')}
             </p>
 
-            {/* Comprehensive Location Navigation & Simulation Strip */}
-            <div className="pt-2 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-300/90">
-                  <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>{t('deals.zoneLabel')}: <strong className="text-white font-bold">{currentLocationLabel}</strong></span>
+            {/* Actions: One Large Pill Button "Find deals near me" */}
+            <div className="pt-2 flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => {
+                  requestUserLocation();
+                  scrollToSection('deals');
+                }}
+                disabled={isRequestingLocation}
+                className="rounded-full min-h-[48px] sm:min-h-[52px] h-12 sm:h-13 px-7 sm:px-8 text-sm sm:text-base font-bold bg-slate-900 text-white hover:bg-slate-800 shadow-soft-md hover:shadow-soft-lg active:scale-[0.98] transition-all cursor-pointer inline-flex items-center gap-2.5"
+              >
+                <Navigation className={`w-4 h-4 text-emerald-400 ${isRequestingLocation ? 'animate-spin' : ''}`} />
+                <span>{isRequestingLocation ? 'Locating...' : t('hero.findNearMe')}</span>
+              </Button>
+
+              <Badge variant="secondary" className="gap-1.5 px-3.5 py-2 rounded-full text-xs font-semibold text-slate-600 bg-slate-100/90 border-slate-200">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Bole, Addis Ababa · 2 km radius</span>
+              </Badge>
+
+              {isLiveLocation && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold border border-emerald-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>{t('deals.liveLocation')}</span>
                 </span>
+              )}
 
-                <span className="text-white/40">•</span>
-
-                {/* Live GPS Detection Button */}
-                <button
-                  type="button"
-                  onClick={requestUserLocation}
-                  disabled={isRequestingLocation}
-                  className="px-3 py-1 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                  title={t('deals.locateMe')}
-                >
-                  <Navigation className={`w-3.5 h-3.5 ${isRequestingLocation ? 'animate-spin' : ''}`} />
-                  <span>{isRequestingLocation ? 'Locating...' : (isLiveLocation ? t('deals.liveLocation') : t('deals.locateMe'))}</span>
-                </button>
-
-                {/* Simulate Walking Button */}
-                <button
-                  type="button"
-                  onClick={handleWalkToShop}
-                  className="px-2.5 py-1 text-xs font-medium rounded-lg bg-white/10 hover:bg-white/20 text-emerald-200 flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Simulate proximity within 150m of venue"
-                >
-                  <Footprints className="w-3.5 h-3.5" />
-                  <span>{t('deals.walkNearShop')}</span>
-                </button>
-
-                {isSimulatedLocation && (
+              {/* Demo Simulate Walking Button (Only shown when URL has ?demo=1) */}
+              {isDemoMode && (
+                <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={handleBackToBole}
-                    className="px-2.5 py-1 text-xs font-medium rounded-lg bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                    onClick={handleWalkToShop}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full bg-amber-500/15 text-amber-800 hover:bg-amber-500/25 flex items-center gap-1 transition-colors cursor-pointer border border-amber-300"
+                    title="Demo: Simulate proximity within 150m of shop"
                   >
-                    {t('deals.backToBole')}
+                    <Footprints className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Demo 150m</span>
                   </button>
-                )}
-              </div>
-
-              {/* Addis Ababa Campus / Neighborhood Quick Selector */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                {ADDIS_LOCATIONS.map((loc) => {
-                  const isSelected = selectedLocationId === loc.id && !isLiveLocation && !isSimulatedLocation;
-                  return (
+                  {isSimulatedLocation && (
                     <button
-                      key={loc.id}
                       type="button"
-                      onClick={() => selectPredefinedLocation(loc)}
-                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                        isSelected
-                          ? 'bg-emerald-500 text-slate-950 font-bold shadow-sm'
-                          : 'bg-white/10 hover:bg-white/15 text-slate-200'
-                      }`}
+                      onClick={handleBackToBole}
+                      className="px-3 py-1.5 text-xs font-medium rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
                     >
-                      {language === 'am' ? loc.nameAm : loc.name}
+                      {t('deals.backToBole')}
                     </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* CTAs */}
-            <div className="pt-2 flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => scrollToSection('deals')}
-                className="min-h-[44px] bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 px-6 rounded-xl transition-all shadow-md cursor-pointer text-xs sm:text-sm"
-              >
-                {t('hero.explore')}
-              </button>
-              <button
-                type="button"
-                onClick={() => scrollToSection('how-it-works')}
-                className="min-h-[44px] bg-white/15 hover:bg-white/25 backdrop-blur-xs border border-white/30 text-white font-bold py-2.5 px-6 rounded-xl transition-all cursor-pointer text-xs sm:text-sm"
-              >
-                {t('hero.how')}
-              </button>
-            </div>
-          </div>
-
-          {/* 4-Item Tabular Trust Strip with Full Translations */}
-          <div className="relative z-10 mt-8 pt-6 border-t border-white/10 grid grid-cols-2 md:grid-cols-4 gap-4 text-white">
-            <div>
-              <div className="text-xl sm:text-2xl font-black font-mono tabular-nums text-emerald-400">
-                {t('trust.radiusTitle')}
-              </div>
-              <div className="text-xs text-slate-400 font-medium">
-                {t('trust.radiusDesc')}
-              </div>
-            </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black font-mono tabular-nums text-emerald-400">
-                {t('trust.speedTitle')}
-              </div>
-              <div className="text-xs text-slate-400 font-medium">
-                {t('trust.speedDesc')}
-              </div>
-            </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black font-mono tabular-nums text-emerald-400">
-                {t('trust.cashlessTitle')}
-              </div>
-              <div className="text-xs text-slate-400 font-medium">
-                {t('trust.cashlessDesc')}
-              </div>
-            </div>
-            <div>
-              <div className="text-xl sm:text-2xl font-black font-mono tabular-nums text-emerald-400">
-                {t('trust.feeTitle')}
-              </div>
-              <div className="text-xs text-slate-400 font-medium">
-                {t('trust.feeDesc')}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -549,12 +473,11 @@ export const WebsiteHome: React.FC = () => {
         {/* Filter & Sorting Controls */}
         <section className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            {/* Category Segmented Control with Translations */}
+            {/* Category Segmented Control Built Dynamically From Loaded Deals */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
-              {KNOWN_CATEGORIES.map((cat) => {
+              {dynamicCategories.map((cat) => {
                 const isSelected = selectedCategory === cat.id;
                 const IconComponent = cat.icon;
-                const label = t(cat.labelKey as unknown as Parameters<typeof t>[0]) || cat.fallback;
                 return (
                   <button
                     key={cat.id}
@@ -567,7 +490,7 @@ export const WebsiteHome: React.FC = () => {
                     }`}
                   >
                     <IconComponent className={`w-3.5 h-3.5 ${isSelected ? 'text-emerald-400' : 'text-slate-400'}`} />
-                    <span>{label}</span>
+                    <span>{cat.label}</span>
                   </button>
                 );
               })}
@@ -629,7 +552,7 @@ export const WebsiteHome: React.FC = () => {
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Hyperlocal discounts in {currentLocationLabel} with zero upfront claim reservations
+                You pay the exact price with M-PESA. After paying, you get a code to show at the counter.
               </p>
             </div>
 
@@ -671,7 +594,7 @@ export const WebsiteHome: React.FC = () => {
                 radiusMeters={radiusMeters}
                 deals={filteredAndSortedDeals}
                 onSelectDeal={setSelectedDealForDetails}
-                onClaimDeal={handleCardClaim}
+                onClaimDeal={(deal) => setSelectedDealForBuy(deal)}
                 onChangeRadius={(r) => setRadiusMeters(r)}
                 onLocateMe={requestUserLocation}
               />
@@ -681,61 +604,138 @@ export const WebsiteHome: React.FC = () => {
                   Nearby Deals on Map ({filteredAndSortedDeals.length} found)
                 </span>
                 <span className="text-xs text-slate-500 font-medium">
-                  Tap any shop pin to preview or claim with 0 ETB upfront
+                  Tap any shop pin to view details and pay with M-PESA
                 </span>
               </div>
             </div>
           )}
 
+          {/* SKELETON CARDS WHILE LOADING */}
           {loading ? (
-            <div className="py-16 text-center space-y-3">
-              <div className="w-10 h-10 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto" />
-              <p className="text-xs font-semibold text-slate-600">
-                {isWakingUp ? t('deals.waking') : 'Scanning nearby verified promotions...'}
-              </p>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <span>{isWakingUp ? t('deals.waking') : 'Scanning nearby approved shop promotions...'}</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-soft-sm flex flex-col justify-between space-y-4 animate-pulse"
+                  >
+                    {/* Media container placeholder */}
+                    <div className="h-44 sm:h-48 w-full bg-slate-100 rounded-2xl relative overflow-hidden">
+                      <div className="absolute top-3 left-3 w-10 h-10 rounded-2xl bg-slate-200/80" />
+                      <div className="absolute top-3 right-3 flex gap-1.5">
+                        <div className="w-12 h-6 rounded-full bg-slate-200/80" />
+                        <div className="w-16 h-6 rounded-full bg-slate-200/80" />
+                      </div>
+                    </div>
+
+                    {/* Merchant & Title placeholder */}
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <div className="w-24 h-3.5 rounded-full bg-slate-100" />
+                        <div className="w-24 h-5 rounded-full bg-slate-100" />
+                      </div>
+                      <div className="w-full h-5 rounded-lg bg-slate-100" />
+                      <div className="w-3/4 h-5 rounded-lg bg-slate-100" />
+                    </div>
+
+                    {/* Pricing & Button placeholder */}
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+                      <div className="space-y-1">
+                        <div className="w-12 h-3 rounded bg-slate-100" />
+                        <div className="w-20 h-6 rounded bg-slate-100" />
+                      </div>
+                      <div className="w-32 h-11 rounded-full bg-slate-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : loadError && filteredAndSortedDeals.length === 0 ? (
+            /* FRIENDLY ERROR STATE WITH RETRY BUTTON */
+            <div className="py-12 sm:py-16 text-center bg-white rounded-3xl border border-slate-100 p-6 sm:p-10 space-y-4 max-w-md mx-auto shadow-soft-md animate-fade-in">
+              <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto shadow-soft-xs border border-rose-100">
+                <AlertCircle className="w-7 h-7" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+                  {t('deals.errorTitle') || 'Unable to load deals'}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
+                  {t('deals.errorDesc') || "We couldn't connect to the promotions service. Please check your connection and retry."}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="default"
+                size="default"
+                onClick={() => loadDeals(coords.lat, coords.lon)}
+                className="rounded-full px-6 min-h-[44px] inline-flex items-center gap-2 cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>{t('deals.retry') || 'Retry'}</span>
+              </Button>
             </div>
           ) : filteredAndSortedDeals.length === 0 ? (
-            <div className="py-16 text-center bg-white rounded-3xl border border-slate-200 p-8 space-y-4 max-w-md mx-auto shadow-xs">
-              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto">
+            /* FRIENDLY EMPTY STATE WITH RETRY BUTTON */
+            <div className="py-12 sm:py-16 text-center bg-white rounded-3xl border border-slate-100 p-6 sm:p-10 space-y-4 max-w-md mx-auto shadow-soft-md animate-fade-in">
+              <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-400 mx-auto shadow-soft-xs">
                 <Store className="w-7 h-7" />
               </div>
-              <div className="space-y-1">
-                <h3 className="font-bold text-slate-900 text-base">{t('deals.empty')}</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
+              <div className="space-y-1.5">
+                <h3 className="font-bold text-slate-900 text-base sm:text-lg">
+                  {t('deals.empty') || 'No deals within 2 km of your location.'}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed">
                   No promotions match your current criteria within 2.0 km of this zone.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="default"
+                size="default"
                 onClick={() => {
                   setSelectedCategory('all');
                   setSearchQuery('');
                   handleBackToBole();
                 }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                className="rounded-full px-6 min-h-[44px] inline-flex items-center gap-2 cursor-pointer"
               >
-                {t('deals.backToBole')}
-              </button>
+                <RefreshCw className="w-4 h-4" />
+                <span>{t('deals.retry') || 'Retry'}</span>
+              </Button>
             </div>
           ) : (
+            /* STAGGERED FADE-IN OF CARDS (MOTION < 400MS, OFF WHEN REDUCED MOTION) */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredAndSortedDeals.map((deal) => (
-                <DealCard
+              {filteredAndSortedDeals.map((deal, idx) => (
+                <div
                   key={deal.dealId}
-                  id={deal.dealId}
-                  title={deal.title}
-                  merchant={deal.merchantName}
-                  location={deal.location}
-                  category={deal.category}
-                  originalPrice={deal.price}
-                  finalAmount={deal.finalAmount}
-                  discountPct={deal.discountPct}
-                  distanceMeters={deal.distanceMeters}
-                  image={deal.image}
-                  verified={deal.verified}
-                  onBuy={() => handleCardClaim(deal)}
-                  onClick={() => setSelectedDealForDetails(deal)}
-                />
+                  className="stagger-card h-full"
+                  style={{
+                    animation: 'fadeIn 250ms cubic-bezier(0.16, 1, 0.3, 1) both',
+                    animationDelay: `${Math.min(idx * 30, 120)}ms`,
+                  }}
+                >
+                  <DealCard
+                    id={deal.dealId}
+                    title={deal.title}
+                    merchant={deal.merchantName}
+                    location={deal.location}
+                    category={deal.category}
+                    originalPrice={deal.price}
+                    finalAmount={deal.finalAmount}
+                    discountPct={deal.discountPct}
+                    distanceMeters={deal.distanceMeters}
+                    image={deal.image}
+                    verified={deal.verified}
+                    onBuy={() => setSelectedDealForBuy(deal)}
+                    onClick={() => setSelectedDealForDetails(deal)}
+                  />
+                </div>
               ))}
             </div>
           )}
@@ -788,17 +788,17 @@ export const WebsiteHome: React.FC = () => {
           </div>
         </section>
 
-        {/* TirfMarket Trust & Compliance Assurance */}
+        {/* Payment Explanation */}
         <section className="p-4 sm:p-5 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50/50 rounded-2xl border border-emerald-200/80 text-xs text-emerald-950 flex items-start gap-3.5 shadow-xs">
           <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
             <ShieldCheck className="w-4 h-4" />
           </div>
           <div className="space-y-1">
             <p className="font-bold text-emerald-950 text-sm">
-              TirfMarket Trust System
+              How payment works
             </p>
             <p className="text-emerald-800 leading-relaxed text-xs">
-              We never hold customer money. Pay-at-shop claims are 100% free with zero upfront charges. All purchases go directly through M-PESA at verified shop counters. If an active hold expires before pickup, quota is automatically restored without penalties.
+              You pay the exact price with M-PESA. After paying, you get a code to show at the counter.
             </p>
           </div>
         </section>
@@ -828,14 +828,7 @@ export const WebsiteHome: React.FC = () => {
                 </Link>
               </>
             )}
-            {isBuyer && !isMerchant && (
-              <Link href="/profile" className="hover:text-emerald-700 transition-colors">
-                {t('header.myClaims') || 'My Claims'}
-              </Link>
-            )}
-            <Link href="/login" className="hover:text-emerald-700 transition-colors">
-              {t('footer.login')}
-            </Link>
+            {/* My Claims and Sign In hidden unless confirmed real */}
           </div>
         </div>
       </footer>
@@ -961,7 +954,7 @@ export const WebsiteHome: React.FC = () => {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed">
-              Show this code to the cashier at <strong>{activeClaimTicket.merchantName}</strong>. You can pay with M-PESA when you arrive at the counter. If you do not pay before the countdown expires, this discount quota will automatically be reversed and returned to available offers.
+              You pay the exact price with M-PESA. After paying, you get a code to show at the counter.
             </p>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
@@ -976,14 +969,6 @@ export const WebsiteHome: React.FC = () => {
               >
                 Pay with M-PESA at Counter
               </button>
-              <Link
-                href="/profile"
-                onClick={() => setActiveClaimTicket(null)}
-                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm text-center border border-slate-700 transition-all flex items-center justify-center gap-1.5"
-              >
-                <span>View in My Claims</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
             </div>
           </div>
         </div>
@@ -998,7 +983,7 @@ export const WebsiteHome: React.FC = () => {
           onBuy={() => {
             const deal = selectedDealForDetails;
             setSelectedDealForDetails(null);
-            handleCardClaim(deal);
+            setSelectedDealForBuy(deal);
           }}
           onPayAtShop={(ticket) => {
             setSelectedDealForDetails(null);

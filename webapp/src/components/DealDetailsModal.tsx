@@ -1,7 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { X, MapPin, Star, Ticket, Clock, Sparkles, Copy, Check, ArrowRight } from 'lucide-react';
+import { X, MapPin, Star, Ticket, Clock, Sparkles, Copy, Check } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { QrCodeSvg } from '@/components/common/QrCodeSvg';
@@ -48,22 +47,13 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
   const [claimedTicket, setClaimedTicket] = useState<CustomerClaimTicket | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
-  const [quotaVersion, setQuotaVersion] = useState(0);
 
-  useEffect(() => {
-    const handleUpdate = () => setQuotaVersion((v) => v + 1);
-    window.addEventListener('tirf_quota_updated', handleUpdate);
-    window.addEventListener('tirf_claims_updated', handleUpdate);
-    return () => {
-      window.removeEventListener('tirf_quota_updated', handleUpdate);
-      window.removeEventListener('tirf_claims_updated', handleUpdate);
-    };
-  }, []);
-
-  // Reset claimed ticket on deal change or close
-  useEffect(() => {
+  const dealKey = `${deal?.id || deal?.dealId || ''}_${isOpen}`;
+  const [prevKey, setPrevKey] = useState(dealKey);
+  if (dealKey !== prevKey) {
+    setPrevKey(dealKey);
     setClaimedTicket(null);
-  }, [deal?.id, deal?.dealId, isOpen]);
+  }
 
   // Live countdown timer for active hold
   useEffect(() => {
@@ -160,35 +150,12 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
               </span>
             </div>
 
-            {/* Quota & Hold Window Indicators */}
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 mb-6 space-y-3">
-              <div className="flex items-center justify-between text-xs font-bold">
-                <span className="flex items-center gap-1.5 text-slate-700">
-                  <Ticket className="w-4 h-4 text-emerald-600" />
-                  <span>Available Discounts Present:</span>
-                </span>
-                <span className={quota.isSoldOut ? 'text-slate-500' : quota.availableQuota <= 2 ? 'text-rose-600' : 'text-emerald-700'}>
-                  {quota.isSoldOut ? '0 Available (Sold Out)' : `${quota.availableQuota} of ${quota.totalQuota} left`}
-                </span>
-              </div>
-
-              {/* Progress bar */}
-              <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 ${
-                    quota.isSoldOut ? 'bg-slate-400' : quota.availableQuota <= 2 ? 'bg-rose-500' : 'bg-emerald-500'
-                  }`}
-                  style={{ width: `${Math.min(100, Math.max(5, (quota.availableQuota / quota.totalQuota) * 100))}%` }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Merchant Hold Validity: <strong>{quota.holdMinutes} minutes</strong></span>
-                </span>
-                <span>Zero upfront payment to claim</span>
-              </div>
+            {/* Payment Explanation */}
+            <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-100 mb-6 text-xs text-emerald-950 flex items-start gap-2.5">
+              <Sparkles className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">
+                You pay the exact price with M-PESA. After paying, you get a code to show at the counter.
+              </p>
             </div>
 
             {/* SUCCESS CLAIMED PASS (Displayed once buyer claims) */}
@@ -239,7 +206,7 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
                 </div>
 
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  Go to <strong>{merchantName}</strong> within <strong>{claimedTicket.holdMinutes} minutes</strong> to present this code and pay <strong>{current} ETB</strong> with M-PESA at the counter. If unpaid, this reservation automatically expires and returns to available quota.
+                  You pay the exact price with M-PESA. After paying, you get a code to show at the counter.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
@@ -257,14 +224,6 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
                   >
                     Pay with M-PESA at Counter
                   </button>
-                  <Link
-                    href="/profile"
-                    onClick={onClose}
-                    className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3 px-4 rounded-xl text-xs sm:text-sm text-center border border-slate-700 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    <span>View in My Claims</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
                 </div>
               </div>
             ) : (
@@ -275,25 +234,25 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
                     <p className="text-sm text-gray-400 line-through">{original} ETB</p>
                   )}
                   <p className="text-3xl font-black text-green-600">{current} ETB</p>
-                  <p className="text-[11px] text-slate-500 font-medium">Pay after you go to the shop</p>
+                  <p className="text-[11px] text-slate-500 font-medium">You pay the exact price with M-PESA.</p>
                 </div>
                 {isBuyer && !isMerchant ? (
                   quota.isSoldOut ? (
                     <button 
-                      type="button"
-                      disabled
-                      className="min-h-[44px] bg-slate-200 text-slate-400 font-bold py-3 px-8 rounded-xl cursor-not-allowed text-base"
-                    >
-                      All Claimed
-                    </button>
+                    type="button"
+                    disabled
+                    className="min-h-[44px] bg-slate-200 text-slate-400 font-bold py-3 px-8 rounded-xl cursor-not-allowed text-base"
+                  >
+                    All Claimed
+                  </button>
                   ) : (
                     <button 
                       type="button"
-                      onClick={handleClaim} 
+                      onClick={onBuy || handleClaim} 
                       className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg shadow-green-600/30 cursor-pointer text-base flex items-center gap-2"
                     >
                       <Ticket className="w-5 h-5" />
-                      <span>Claim Offer</span>
+                      <span>Pay with M-PESA</span>
                     </button>
                   )
                 ) : isMerchant ? (
@@ -370,7 +329,7 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
                       </div>
                     </div>
                     <p className="text-xs text-gray-700 leading-relaxed italic">
-                      "{rev.comment}"
+                      &ldquo;{rev.comment}&rdquo;
                     </p>
                   </div>
                 ))}
@@ -399,11 +358,11 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
             ) : (
               <button 
                 type="button"
-                onClick={handleClaim} 
+                onClick={onBuy || handleClaim} 
                 className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-md shadow-green-600/30 flex items-center justify-center gap-1.5 cursor-pointer text-sm"
               >
                 <Ticket className="w-4 h-4" />
-                <span>Claim Offer</span>
+                <span>Pay with M-PESA</span>
               </button>
             )}
           </div>

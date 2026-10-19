@@ -177,7 +177,7 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
             <div style="min-width: 200px; padding: 4px;">
               <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px;">
                 <span style="font-size: 11px; font-weight: 700; color: #047857; text-transform: uppercase; letter-spacing: 0.04em;">${deal.merchantName}</span>
-                <span style="font-size: 10px; font-weight: 800; background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 6px; border: 1px solid #a7f3d0;">Verified</span>
+                <span style="font-size: 10px; font-weight: 800; background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 6px; border: 1px solid #a7f3d0;">Approved shop</span>
               </div>
               <div style="font-size: 14px; font-weight: 900; color: #0f172a; line-height: 1.25; margin-bottom: 6px;">
                 ${deal.title}
@@ -218,7 +218,7 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
                   text-align: center;
                   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
                 ">
-                  Claim (0 ETB)
+                  Pay with M-PESA
                 </button>
               </div>
             </div>
@@ -357,6 +357,11 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
       ) : (
         /* Addis Ababa Hyperlocal Vector Radar Map */
         <div className="relative w-full h-full bg-slate-950 overflow-hidden select-none">
+          {/* Schematic Disclaimer Badge */}
+          <div className="absolute top-16 left-3 z-20 px-2.5 py-1 rounded-lg bg-slate-950/85 border border-slate-700/80 text-[10px] font-semibold text-slate-300 pointer-events-none backdrop-blur-md">
+            Schematic map, not to scale
+          </div>
+
           {/* Radar Grid Lines & Roads */}
           <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
             {/* Background Night Terrain */}
@@ -518,7 +523,7 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
               className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Claim (0 ETB)</span>
+              <span>Pay with M-PESA</span>
             </button>
           </div>
         </div>
@@ -527,9 +532,9 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
       {/* Map Legend Overlay Indicator */}
       <div className="absolute bottom-3 left-3 z-20 pointer-events-none hidden md:flex items-center gap-2 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-[11px] text-slate-300">
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-        <span>{deals.length} verified shops on radar</span>
+        <span>{deals.length} approved shops in Bole</span>
         <span className="text-slate-500">•</span>
-        <span className="text-slate-400">Tap pin for zero-upfront claim</span>
+        <span className="text-slate-400">Tap pin to view and pay with M-PESA</span>
       </div>
     </div>
   );

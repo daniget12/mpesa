@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [accountType, setAccountType] = useState<AccountType>(null);
   const [role, setRole] = useState<'user' | 'admin' | null>(null);
   const [profileName, setProfileName] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(isSupabaseConfigured);
 
   const fetchProfile = useCallback(async (currentUser: User | null) => {
     if (!currentUser) {
@@ -92,7 +92,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      setLoading(false);
       return;
     }
 
