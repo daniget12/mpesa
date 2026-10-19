@@ -12,6 +12,7 @@ import {
   claimDealOffer,
   CustomerClaimTicket,
 } from '@/lib/claimsStorage';
+import { getDealImage } from '@/lib/dealImages';
 
 export interface ModalDeal {
   id?: string;
@@ -127,7 +128,7 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
         <div className="flex-1 overflow-y-auto flex flex-col">
           <div className="relative h-64 sm:h-72 md:h-80 w-full bg-gray-200 shrink-0">
             <Image 
-              src={deal.image || deal.image_url || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800'} 
+              src={getDealImage(deal)} 
               alt={deal.title} 
               fill 
               className="object-cover" 

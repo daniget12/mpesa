@@ -5,6 +5,7 @@ import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { Store, PlusCircle, Clock, CheckCircle2, XCircle, Loader2, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getDealImage } from '@/lib/dealImages';
 
 interface Deal {
   id: string;
@@ -129,7 +130,7 @@ export default function SellerDashboard() {
     e.preventDefault();
     setIsSubmitting(true);
     
-    let uploadedImageUrl = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800';
+    let uploadedImageUrl = getDealImage({ title, category });
     if (imageFile) {
       const url = await handleImageUpload(imageFile);
       if (url) uploadedImageUrl = url;

@@ -29,18 +29,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   bakery: Coffee,
 };
 
-const CATEGORY_IMAGES: Record<string, string> = {
-  cafe: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&q=80&w=800',
-  coffee: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&q=80&w=800',
-  food: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800',
-  restaurant: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800',
-  grocery: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=800',
-  pharmacy: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&q=80&w=800',
-  tailor: 'https://images.unsplash.com/photo-1598256989800-fe5f95da9787?auto=format&fit=crop&q=80&w=800',
-  barbershop: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80&w=800',
-};
-
-const DEFAULT_DEAL_IMAGE = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800';
+import { getDealImage } from '@/lib/dealImages';
 
 function formatDistance(meters?: number): string | null {
   if (meters === undefined || meters === null || isNaN(meters)) return null;
@@ -86,7 +75,7 @@ export default function DealCard({
 
   const catKey = (category || 'cafe').toLowerCase();
   const IconComponent = CATEGORY_ICONS[catKey] || ShoppingBag;
-  const displayImage = image || CATEGORY_IMAGES[catKey] || DEFAULT_DEAL_IMAGE;
+  const displayImage = getDealImage({ title, category, image });
   const distanceText = formatDistance(distanceMeters);
 
   return (
