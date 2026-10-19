@@ -56,6 +56,8 @@ import {
   Eye,
   EyeOff,
   Key,
+  MapPin,
+  Edit3,
 } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
 import { notifyCustomerNewDealNearby } from '@/lib/notifications';
@@ -65,6 +67,12 @@ import {
   hasMerchantPassword,
   getSavedMerchantToken,
 } from '@/lib/merchantAuth';
+import {
+  getApprovedMerchantProfile,
+  getPendingUpdateForMerchant,
+  submitMerchantProfileUpdate,
+  type MerchantProfileUpdate,
+} from '@/lib/merchantProfileUpdates';
 
 // Animated counter hook
 function useAnimatedNumber(target: number, duration: number = 400): number {
@@ -121,6 +129,22 @@ export default function DashboardPage() {
   const [passwordModalSuccess, setPasswordModalSuccess] = useState<string | null>(null);
   const [passwordModalError, setPasswordModalError] = useState<string | null>(null);
   const [passwordModalLoading, setPasswordModalLoading] = useState<boolean>(false);
+
+  // Merchant Profile Editing & Admin Approval State
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState<boolean>(false);
+  const [pendingProfileUpdate, setPendingProfileUpdate] = useState<MerchantProfileUpdate | null>(null);
+  const [profileUpdateBannerDismissed, setProfileUpdateBannerDismissed] = useState<boolean>(false);
+  const [editShopName, setEditShopName] = useState<string>('');
+  const [editCategory, setEditCategory] = useState<string>('Café');
+  const [editAddress, setEditAddress] = useState<string>('');
+  const [editContactPhone, setEditContactPhone] = useState<string>('');
+  const [editTinNumber, setEditTinNumber] = useState<string>('');
+  const [editTillNumber, setEditTillNumber] = useState<string>('');
+  const [editDescription, setEditDescription] = useState<string>('');
+  const [editPinLocation, setEditPinLocation] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
+  const [editSubmitting, setEditSubmitting] = useState<boolean>(false);
+  const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
+  const [editErrorMsg, setEditErrorMsg] = useState<string | null>(null);
 
   // Dashboard Stats State
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -307,6 +331,97 @@ export default function DashboardPage() {
 
     return () => clearInterval(interval);
   }, [token, merchant?.status, statusOverride, fetchStats]);
+
+  // Approved Profile Overrides from Admin Approvals
+  const approvedProfile = useMemo(() => {
+    if (!merchant) return null;
+    return getApprovedMerchantProfile(merchant.id) || getApprovedMerchantProfile(merchant.email);
+  }, [merchant]);
+
+  const effectiveShopName = approvedProfile?.proposedShopName || merchant?.shopName || merchant?.name || 'Merchant Portal';
+  const effectiveCategory = approvedProfile?.category || merchant?.category || 'Cafe';
+  const effectiveAddress = approvedProfile?.address || 'Bole Medhanialem, Behind Edna Mall, Addis Ababa';
+  const effectivePhone = approvedProfile?.contactPhone || '+251 791 234567';
+  const effectiveTin = approvedProfile?.tinNumber || '0019283746';
+  const effectiveTill = approvedProfile?.tillNumber || '884920';
+
+  // Listen for admin profile approval / pending status changes
+  useEffect(() => {
+    const refreshProfileStatus = () => {
+      if (merchant) {
+        const pending = getPendingUpdateForMerchant(merchant.id) || getPendingUpdateForMerchant(merchant.email);
+        setPendingProfileUpdate(pending);
+      }
+    };
+    refreshProfileStatus();
+    window.addEventListener('tirf_merchant_updates_changed', refreshProfileStatus);
+    window.addEventListener('tirf_approved_merchant_changed', refreshProfileStatus);
+    return () => {
+      window.removeEventListener('tirf_merchant_updates_changed', refreshProfileStatus);
+      window.removeEventListener('tirf_approved_merchant_changed', refreshProfileStatus);
+    };
+  }, [merchant]);
+
+  // Open Edit Profile Modal
+  const handleOpenEditProfile = () => {
+    setEditShopName(approvedProfile?.proposedShopName || merchant?.shopName || merchant?.name || '');
+    setEditCategory(approvedProfile?.category || merchant?.category || 'Café');
+    setEditAddress(approvedProfile?.address || 'Bole Medhanialem, Behind Edna Mall, Addis Ababa');
+    setEditContactPhone(approvedProfile?.contactPhone || '+251 791 234567');
+    setEditTinNumber(approvedProfile?.tinNumber || '0019283746');
+    setEditTillNumber(approvedProfile?.tillNumber || '884920');
+    setEditDescription(
+      approvedProfile?.description ||
+      'Quality specialty coffee, daily fresh baked goods, and fast customer pickup in Bole.'
+    );
+    setEditPinLocation(approvedProfile?.mapCoords || { x: 50, y: 50 });
+    setEditSuccessMsg(null);
+    setEditErrorMsg(null);
+    setIsEditProfileOpen(true);
+  };
+
+  // Submit Profile Edits for Admin Approval
+  const handleSubmitProfileEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!merchant) return;
+
+    if (!editShopName.trim()) {
+      setEditErrorMsg('Shop name is required.');
+      return;
+    }
+
+    setEditSubmitting(true);
+    setEditErrorMsg(null);
+    setEditSuccessMsg(null);
+
+    try {
+      const updateRecord = submitMerchantProfileUpdate({
+        merchantId: merchant.id || merchant.email || 'merchant_portal',
+        merchantEmail: merchant.email,
+        currentShopName: merchant.shopName || merchant.name || 'Merchant Shop',
+        proposedShopName: editShopName.trim(),
+        category: editCategory,
+        address: editAddress.trim(),
+        contactPhone: editContactPhone.trim(),
+        tinNumber: editTinNumber.trim(),
+        tillNumber: editTillNumber.trim(),
+        description: editDescription.trim(),
+        mapCoords: editPinLocation,
+      });
+
+      setPendingProfileUpdate(updateRecord);
+      setProfileUpdateBannerDismissed(false);
+      setEditSuccessMsg('Profile update submitted for Administrator approval! Changes will go live once verified.');
+      setTimeout(() => {
+        setIsEditProfileOpen(false);
+        setEditSuccessMsg(null);
+      }, 1500);
+    } catch {
+      setEditErrorMsg('Failed to submit profile updates. Please try again.');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
 
   // Handle Password Sign-In (Default)
   const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -1050,7 +1165,7 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-black text-base sm:text-lg tracking-tight text-black">
-                    {merchant?.shopName || merchant?.name || 'Merchant Portal'}
+                    {effectiveShopName}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-[11px] text-gray-700">
@@ -1059,7 +1174,7 @@ export default function DashboardPage() {
                     Verified Counter
                   </span>
                   <span>·</span>
-                  <span className="capitalize">{merchant?.category || 'Cafe'}</span>
+                  <span className="capitalize">{effectiveCategory}</span>
                 </div>
               </div>
             </div>
@@ -1101,6 +1216,16 @@ export default function DashboardPage() {
               <span className="hidden sm:inline">Marketplace</span>
             </Link>
 
+            {/* Edit Shop Profile */}
+            <button
+              type="button"
+              onClick={handleOpenEditProfile}
+              className="px-3 sm:px-3.5 py-2 bg-white hover:bg-gray-50 border border-gray-200 text-gray-800 text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+              <span className="hidden sm:inline">Edit Profile</span>
+            </button>
+
             {/* Post Deal Button */}
             <button
               type="button"
@@ -1116,6 +1241,44 @@ export default function DashboardPage() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 w-full space-y-8">
+        {/* Pending Profile Update Alert Banner */}
+        {pendingProfileUpdate && !profileUpdateBannerDismissed && (
+          <div className="bg-amber-50 border border-amber-200/90 text-amber-950 p-4 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs animate-fade-in">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-amber-100 border border-amber-200 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                <AlertTriangle className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-black">Shop Profile Edit Under Review</span>
+                  <span className="text-[10px] font-mono font-bold bg-amber-200/60 text-amber-800 uppercase px-2 py-0.5 rounded-full">
+                    Pending Admin Approval
+                  </span>
+                </div>
+                <p className="text-xs text-amber-800 mt-0.5">
+                  Proposed changes to &ldquo;{pendingProfileUpdate.proposedShopName}&rdquo; were submitted on {new Date(pendingProfileUpdate.submittedAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}. Changes will reflect across customer marketplace once verified by compliance.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+              <button
+                type="button"
+                onClick={handleOpenEditProfile}
+                className="px-3 py-1.5 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                View / Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => setProfileUpdateBannerDismissed(true)}
+                className="px-2.5 py-1.5 text-amber-700 hover:text-black text-xs font-semibold cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Collapsible Shop Profile Panel */}
         {merchant && (
           <div className="bg-gradient-to-b bg-white border border-gray-200/80 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl transition-all">
@@ -1132,8 +1295,13 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-bold text-black group-hover:text-emerald-600 transition-colors">
-                    {merchant.shopName || merchant.name || t('dashboard.shopProfile')}
+                    {effectiveShopName}
                   </span>
+                  {pendingProfileUpdate && (
+                    <span className="text-[10px] bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                      Edit Pending Approval
+                    </span>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -1151,42 +1319,52 @@ export default function DashboardPage() {
             </button>
 
             {isProfileOpen && (
-              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-gray-200/60 grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm animate-fade-in">
+              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-gray-200/60 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm animate-fade-in">
                 <div className="space-y-1">
                   <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
                     {t('register.shopName') || 'Shop Name'}
                   </div>
                   <div className="font-bold text-black text-base">
-                    {merchant.shopName || merchant.name || 'Merchant Shop'}
+                    {effectiveShopName}
                   </div>
+                  <div className="text-xs text-gray-500 capitalize">{effectiveCategory}</div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
-                    {t('dashboard.category') || 'Category'}
+                    Location & Contact
                   </div>
-                  <div className="font-medium text-black capitalize">
-                    {merchant.category || 'Shop'}
+                  <div className="font-medium text-black text-xs line-clamp-1">
+                    {effectiveAddress}
                   </div>
+                  <div className="text-xs text-gray-500 font-mono">{effectivePhone}</div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
-                    {t('dashboard.status') || 'Status'}
+                    Business Tax & Till
                   </div>
-                  <div className="flex flex-col gap-1 items-start">
-                    <span className="text-xs text-emerald-600 flex items-center gap-1.5 font-semibold">
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>{t('dashboard.statusApprovedDesc') || 'Active & Verified for M-PESA'}</span>
-                    </span>
+                  <div className="text-xs text-gray-600">
+                    TIN: <span className="font-mono font-bold text-black">{effectiveTin}</span>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    Till #: <span className="font-mono font-bold text-black">{effectiveTill}</span>
                   </div>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-2">
                   <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
-                    Account Password
+                    Profile Actions
                   </div>
-                  <div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleOpenEditProfile}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold border border-gray-200 transition-colors cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Edit Shop</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => {
@@ -2017,6 +2195,215 @@ export default function DashboardPage() {
                 >
                   {passwordModalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   <span>Save Password</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Merchant Edit Profile Modal (Requires Admin Approval) */}
+      {isEditProfileOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-gray-100 my-8 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-black text-black">Edit Shop Profile</h3>
+                  <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-800 uppercase px-2 py-0.5 rounded-full border border-amber-200">
+                    Admin Approval Required
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Updates to shop name, category, tax TIN, and map location will be queued for compliance review before reflecting on the public marketplace.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black flex items-center justify-center transition-colors cursor-pointer shrink-0 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {editErrorMsg && (
+              <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs p-3 rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{editErrorMsg}</span>
+              </div>
+            )}
+
+            {editSuccessMsg && (
+              <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-xl flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{editSuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitProfileEdit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-800 mb-1">
+                    Shop Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editShopName}
+                    onChange={(e) => setEditShopName(e.target.value)}
+                    placeholder="e.g. Bole Highland Cafe"
+                    className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-800 mb-1">
+                    Category *
+                  </label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+                  >
+                    <option value="Café">Café</option>
+                    <option value="Bakery">Bakery</option>
+                    <option value="Juice">Juice Bar</option>
+                    <option value="Books">Books & Stationery</option>
+                    <option value="Barber">Barbershop & Grooming</option>
+                    <option value="Restaurant">Restaurant</option>
+                    <option value="Other">Other Retail</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-800 mb-1">
+                    Contact Phone *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={editContactPhone}
+                    onChange={(e) => setEditContactPhone(e.target.value)}
+                    placeholder="+251 791 234567"
+                    className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-800 mb-1">
+                    M-PESA Till # (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={editTillNumber}
+                    onChange={(e) => setEditTillNumber(e.target.value)}
+                    placeholder="e.g. 884920"
+                    className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-800 mb-1">
+                  Business TIN Number *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTinNumber}
+                  onChange={(e) => setEditTinNumber(e.target.value)}
+                  placeholder="10-digit TIN e.g. 0019283746"
+                  className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-800 mb-1">
+                  Shop Address in Bole *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  placeholder="e.g. Bole Medhanialem, Behind Edna Mall, 2nd Floor"
+                  className="w-full h-10 px-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+                />
+              </div>
+
+              {/* Map Location Pin Picker */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-gray-800">
+                    Tap to Pin Store Location on Bole Map *
+                  </label>
+                  <span className="text-[10px] text-gray-500 font-mono">
+                    Pin X: {editPinLocation.x}% · Y: {editPinLocation.y}%
+                  </span>
+                </div>
+                <div
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+                    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+                    setEditPinLocation({ x: Math.max(5, Math.min(95, x)), y: Math.max(5, Math.min(95, y)) });
+                  }}
+                  className="relative w-full h-36 bg-slate-100 rounded-2xl border border-gray-300 overflow-hidden cursor-crosshair shadow-inner"
+                >
+                  <div className="absolute inset-0 bg-[#eef2ef] flex items-center justify-center">
+                    <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider text-center px-4">
+                      Bole Interactive Neighborhood Grid · Tap anywhere to set storefront pin
+                    </span>
+                  </div>
+                  <div
+                    className="absolute z-10 -translate-x-1/2 -translate-y-full pointer-events-none transition-all duration-150"
+                    style={{ left: `${editPinLocation.x}%`, top: `${editPinLocation.y}%` }}
+                  >
+                    <div className="w-7 h-7 rounded-full bg-emerald-600 border-2 border-white text-white flex items-center justify-center shadow-lg">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-800 mb-1">
+                  Storefront Description & Highlights
+                </label>
+                <textarea
+                  rows={3}
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  placeholder="Describe your specialty items, opening hours, or popular dishes for nearby customers..."
+                  className="w-full p-3 rounded-xl bg-gray-50 border border-gray-200 text-xs text-black focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-normal"
+                />
+              </div>
+
+              <div className="bg-amber-50/70 border border-amber-200 text-amber-900 rounded-xl p-3 text-[11px] flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Admin Moderation Policy:</strong> Submissions are reviewed within 24 hours. Your current store profile will remain live until an administrator approves your edits.
+                </span>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:text-black font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting || !editShopName.trim()}
+                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {editSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                  <span>Submit for Admin Approval</span>
                 </button>
               </div>
             </form>

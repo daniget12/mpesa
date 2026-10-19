@@ -204,15 +204,17 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
             {/* In-Website Notifications Bell */}
             <NotificationBell />
 
-            {/* My Claims / Tickets Button */}
-            <Link
-              href="/profile"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[38px] text-xs font-semibold rounded-full text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-colors cursor-pointer"
-              title="View your claim tickets and orders"
-            >
-              <Ticket className="w-4 h-4 text-slate-600" />
-              <span className="hidden md:inline">{t("header.myClaims") || "My Claims"}</span>
-            </Link>
+            {/* My Claims / Tickets Button - only visible when logged in */}
+            {user && (
+              <Link
+                href="/profile"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[38px] text-xs font-semibold rounded-full text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 transition-colors cursor-pointer"
+                title="View your claim tickets and orders"
+              >
+                <Ticket className="w-4 h-4 text-slate-600" />
+                <span className="hidden md:inline">{t("header.myClaims") || "My Claims"}</span>
+              </Link>
+            )}
 
             {/* User Account / Sign In */}
             {user ? (
@@ -330,16 +332,18 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
                 </>
               )}
 
-              <Link
-                href="/profile"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="col-span-2 flex items-center gap-3 px-3.5 py-2.5 min-h-[44px] rounded-2xl text-sm font-semibold text-slate-800 hover:bg-slate-100 transition-colors bg-slate-50 border border-slate-200/80"
-              >
-                <div className="w-8 h-8 rounded-full bg-slate-200/80 text-slate-700 flex items-center justify-center shrink-0">
-                  <Ticket className="w-4 h-4" />
-                </div>
-                <span>{t("header.myClaims") || "My Profile & Claim Tickets"}</span>
-              </Link>
+              {user && (
+                <Link
+                  href="/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="col-span-2 flex items-center gap-3 px-3.5 py-2.5 min-h-[44px] rounded-2xl text-sm font-semibold text-slate-800 hover:bg-slate-100 transition-colors bg-slate-50 border border-slate-200/80"
+                >
+                  <div className="w-8 h-8 rounded-full bg-slate-200/80 text-slate-700 flex items-center justify-center shrink-0">
+                    <Ticket className="w-4 h-4" />
+                  </div>
+                  <span>{t("header.myClaims") || "My Profile & Claim Tickets"}</span>
+                </Link>
+              )}
 
               {!user && (
                 <Link

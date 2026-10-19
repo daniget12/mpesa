@@ -54,6 +54,7 @@ interface DealProps {
   bought?: number;
   onBuy: () => void;
   onClick?: () => void;
+  onMerchantClick?: (merchantName: string) => void;
 }
 
 export default function DealCard({
@@ -69,6 +70,7 @@ export default function DealCard({
   verified = true,
   onBuy,
   onClick,
+  onMerchantClick,
 }: DealProps) {
   const { t } = useLanguage();
   const [imageError, setImageError] = useState(false);
@@ -134,9 +136,19 @@ export default function DealCard({
       <div className="flex flex-col flex-grow">
         {/* Merchant Name & Approved Shop Tick */}
         <div className="flex items-center justify-between gap-2 mb-1.5">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider truncate">
-            {merchant}
-          </span>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onMerchantClick) {
+                onMerchantClick(merchant);
+              }
+            }}
+            className="text-xs font-bold text-slate-500 hover:text-emerald-700 hover:underline uppercase tracking-wider truncate flex items-center gap-1 cursor-pointer transition-colors text-left"
+            title={`View ${merchant} profile, rating & past offers`}
+          >
+            <span>{merchant}</span>
+          </button>
 
           {verified && (
             <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/80 rounded-full px-2.5 py-0.5 shrink-0">

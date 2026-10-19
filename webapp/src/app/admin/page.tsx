@@ -36,6 +36,7 @@ import {
   RotateCcw,
   Sparkles,
   Lock,
+  MapPin,
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import {
@@ -45,6 +46,12 @@ import {
   checkAndExpireClaims,
   type DealQuotaInfo,
 } from '@/lib/claimsStorage';
+import {
+  getStoredProfileUpdates,
+  approveMerchantProfileUpdate,
+  rejectMerchantProfileUpdate,
+  type MerchantProfileUpdate,
+} from '@/lib/merchantProfileUpdates';
 
 interface UserProfile {
   id: string;
@@ -323,6 +330,17 @@ export default function AdminDashboardPage() {
   const [lastRefreshed, setLastRefreshed] = useState<string>('Just now');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // Merchant Profile Updates Moderation State
+  const [approvalSubTab, setApprovalSubTab] = useState<'deals' | 'profiles'>('deals');
+  const [profileUpdates, setProfileUpdates] = useState<MerchantProfileUpdate[]>(() => {
+    if (typeof window === 'undefined') return [];
+    return getStoredProfileUpdates();
+  });
+  const [profileSearchQuery, setProfileSearchQuery] = useState<string>('');
+  const [profileFilterStatus, setProfileFilterStatus] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [profileActionLoading, setProfileActionLoading] = useState<string | null>(null);
+  const [profileActionSuccess, setProfileActionSuccess] = useState<string | null>(null);
+
   // Authentication & Authorization Check
   useEffect(() => {
     if (!loading) {
@@ -478,10 +496,73 @@ export default function AdminDashboardPage() {
     });
   }, [deals, dealFilterStatus, dealSearchQuery]);
 
+  // Merchant Profile Updates loading & live listener
+  const loadProfileUpdates = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    setProfileUpdates(getStoredProfileUpdates());
+  }, []);
+
+  useEffect(() => {
+    const handleUpdate = () => loadProfileUpdates();
+    window.addEventListener('tirf_merchant_updates_changed', handleUpdate);
+    return () => window.removeEventListener('tirf_merchant_updates_changed', handleUpdate);
+  }, [loadProfileUpdates]);
+
+  const handleApproveProfile = (updateId: string) => {
+    setProfileActionLoading(updateId);
+    try {
+      const updated = approveMerchantProfileUpdate(updateId);
+      if (updated) {
+        showToast(`Approved profile for "${updated.proposedShopName}". Changes are now active!`);
+        setProfileActionSuccess(`Approved profile update for "${updated.proposedShopName}".`);
+        loadProfileUpdates();
+        setTimeout(() => setProfileActionSuccess(null), 3500);
+      }
+    } catch {
+      showToast('Error approving merchant profile update.');
+    } finally {
+      setProfileActionLoading(null);
+    }
+  };
+
+  const handleRejectProfile = (updateId: string) => {
+    const reason = prompt('Please enter rejection reason (e.g. Invalid TIN, address unverified):') || 'Details could not be verified by compliance.';
+    setProfileActionLoading(updateId);
+    try {
+      const updated = rejectMerchantProfileUpdate(updateId, reason);
+      if (updated) {
+        showToast(`Rejected profile update for "${updated.proposedShopName}".`);
+        loadProfileUpdates();
+      }
+    } catch {
+      showToast('Error rejecting merchant profile update.');
+    } finally {
+      setProfileActionLoading(null);
+    }
+  };
+
+  // Filtered Profile Updates
+  const filteredProfileUpdates = useMemo(() => {
+    const q = profileSearchQuery.toLowerCase().trim();
+    return profileUpdates.filter((u) => {
+      const matchesQuery =
+        !q ||
+        u.proposedShopName.toLowerCase().includes(q) ||
+        u.currentShopName.toLowerCase().includes(q) ||
+        u.address.toLowerCase().includes(q) ||
+        (u.merchantEmail && u.merchantEmail.toLowerCase().includes(q));
+      if (!matchesQuery) return false;
+      if (profileFilterStatus === 'all') return true;
+      return u.status === profileFilterStatus;
+    });
+  }, [profileUpdates, profileFilterStatus, profileSearchQuery]);
+
   // Telemetry Aggregates
   const totalVolumeETB = 248650;
   const platformCommissionETB = Math.round(totalVolumeETB * 0.03);
-  const pendingApprovalsCount = deals.filter((d) => d.status === 'pending').length;
+  const pendingDealsCount = deals.filter((d) => d.status === 'pending').length;
+  const pendingProfileEditsCount = profileUpdates.filter((u) => u.status === 'pending').length;
+  const pendingApprovalsCount = pendingDealsCount + pendingProfileEditsCount;
   const openReportsCount = reports.filter((r) => r.status === 'open').length;
 
   // Active claims & quota aggregates
@@ -1009,137 +1090,362 @@ export default function AdminDashboardPage() {
         {/* TAB 2: DEAL & SHOP APPROVALS */}
         {activeTab === 'approvals' && (
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-black text-black">Merchant Flash Deal Review Queue</h3>
-                <p className="text-xs text-gray-600">
-                  Verify discount percentages, original prices, and inventory limits before deals go live on the customer radar.
-                </p>
-              </div>
+            {/* Sub-tab Navigation */}
+            <div className="flex items-center gap-2 border-b border-gray-200/80 pb-3">
+              <button
+                type="button"
+                onClick={() => setApprovalSubTab('deals')}
+                className={`px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+                  approvalSubTab === 'deals'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 hover:text-black border border-gray-200'
+                }`}
+              >
+                <Tag className="w-3.5 h-3.5" />
+                <span>Flash Deals Queue</span>
+                {pendingDealsCount > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    approvalSubTab === 'deals' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {pendingDealsCount}
+                  </span>
+                )}
+              </button>
 
-              {/* Status Filter & Search */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={dealSearchQuery}
-                    onChange={(e) => setDealSearchQuery(e.target.value)}
-                    placeholder="Search deals, shops..."
-                    className="pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs text-black placeholder-gray-400 focus:outline-none focus:border-emerald-500 shadow-2xs min-h-[36px]"
-                  />
-                  <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                </div>
-
-                <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200">
-                  {(['all', 'pending', 'active', 'rejected'] as const).map((st) => (
-                    <button
-                      key={st}
-                      type="button"
-                      onClick={() => setDealFilterStatus(st)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
-                        dealFilterStatus === st
-                          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-xs'
-                          : 'text-gray-700 hover:text-black'
-                      }`}
-                    >
-                      {st}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setApprovalSubTab('profiles')}
+                className={`px-4 py-2 text-xs font-bold rounded-xl flex items-center gap-2 transition-all cursor-pointer ${
+                  approvalSubTab === 'profiles'
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 hover:text-black border border-gray-200'
+                }`}
+              >
+                <Store className="w-3.5 h-3.5" />
+                <span>Merchant Profile Edits</span>
+                {pendingProfileEditsCount > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    approvalSubTab === 'profiles' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {pendingProfileEditsCount}
+                  </span>
+                )}
+              </button>
             </div>
 
-            {/* Deals Table */}
-            <div className="bg-white border border-gray-200/80 rounded-3xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-white/80 border-b border-gray-200 text-gray-600 uppercase tracking-wider font-bold">
-                    <tr>
-                      <th className="py-3.5 px-5">Deal Title & Category</th>
-                      <th className="py-3.5 px-4">Merchant & Location</th>
-                      <th className="py-3.5 px-4">Pricing & Discount</th>
-                      <th className="py-3.5 px-4">Inventory</th>
-                      <th className="py-3.5 px-4">Status</th>
-                      <th className="py-3.5 px-5 text-right">Moderation Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 text-gray-900">
-                    {filteredDeals.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="py-12 text-center text-gray-500 text-xs font-medium">
-                          No deals found matching filter criteria.
-                        </td>
-                      </tr>
-                    ) : (
-                      filteredDeals.map((deal) => (
-                        <tr key={deal.id} className="hover:bg-white/80 transition-colors">
-                          <td className="py-3.5 px-5">
-                            <div className="font-bold text-black text-sm">{deal.title}</div>
-                            <span className="inline-block mt-0.5 text-[10px] font-bold text-emerald-800 uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-100">
-                              {deal.category}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="font-semibold text-black">{deal.merchant_name}</div>
-                            <div className="text-[11px] text-gray-500">{deal.location || 'Addis Ababa'}</div>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <div className="flex items-baseline gap-1.5">
-                              <span className="text-gray-500 line-through font-mono">ETB {deal.original_price}</span>
-                              <span className="font-black text-emerald-700 font-mono text-sm">ETB {deal.discounted_price}</span>
-                            </div>
-                            <span className="text-[10px] font-bold text-rose-600 font-mono">
-                              -{deal.discount_pct}% OFF
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 font-mono font-bold text-black">
-                            {deal.units_available} vouchers
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono ${
-                                deal.status === 'active' || deal.status === 'approved'
-                                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                                  : deal.status === 'pending'
-                                  ? 'bg-amber-50 text-amber-900 border border-amber-200'
-                                  : 'bg-rose-50 text-rose-800 border border-rose-200'
-                              }`}
-                            >
-                              {deal.status}
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-5 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              {deal.status !== 'active' && deal.status !== 'approved' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateDealStatus(deal.id, 'active')}
-                                  className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer text-xs shadow-xs"
-                                >
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>Approve</span>
-                                </button>
-                              )}
+            {/* SUB-TAB 1: FLASH DEALS MODERATION */}
+            {approvalSubTab === 'deals' && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-black text-black">Merchant Flash Deal Review Queue</h3>
+                    <p className="text-xs text-gray-600">
+                      Verify discount percentages, original prices, and inventory limits before deals go live on the customer radar.
+                    </p>
+                  </div>
 
-                              {deal.status !== 'rejected' && (
-                                <button
-                                  type="button"
-                                  onClick={() => handleUpdateDealStatus(deal.id, 'rejected')}
-                                  className="px-3 py-1.5 bg-white hover:bg-rose-50 active:scale-95 text-gray-700 hover:text-rose-700 border border-gray-200 hover:border-rose-200 font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer text-xs"
-                                >
-                                  <X className="w-3.5 h-3.5" />
-                                  <span>Reject</span>
-                                </button>
-                              )}
-                            </div>
-                          </td>
+                  {/* Status Filter & Search */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={dealSearchQuery}
+                        onChange={(e) => setDealSearchQuery(e.target.value)}
+                        placeholder="Search deals, shops..."
+                        className="pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs text-black placeholder-gray-400 focus:outline-none focus:border-emerald-500 shadow-2xs min-h-[36px]"
+                      />
+                      <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200">
+                      {(['all', 'pending', 'active', 'rejected'] as const).map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setDealFilterStatus(st)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                            dealFilterStatus === st
+                              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-xs'
+                              : 'text-gray-700 hover:text-black'
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deals Table */}
+                <div className="bg-white border border-gray-200/80 rounded-3xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-white/80 border-b border-gray-200 text-gray-600 uppercase tracking-wider font-bold">
+                        <tr>
+                          <th className="py-3.5 px-5">Deal Title & Category</th>
+                          <th className="py-3.5 px-4">Merchant & Location</th>
+                          <th className="py-3.5 px-4">Pricing & Discount</th>
+                          <th className="py-3.5 px-4">Inventory</th>
+                          <th className="py-3.5 px-4">Status</th>
+                          <th className="py-3.5 px-5 text-right">Moderation Actions</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 text-gray-900">
+                        {filteredDeals.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-12 text-center text-gray-500 text-xs font-medium">
+                              No deals found matching filter criteria.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredDeals.map((deal) => (
+                            <tr key={deal.id} className="hover:bg-white/80 transition-colors">
+                              <td className="py-3.5 px-5">
+                                <div className="font-bold text-black text-sm">{deal.title}</div>
+                                <span className="inline-block mt-0.5 text-[10px] font-bold text-emerald-800 uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-100">
+                                  {deal.category}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <div className="font-semibold text-black">{deal.merchant_name}</div>
+                                <div className="text-[11px] text-gray-500">{deal.location || 'Addis Ababa'}</div>
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <div className="flex items-baseline gap-1.5">
+                                  <span className="text-gray-500 line-through font-mono">ETB {deal.original_price}</span>
+                                  <span className="font-black text-emerald-700 font-mono text-sm">ETB {deal.discounted_price}</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-rose-600 font-mono">
+                                  -{deal.discount_pct}% OFF
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-4 font-mono font-bold text-black">
+                                {deal.units_available} vouchers
+                              </td>
+                              <td className="py-3.5 px-4">
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono ${
+                                    deal.status === 'active' || deal.status === 'approved'
+                                      ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                      : deal.status === 'pending'
+                                      ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                                      : 'bg-rose-50 text-rose-800 border border-rose-200'
+                                  }`}
+                                >
+                                  {deal.status}
+                                </span>
+                              </td>
+                              <td className="py-3.5 px-5 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {deal.status !== 'active' && deal.status !== 'approved' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateDealStatus(deal.id, 'active')}
+                                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer text-xs shadow-xs"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                      <span>Approve</span>
+                                    </button>
+                                  )}
+
+                                  {deal.status !== 'rejected' && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleUpdateDealStatus(deal.id, 'rejected')}
+                                      className="px-3 py-1.5 bg-white hover:bg-rose-50 active:scale-95 text-gray-700 hover:text-rose-700 border border-gray-200 hover:border-rose-200 font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer text-xs"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                      <span>Reject</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* SUB-TAB 2: MERCHANT PROFILE EDITS MODERATION */}
+            {approvalSubTab === 'profiles' && (
+              <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-black text-black">Merchant Profile Edit Submissions</h3>
+                    <p className="text-xs text-gray-600">
+                      Review proposed shop name, location address, map pin coordinates, contact phone, and TIN before approving changes live.
+                    </p>
+                  </div>
+
+                  {/* Filter & Search */}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={profileSearchQuery}
+                        onChange={(e) => setProfileSearchQuery(e.target.value)}
+                        placeholder="Search shops, address, email..."
+                        className="pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs text-black placeholder-gray-400 focus:outline-none focus:border-emerald-500 shadow-2xs min-h-[36px]"
+                      />
+                      <Search className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    </div>
+
+                    <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200">
+                      {(['all', 'pending', 'approved', 'rejected'] as const).map((st) => (
+                        <button
+                          key={st}
+                          type="button"
+                          onClick={() => setProfileFilterStatus(st)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all cursor-pointer ${
+                            profileFilterStatus === st
+                              ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold shadow-xs'
+                              : 'text-gray-700 hover:text-black'
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {profileActionSuccess && (
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs font-semibold text-emerald-800 flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>{profileActionSuccess}</span>
+                  </div>
+                )}
+
+                {/* Profiles Table */}
+                <div className="bg-white border border-gray-200/80 rounded-3xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-white/80 border-b border-gray-200 text-gray-600 uppercase tracking-wider font-bold">
+                        <tr>
+                          <th className="py-3.5 px-5">Proposed Shop Profile</th>
+                          <th className="py-3.5 px-4">Location & Map Pin</th>
+                          <th className="py-3.5 px-4">Tax TIN & M-PESA Till</th>
+                          <th className="py-3.5 px-4">Phone & Email</th>
+                          <th className="py-3.5 px-4">Status</th>
+                          <th className="py-3.5 px-5 text-right">Moderation Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 text-gray-900">
+                        {filteredProfileUpdates.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-12 text-center text-gray-500 text-xs font-medium">
+                              No merchant profile edits found matching filter criteria.
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredProfileUpdates.map((update) => (
+                            <tr key={update.id} className="hover:bg-white/80 transition-colors">
+                              <td className="py-3.5 px-5">
+                                <div className="font-bold text-black text-sm">
+                                  {update.proposedShopName}
+                                </div>
+                                {update.currentShopName !== update.proposedShopName && (
+                                  <div className="text-[11px] text-gray-500 mt-0.5">
+                                    Formerly: <span className="line-through text-gray-400">{update.currentShopName}</span>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 mt-1">
+                                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-50 border border-emerald-100">
+                                    {update.category}
+                                  </span>
+                                  {update.description && (
+                                    <span className="text-[11px] text-gray-500 truncate max-w-xs" title={update.description}>
+                                      {update.description}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <div className="font-semibold text-black max-w-xs">{update.address}</div>
+                                {update.mapCoords && (
+                                  <div className="flex items-center gap-1 text-[11px] text-emerald-700 font-mono mt-0.5">
+                                    <MapPin className="w-3 h-3" />
+                                    <span>Bole Pin: X {update.mapCoords.x}% · Y {update.mapCoords.y}%</span>
+                                  </div>
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <div className="text-xs">
+                                  TIN: <span className="font-mono font-bold text-black">{update.tinNumber || 'N/A'}</span>
+                                </div>
+                                <div className="text-xs text-gray-600 mt-0.5">
+                                  Till: <span className="font-mono font-bold text-black">{update.tillNumber || 'N/A'}</span>
+                                </div>
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <div className="font-mono font-medium text-black">{update.contactPhone}</div>
+                                {update.merchantEmail && (
+                                  <div className="text-[11px] text-gray-500 truncate max-w-[150px]">{update.merchantEmail}</div>
+                                )}
+                              </td>
+
+                              <td className="py-3.5 px-4">
+                                <div>
+                                  <span
+                                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider font-mono ${
+                                      update.status === 'approved'
+                                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                        : update.status === 'pending'
+                                        ? 'bg-amber-50 text-amber-900 border border-amber-200'
+                                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                                    }`}
+                                  >
+                                    {update.status}
+                                  </span>
+                                  <div className="text-[10px] text-gray-400 mt-1">
+                                    {new Date(update.submittedAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                  </div>
+                                </div>
+                              </td>
+
+                              <td className="py-3.5 px-5 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  {update.status !== 'approved' && (
+                                    <button
+                                      type="button"
+                                      disabled={profileActionLoading === update.id}
+                                      onClick={() => handleApproveProfile(update.id)}
+                                      className="px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 text-white font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer text-xs shadow-xs disabled:opacity-50"
+                                    >
+                                      <Check className="w-3.5 h-3.5" />
+                                      <span>Approve</span>
+                                    </button>
+                                  )}
+
+                                  {update.status !== 'rejected' && (
+                                    <button
+                                      type="button"
+                                      disabled={profileActionLoading === update.id}
+                                      onClick={() => handleRejectProfile(update.id)}
+                                      className="px-3 py-1.5 bg-white hover:bg-rose-50 active:scale-95 text-gray-700 hover:text-rose-700 border border-gray-200 hover:border-rose-200 font-bold rounded-xl transition-all flex items-center gap-1 cursor-pointer text-xs disabled:opacity-50"
+                                    >
+                                      <X className="w-3.5 h-3.5" />
+                                      <span>Reject</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

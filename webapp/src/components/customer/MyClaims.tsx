@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useApp } from '@/context/MiniAppContext';
+import { useAuth } from '@/context/AuthContext';
 import { Claim } from '@/types/miniapp';
-import { Ticket, Clock, CheckCircle2, ChevronRight, PiggyBank } from 'lucide-react';
+import { Ticket, Clock, CheckCircle2, ChevronRight, PiggyBank, Lock, LogIn } from 'lucide-react';
 
 interface MyClaimsProps {
   onSelectClaim: (claim: Claim) => void;
@@ -11,6 +13,7 @@ interface MyClaimsProps {
 }
 
 export const MyClaims: React.FC<MyClaimsProps> = ({ onSelectClaim, onExploreDeals }) => {
+  const { user } = useAuth();
   const { claims, t } = useApp();
   const [activeTab, setActiveTab] = useState<'active' | 'past'>('active');
 
@@ -21,6 +24,40 @@ export const MyClaims: React.FC<MyClaimsProps> = ({ onSelectClaim, onExploreDeal
   const totalOffersClaimed = claims.length;
 
   const displayedList = activeTab === 'active' ? activeClaims : pastClaims;
+
+  if (!user) {
+    return (
+      <div className="space-y-4 pb-20 animate-in fade-in duration-200">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-900">
+            {t.myClaimsTab}
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Your active redemption vouchers and cashless M-PESA receipts.
+          </p>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center space-y-4 shadow-sm">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200 shadow-2xs">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-bold text-slate-900">Sign In Required</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto leading-relaxed">
+              Please sign in to view your claims, active counter vouchers, and past M-PESA receipts.
+            </p>
+          </div>
+          <Link
+            href="/login?redirect=/"
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+          >
+            <LogIn className="w-4 h-4" />
+            <span>Sign In / Register</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const getStatusBadge = (status: Claim['status']) => {
     switch (status) {

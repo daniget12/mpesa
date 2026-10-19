@@ -41,9 +41,10 @@ interface DealDetailsModalProps {
   onClose: () => void;
   onBuy?: () => void;
   onPayAtShop?: (ticket: CustomerClaimTicket) => void;
+  onMerchantClick?: (merchantName: string) => void;
 }
 
-export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAtShop }: DealDetailsModalProps) {
+export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAtShop, onMerchantClick }: DealDetailsModalProps) {
   const { isMerchant, isBuyer } = useAuth();
   const [claimedTicket, setClaimedTicket] = useState<CustomerClaimTicket | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -143,12 +144,32 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
             
             {/* Merchant Identity & Shop Rating */}
             <div className="flex items-center gap-2 mb-4 flex-wrap">
-              <span className="text-gray-700 font-semibold text-sm">{merchantName}</span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => {
+                  if (onMerchantClick) {
+                    onMerchantClick(merchantName);
+                  }
+                }}
+                className="text-emerald-700 hover:text-emerald-800 hover:underline font-bold text-sm flex items-center gap-1 cursor-pointer transition-colors"
+                title={`View ${merchantName} location, rating & past offers`}
+              >
+                <span>{merchantName}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onMerchantClick) {
+                    onMerchantClick(merchantName);
+                  }
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs hover:bg-amber-100 transition-colors cursor-pointer"
+                title="View shop ratings & reviews"
+              >
                 <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
                 <span>{shopRating.average.toFixed(1)}</span>
                 <span className="text-slate-400 font-normal">({shopRating.count} shop reviews)</span>
-              </span>
+              </button>
             </div>
 
             {/* Payment Explanation */}

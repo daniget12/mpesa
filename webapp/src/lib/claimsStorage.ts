@@ -833,3 +833,251 @@ export function getRatingForMerchant(merchantIdOrName?: string): { average: numb
   const avg = Math.round((sum / reviews.length) * 10) / 10;
   return { average: avg, count: Math.max(reviews.length, 12) };
 }
+
+export interface MerchantOfferItem {
+  id: string;
+  title: string;
+  merchantName: string;
+  category: string;
+  originalPrice: number;
+  finalAmount: number;
+  discountPct: number;
+  status: 'active' | 'past';
+  unitsLeft?: number;
+  date?: string;
+}
+
+export interface MerchantLocationInfo {
+  merchantName: string;
+  address: string;
+  city: string;
+  distanceMeters?: number;
+  walkMinutes?: number;
+  lat: number;
+  lon: number;
+  isVerified: boolean;
+}
+
+const DEFAULT_SHOP_LOCATIONS: Record<string, MerchantLocationInfo> = {
+  'bole highland cafe': {
+    merchantName: 'Bole Highland Cafe',
+    address: 'Bole Medhanialem, Behind Edna Mall, 2nd Floor',
+    city: 'Addis Ababa',
+    distanceMeters: 120,
+    walkMinutes: 3,
+    lat: 9.0012,
+    lon: 38.7834,
+    isVerified: true,
+  },
+  'kebero bakery': {
+    merchantName: 'Kebero Bakery',
+    address: 'Bole Road, Next to Brass Hospital',
+    city: 'Addis Ababa',
+    distanceMeters: 480,
+    walkMinutes: 6,
+    lat: 9.0045,
+    lon: 38.7792,
+    isVerified: true,
+  },
+  'abay juice bar': {
+    merchantName: 'Abay Juice Bar',
+    address: 'Cameroon Street, Next to Edna Mall',
+    city: 'Addis Ababa',
+    distanceMeters: 900,
+    walkMinutes: 11,
+    lat: 8.9985,
+    lon: 38.7881,
+    isVerified: true,
+  },
+  'crown barber & spa': {
+    merchantName: 'Crown Barber & Spa',
+    address: 'Bole Atlas, In front of Desalegn Hotel',
+    city: 'Addis Ababa',
+    distanceMeters: 620,
+    walkMinutes: 8,
+    lat: 9.0120,
+    lon: 38.7720,
+    isVerified: true,
+  },
+  'addis vegan restaurant': {
+    merchantName: 'Addis Vegan Restaurant',
+    address: 'Sarbet OAU Quarter, Near International Community School',
+    city: 'Addis Ababa',
+    distanceMeters: 180,
+    walkMinutes: 4,
+    lat: 8.9890,
+    lon: 38.7450,
+    isVerified: true,
+  },
+};
+
+export function getMerchantLocation(merchantName?: string): MerchantLocationInfo {
+  const norm = (merchantName || '').toLowerCase().trim();
+  for (const key of Object.keys(DEFAULT_SHOP_LOCATIONS)) {
+    if (norm.includes(key) || key.includes(norm)) {
+      return DEFAULT_SHOP_LOCATIONS[key];
+    }
+  }
+  return {
+    merchantName: merchantName || 'Approved Shop Partner',
+    address: 'Bole Subcity, Commercial Quarter',
+    city: 'Addis Ababa, Ethiopia',
+    distanceMeters: 450,
+    walkMinutes: 6,
+    lat: 9.0000,
+    lon: 38.7800,
+    isVerified: true,
+  };
+}
+
+export function getMerchantOffers(merchantName?: string): MerchantOfferItem[] {
+  const norm = (merchantName || '').toLowerCase().trim();
+  const allOffers: MerchantOfferItem[] = [
+    {
+      id: 'd0000000-0000-0000-0000-000000000001',
+      title: '20% off Specialty Macchiato & Croissant',
+      merchantName: 'Bole Highland Cafe',
+      category: 'Café',
+      originalPrice: 180,
+      finalAmount: 144,
+      discountPct: 20,
+      status: 'active',
+      unitsLeft: 5,
+      date: 'Active Now',
+    },
+    {
+      id: 'd0000000-0000-0000-0000-000000000003',
+      title: 'Authentic Tomoca Espresso & Macchiato',
+      merchantName: 'Bole Highland Cafe',
+      category: 'Café',
+      originalPrice: 140,
+      finalAmount: 110,
+      discountPct: 21,
+      status: 'active',
+      unitsLeft: 8,
+      date: 'Active Now',
+    },
+    {
+      id: 'd-bhc-past-1',
+      title: 'Afternoon Single-Origin Pour-over Set',
+      merchantName: 'Bole Highland Cafe',
+      category: 'Café',
+      originalPrice: 160,
+      finalAmount: 120,
+      discountPct: 25,
+      status: 'past',
+      unitsLeft: 0,
+      date: 'Completed Yesterday',
+    },
+    {
+      id: 'd-bhc-past-2',
+      title: 'Morning Breakfast Combo (Omelet + Tea)',
+      merchantName: 'Bole Highland Cafe',
+      category: 'Café',
+      originalPrice: 220,
+      finalAmount: 165,
+      discountPct: 25,
+      status: 'past',
+      unitsLeft: 0,
+      date: 'Completed 3 days ago',
+    },
+    {
+      id: 'd0000000-0000-0000-0000-000000000002',
+      title: 'Fresh Sourdough Rolls (Pack of 6)',
+      merchantName: 'Kebero Bakery',
+      category: 'Bakery',
+      originalPrice: 120,
+      finalAmount: 90,
+      discountPct: 25,
+      status: 'active',
+      unitsLeft: 8,
+      date: 'Active Now',
+    },
+    {
+      id: 'd-kb-past-1',
+      title: 'Whole Wheat Brioche Loaf',
+      merchantName: 'Kebero Bakery',
+      category: 'Bakery',
+      originalPrice: 150,
+      finalAmount: 110,
+      discountPct: 27,
+      status: 'past',
+      unitsLeft: 0,
+      date: 'Completed 2 days ago',
+    },
+    {
+      id: 'deal-abay-1',
+      title: 'Large mixed juice (Avocado, Papaya, Mango)',
+      merchantName: 'Abay Juice Bar',
+      category: 'Juice',
+      originalPrice: 85,
+      finalAmount: 60,
+      discountPct: 30,
+      status: 'active',
+      unitsLeft: 3,
+      date: 'Active Now',
+    },
+    {
+      id: 'd-abay-past-1',
+      title: 'Fresh Strawberry & Banana Smoothie',
+      merchantName: 'Abay Juice Bar',
+      category: 'Juice',
+      originalPrice: 100,
+      finalAmount: 70,
+      discountPct: 30,
+      status: 'past',
+      unitsLeft: 0,
+      date: 'Completed 4 days ago',
+    },
+    {
+      id: 'd-crown-1',
+      title: 'Executive Haircut & Beard Grooming',
+      merchantName: 'Crown Barber & Spa',
+      category: 'Barber',
+      originalPrice: 320,
+      finalAmount: 240,
+      discountPct: 25,
+      status: 'active',
+      unitsLeft: 4,
+      date: 'Active Now',
+    },
+  ];
+
+  if (!norm) return allOffers;
+
+  const filtered = allOffers.filter((o) => {
+    const oName = o.merchantName.toLowerCase();
+    return oName.includes(norm) || norm.includes(oName);
+  });
+
+  if (filtered.length > 0) return filtered;
+
+  // Generic fallback offers for any other dynamic merchant
+  return [
+    {
+      id: `gen_deal_${norm}_1`,
+      title: `Special Daily Offer from ${merchantName || 'Shop'}`,
+      merchantName: merchantName || 'Shop Partner',
+      category: 'Offer',
+      originalPrice: 200,
+      finalAmount: 160,
+      discountPct: 20,
+      status: 'active',
+      unitsLeft: 5,
+      date: 'Active Now',
+    },
+    {
+      id: `gen_deal_${norm}_2`,
+      title: `Flash Discounted Combo`,
+      merchantName: merchantName || 'Shop Partner',
+      category: 'Offer',
+      originalPrice: 250,
+      finalAmount: 180,
+      discountPct: 28,
+      status: 'past',
+      unitsLeft: 0,
+      date: 'Completed Recently',
+    },
+  ];
+}
+

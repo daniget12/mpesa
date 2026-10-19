@@ -6,6 +6,7 @@ import Header from '@/components/Header';
 import DealCard from '@/components/DealCard';
 import MpesaModal from '@/components/MpesaModal';
 import DealDetailsModal from '@/components/DealDetailsModal';
+import MerchantDetailModal from '@/components/MerchantDetailModal';
 import { ShopsMap } from '@/components/ShopsMap';
 import { QrCodeSvg } from '@/components/common/QrCodeSvg';
 import {
@@ -88,6 +89,7 @@ export const WebsiteHome: React.FC = () => {
   const { isMerchant } = useAuth();
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<NearbyDeal | null>(null);
   const [selectedDealForBuy, setSelectedDealForBuy] = useState<NearbyDeal | null>(null);
+  const [selectedMerchantForModal, setSelectedMerchantForModal] = useState<string | null>(null);
   const [activeClaimTicket, setActiveClaimTicket] = useState<CustomerClaimTicket | null>(null);
   const [selectedTicketForPay, setSelectedTicketForPay] = useState<CustomerClaimTicket | null>(null);
   const [claimToast, setClaimToast] = useState<string | null>(null);
@@ -758,6 +760,7 @@ export const WebsiteHome: React.FC = () => {
                     verified={deal.verified}
                     onBuy={() => setSelectedDealForBuy(deal)}
                     onClick={() => setSelectedDealForDetails(deal)}
+                    onMerchantClick={(m) => setSelectedMerchantForModal(m)}
                   />
                 </div>
               ))}
@@ -1012,6 +1015,22 @@ export const WebsiteHome: React.FC = () => {
           onPayAtShop={(ticket) => {
             setSelectedDealForDetails(null);
             setSelectedTicketForPay(ticket);
+          }}
+          onMerchantClick={(m) => setSelectedMerchantForModal(m)}
+        />
+      )}
+
+      {/* Merchant Details Modal (Location, Rating, Past Offers) */}
+      {selectedMerchantForModal && (
+        <MerchantDetailModal
+          isOpen={true}
+          merchantName={selectedMerchantForModal}
+          onClose={() => setSelectedMerchantForModal(null)}
+          onSelectDeal={(dealId) => {
+            const found = deals.find((d) => d.dealId === dealId);
+            if (found) {
+              setSelectedDealForDetails(found);
+            }
           }}
         />
       )}

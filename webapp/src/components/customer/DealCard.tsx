@@ -9,9 +9,10 @@ interface DealCardProps {
   deal: Deal;
   shop?: Shop;
   onClick: () => void;
+  onMerchantClick?: (merchantName: string) => void;
 }
 
-export const DealCard: React.FC<DealCardProps> = ({ deal, shop, onClick }) => {
+export const DealCard: React.FC<DealCardProps> = ({ deal, shop, onClick, onMerchantClick }) => {
   const { language, t } = useApp();
 
   const getCategoryIcon = (category: string) => {
@@ -42,9 +43,19 @@ export const DealCard: React.FC<DealCardProps> = ({ deal, shop, onClick }) => {
             <span className="p-1 rounded-md bg-emerald-50 text-emerald-800">
               {getCategoryIcon(deal.category)}
             </span>
-            <span className="text-xs font-semibold text-slate-800 truncate">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onMerchantClick) {
+                  onMerchantClick(deal.shopName);
+                }
+              }}
+              className="text-xs font-semibold text-slate-800 hover:text-emerald-700 hover:underline truncate cursor-pointer text-left"
+              title={`View ${deal.shopName} profile, rating & past offers`}
+            >
               {language === 'am' && shop?.nameAm ? shop.nameAm : deal.shopName}
-            </span>
+            </button>
 
             {/* Shop Verified or New Badge */}
             {isSelamOrNew ? (

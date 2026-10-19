@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import {
   getCustomerClaimTickets,
   updateClaimTicketReview,
@@ -33,6 +33,10 @@ import {
   Edit3,
   XCircle,
   PiggyBank,
+  Lock,
+  X,
+  Phone,
+  Save,
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -41,9 +45,42 @@ export default function ProfilePage() {
   const { user, profileName, isMerchant, loading: authLoading } = useAuth();
   const merchantRating = getRatingForMerchant(profileName || 'Bole Highland Cafe');
 
+  // Customer Profile State
+  const [displayName, setDisplayName] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('tm_customer_profile');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.fullName) return parsed.fullName;
+        }
+      } catch {}
+    }
+    return profileName || user?.user_metadata?.full_name || '';
+  });
+
+  const [displayPhone, setDisplayPhone] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('tm_customer_profile');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.phoneNumber) return parsed.phoneNumber;
+        }
+      } catch {}
+    }
+    return user?.user_metadata?.phone_number || '';
+  });
+
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [editNameInput, setEditNameInput] = useState('');
+  const [editPhoneInput, setEditPhoneInput] = useState('');
+  const [editBioInput, setEditBioInput] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!authLoading && !user && isSupabaseConfigured) {
+    if (!authLoading && !user) {
       router.push('/login?redirect=/profile');
     }
   }, [user, authLoading, router]);
@@ -136,6 +173,41 @@ export default function ProfilePage() {
     setTimeout(() => setSuccessToast(null), 3000);
   };
 
+  // Handle Customer Profile Edit Save
+  const handleSaveCustomerProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setProfileSaving(true);
+    try {
+      if (isSupabaseConfigured && supabase) {
+        await supabase.auth.updateUser({
+          data: {
+            full_name: editNameInput.trim(),
+            phone_number: editPhoneInput.trim(),
+          },
+        });
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(
+          'tm_customer_profile',
+          JSON.stringify({
+            fullName: editNameInput.trim(),
+            phoneNumber: editPhoneInput.trim(),
+            bio: editBioInput.trim(),
+          })
+        );
+      }
+      setDisplayName(editNameInput.trim());
+      setDisplayPhone(editPhoneInput.trim());
+      setIsEditProfileOpen(false);
+      setSuccessToast('Profile updated successfully!');
+      setTimeout(() => setSuccessToast(null), 3000);
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
   // Filtered tickets
   const filteredTickets = tickets.filter((t) => {
     if (activeTab === 'active') return t.status === 'claimed';
@@ -207,15 +279,17 @@ export default function ProfilePage() {
     );
   }
 
-  // Show message if not authenticated (shouldn't reach here due to redirect, but just in case)
-  if (!user && isSupabaseConfigured) {
+  // Show message if not authenticated
+  if (!user) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <UserIcon className="w-16 h-16 mx-auto mb-4 text-slate-600" />
+        <div className="text-center max-w-md bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center mx-auto mb-4">
+            <Lock className="w-8 h-8" />
+          </div>
           <h2 className="text-xl font-bold text-white mb-2">Authentication Required</h2>
-          <p className="text-sm text-slate-400 mb-6">
-            Please sign in to view your claims and profile.
+          <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+            Please sign in to view your claims, active counter vouchers, and saved deals.
           </p>
           <Link
             href="/login?redirect=/profile"
@@ -319,28 +393,38 @@ export default function ProfilePage() {
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
-                    {profileName || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : (t('profile.defaultBuyer') || 'Customer'))}
+                    {displayName || (t('profile.defaultBuyer') || 'Customer')}
                   </h1>
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                     <Sparkles className="w-3.5 h-3.5" />
                     {isMerchant ? 'Merchant Account' : (t('profile.verifiedBuyer') || 'Verified Buyer')}
                   </span>
                 </div>
-                <p className="text-sm md:text-base text-slate-600 mt-2">
-                  {user?.email || (t('profile.guestNotice') || 'Active device wallet for instant counter redemptions')}
-                </p>
+                <div className="flex items-center gap-3 text-sm text-slate-600 mt-2 flex-wrap">
+                  <span>{user?.email}</span>
+                  {displayPhone && (
+                    <>
+                      <span>·</span>
+                      <span className="font-mono text-emerald-700 font-semibold">{displayPhone}</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            {!user && isSupabaseConfigured && (
-              <Link
-                href="/login"
-                className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors border border-slate-300"
-              >
-                <UserIcon className="w-3.5 h-3.5" />
-                <span>{t('header.signin') || 'Sign In / Register'}</span>
-              </Link>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                setEditNameInput(displayName);
+                setEditPhoneInput(displayPhone);
+                setIsEditProfileOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-100 text-slate-800 text-xs font-bold rounded-xl border border-slate-300 shadow-sm transition-all cursor-pointer self-start sm:self-auto shrink-0"
+              title="Edit Profile"
+            >
+              <Edit3 className="w-4 h-4 text-emerald-600" />
+              <span>Edit Profile</span>
+            </button>
           </div>
 
           {/* Customer Savings & Claims Banner */}
@@ -914,6 +998,98 @@ export default function ProfilePage() {
           merchantId={selectedTicketForPayment.merchantId}
           claimTicketId={selectedTicketForPayment.id}
         />
+      )}
+
+      {/* Customer Edit Profile Modal */}
+      {isEditProfileOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 sm:p-7 border border-slate-200 relative overflow-hidden">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                  <UserIcon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 text-lg">Edit Customer Profile</h3>
+                  <p className="text-xs text-slate-500">Update your buyer account details</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditProfileOpen(false)}
+                className="p-1.5 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomerProfile} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editNameInput}
+                  onChange={(e) => setEditNameInput(e.target.value)}
+                  placeholder="e.g. Bethlehem Tadesse"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Phone Number
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={editPhoneInput}
+                    onChange={(e) => setEditPhoneInput(e.target.value)}
+                    placeholder="e.g. 0700404709 or +251 911 234567"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all pl-10"
+                  />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Used for counter verification & M-PESA payment receipts.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                  Neighborhood / City Note (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editBioInput}
+                  onChange={(e) => setEditBioInput(e.target.value)}
+                  placeholder="e.g. Bole Medhanialem, Addis Ababa"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-emerald-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEditProfileOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>{profileSaving ? 'Saving...' : 'Save Profile'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
