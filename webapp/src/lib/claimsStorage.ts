@@ -541,8 +541,7 @@ export function cancelClaimTicket(ticketId: string): CustomerClaimTicket | null 
  * Checks whether a redemption code is active, paid, already redeemed, or expired.
  */
 export function verifyClaimCodeForMerchant(
-  code: string,
-  merchantName?: string
+  code: string
 ): {
   status: 'claimed_active' | 'paid_ready' | 'already_redeemed' | 'expired' | 'not_found';
   ticket?: CustomerClaimTicket;

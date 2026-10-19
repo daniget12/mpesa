@@ -31,13 +31,11 @@ import {
   MessageSquarePlus,
   Edit3,
   XCircle,
-  AlertTriangle,
-  X,
 } from 'lucide-react';
 
 export default function ProfilePage() {
   const { t } = useLanguage();
-  const { user, profileName, accountType, isMerchant, isBuyer } = useAuth();
+  const { user, profileName, isMerchant } = useAuth();
   const merchantRating = getRatingForMerchant(profileName || 'Bole Highland Cafe');
 
   // Tickets State

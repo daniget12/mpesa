@@ -3,19 +3,9 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { NearbyDeal } from '@/lib/api';
 import {
-  MapPin,
   Navigation,
-  Sparkles,
   Layers,
   Compass,
-  Store,
-  Coffee,
-  Utensils,
-  Pill,
-  Scissors,
-  CheckCircle2,
-  ExternalLink,
-  ChevronRight,
   Maximize2,
   Minimize2,
   Zap,
@@ -50,7 +40,6 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
   const [mapMode, setMapMode] = useState<'osm' | 'radar'>('osm');
   const [selectedMapDeal, setSelectedMapDeal] = useState<NearbyDeal | null>(null);
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [isLeafletReady, setIsLeafletReady] = useState<boolean>(false);
 
   // Helper for category icons
   const getCategoryIconSvg = (cat: string) => {
@@ -91,7 +80,6 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
           }).addTo(map);
 
           mapInstanceRef.current = map;
-          setIsLeafletReady(true);
         }
 
         const map = mapInstanceRef.current;
