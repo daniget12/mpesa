@@ -613,7 +613,7 @@ export async function redeemDealCode(code: string, token?: string): Promise<Rede
   }
 
   if (res.status === 429) {
-    throw new DashboardApiError(429, data?.error || 'Too many attempts, please wait 15 minutes');
+    throw new DashboardApiError(429, data?.error || 'Too many attempts, please wait a minute');
   }
 
   if (!res.ok) {

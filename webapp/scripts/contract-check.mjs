@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * TirfMarket Contract Check Script (docs/API-CONTRACT.md v1.1.0)
+ * TirfMarket Contract Check Script (docs/API-CONTRACT.md v1.1.2)
  * 
  * Verifies backend compatibility:
  *   a. GET /health -> status 200, status "ok", mode "mock" | "live"
@@ -15,10 +15,8 @@
 const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tirfmarket-backend.onrender.com').replace(/\/$/, '');
 
 console.log('='.repeat(70));
-console.log('TIRF MARKET API CONTRACT VERIFICATION (v1.1.0)');
+console.log('TIRF MARKET API CONTRACT VERIFICATION (v1.1.2)');
 console.log(`Backend Target: ${BACKEND_URL}`);
-console.log('NOTE: Rate limit is 5 req/min per IP on POST /api/orders.');
-console.log('      This test suite consumes 2 order requests.');
 console.log('='.repeat(70));
 console.log('');
 

@@ -19,9 +19,13 @@ import {
   CreateDealPayload,
   DashboardApiError,
   MerchantStatus,
-  redeemDealCode,
-  RedeemResponse,
 } from '@/lib/dashboardApi';
+import {
+  mapRedeemResponse,
+  formatRedeemedAt,
+  DASH,
+  type RedeemResult,
+} from '@/lib/redeemMapper';
 import {
   DollarSign,
   CheckCircle2,
@@ -29,6 +33,7 @@ import {
   XCircle,
   RefreshCw,
   AlertCircle,
+  AlertTriangle,
   Loader2,
   LogOut,
   Mail,
@@ -117,8 +122,7 @@ export default function DashboardPage() {
   // Redeem Code State
   const [redeemCodeInput, setRedeemCodeInput] = useState<string>('');
   const [redeemLoading, setRedeemLoading] = useState<boolean>(false);
-  const [redeemResult, setRedeemResult] = useState<RedeemResponse | null>(null);
-  const [redeemError, setRedeemError] = useState<string | null>(null);
+  const [redeemResult, setRedeemResult] = useState<RedeemResult | null>(null);
   const [copiedOrderId, setCopiedOrderId] = useState<boolean>(false);
 
   // Orders Search Query
@@ -356,7 +360,6 @@ export default function DashboardPage() {
     setAuthMessage(null);
     setStatusOverride(null);
     setRedeemResult(null);
-    setRedeemError(null);
     setRedeemCodeInput('');
   };
 
@@ -367,23 +370,32 @@ export default function DashboardPage() {
     if (!code) return;
 
     setRedeemLoading(true);
-    setRedeemError(null);
     setRedeemResult(null);
 
     try {
-      const res = await redeemDealCode(code, token || undefined);
-      setRedeemResult(res);
-      setRedeemCodeInput('');
-      // Refresh stats immediately after successful redemption
-      if (token) {
-        fetchStats(token, false);
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tirfmarket-backend.onrender.com';
+      const authToken = token || getStoredToken();
+      const res = await fetch(`${backendUrl}/api/merchant/redeem`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        body: JSON.stringify({ code }),
+      });
+      const body = await res.json().catch(() => null);
+      const result = mapRedeemResponse(res.status, body);
+      setRedeemResult(result);
+
+      if (result.kind === 'success') {
+        setRedeemCodeInput('');
+        // Refresh stats immediately after successful redemption
+        if (authToken) {
+          fetchStats(authToken, false);
+        }
       }
-    } catch (err: unknown) {
-      if (err instanceof DashboardApiError) {
-        setRedeemError(err.message);
-      } else {
-        setRedeemError('Could not process voucher redemption.');
-      }
+    } catch {
+      setRedeemResult(mapRedeemResponse(0, null));
     } finally {
       setRedeemLoading(false);
     }
@@ -988,16 +1000,38 @@ export default function DashboardPage() {
                 </button>
               </form>
 
-              {/* Error Banner */}
-              {redeemError && (
-                <div className="mt-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs sm:text-sm flex items-center justify-between gap-3 animate-fade-in">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
-                    <span className="font-semibold">{redeemError}</span>
+              {/* HTTP 409: Already Used Banner */}
+              {redeemResult?.kind === 'already_used' && (
+                <div className="mt-4 bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm flex items-start justify-between gap-3 animate-fade-in">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold text-amber-200 block text-sm">{redeemResult.message}</span>
+                      <p className="text-xs text-amber-300/80 mt-1">
+                        Redeemed at: <strong className="text-white font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
+                      </p>
+                    </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setRedeemError(null)}
+                    onClick={() => setRedeemResult(null)}
+                    className="text-amber-400 hover:text-amber-200 text-xs font-semibold px-2 py-1 rounded cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* HTTP 404: Code Not Found Banner */}
+              {redeemResult?.kind === 'not_found' && (
+                <div className="mt-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs sm:text-sm flex items-center justify-between gap-3 animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                    <span className="font-semibold">{redeemResult.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRedeemResult(null)}
                     className="text-rose-400 hover:text-rose-200 text-xs font-semibold px-2 py-1 rounded cursor-pointer"
                   >
                     ✕
@@ -1005,8 +1039,25 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Digital Boarding Pass Redemption Confirmation Card */}
-              {redeemResult && (
+              {/* Other Failures: Generic Error Banner */}
+              {redeemResult?.kind === 'error' && (
+                <div className="mt-4 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs sm:text-sm flex items-center justify-between gap-3 animate-fade-in">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                    <span className="font-semibold">{redeemResult.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setRedeemResult(null)}
+                    className="text-rose-400 hover:text-rose-200 text-xs font-semibold px-2 py-1 rounded cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {/* HTTP 20x Success Card */}
+              {redeemResult?.kind === 'success' && (
                 <div className="mt-5 bg-gradient-to-br from-emerald-950/50 via-slate-900/90 to-emerald-950/40 border-2 border-emerald-500/50 text-emerald-200 p-6 sm:p-7 rounded-3xl shadow-2xl shadow-emerald-950/40 animate-fade-in relative">
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-emerald-500/20">
                     <div className="flex items-center gap-3">
@@ -1018,7 +1069,7 @@ export default function DashboardPage() {
                           {t('dashboard.redeemSuccess')}
                         </h3>
                         <p className="text-xs text-emerald-400/80">
-                          {t('dashboard.redeemedAt') || 'Redeemed at'}: <strong className="text-white font-mono">{formatTime(redeemResult.redeemedAt)}</strong>
+                          {t('dashboard.redeemedAt') || 'Redeemed at'}: <strong className="text-white font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
                         </p>
                       </div>
                     </div>
@@ -1038,13 +1089,8 @@ export default function DashboardPage() {
                         Deal Title
                       </div>
                       <div className="text-lg sm:text-xl font-black text-white leading-tight">
-                        {redeemResult.dealTitle || '-'}
+                        {redeemResult.dealTitle}
                       </div>
-                      {redeemResult.itemCode && (
-                        <div className="text-xs font-mono text-emerald-300/80 mt-1.5 flex items-center gap-1">
-                          <span>Item Code:</span> <span className="font-bold text-white px-1.5 py-0.5 rounded bg-emerald-500/20">{redeemResult.itemCode}</span>
-                        </div>
-                      )}
                     </div>
 
                     <div>
@@ -1052,12 +1098,12 @@ export default function DashboardPage() {
                         Amount Paid (Cashless)
                       </div>
                       <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight">
-                        {redeemResult.amount !== null && redeemResult.amount !== undefined ? (
+                        {redeemResult.amount !== DASH ? (
                           <>
                             {redeemResult.amount} <span className="text-base font-bold text-emerald-300">ETB</span>
                           </>
                         ) : (
-                          <span className="text-slate-400 font-mono">-</span>
+                          <span className="text-slate-400 font-mono">{DASH}</span>
                         )}
                       </div>
                       <div className="text-[11px] text-emerald-400/70 font-semibold mt-1">
@@ -1070,12 +1116,12 @@ export default function DashboardPage() {
                         Order Reference
                       </div>
                       <div className="text-xs sm:text-sm font-mono text-slate-300 break-all bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
-                        <span>{redeemResult.orderId || '-'}</span>
-                        {redeemResult.orderId && (
+                        <span>{redeemResult.id}</span>
+                        {redeemResult.id !== DASH && (
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText(redeemResult.orderId!);
+                              navigator.clipboard.writeText(String(redeemResult.id));
                               setCopiedOrderId(true);
                               setTimeout(() => setCopiedOrderId(false), 2000);
                             }}
