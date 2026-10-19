@@ -215,9 +215,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-[#05070C] via-[#0A0D12] to-[#0F131C] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
       {/* Header */}
-      <header className="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30 px-4 md:px-8 py-3.5 flex items-center justify-between">
+      <header className="border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-xl sticky top-0 z-30 px-4 md:px-8 py-4 flex items-center justify-between shadow-lg shadow-black/10">
         <div className="flex items-center gap-3">
           <Link
             href="/"
@@ -284,27 +284,34 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Card */}
-        <section className="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 md:p-8 mb-8 shadow-xl relative overflow-hidden backdrop-blur-md">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-slate-800">
+        <section className="bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/40 border border-slate-700/50 rounded-[2rem] p-6 md:p-8 mb-10 shadow-2xl shadow-black/20 relative overflow-hidden backdrop-blur-xl">
+          {/* Ambient glow effect */}
+          <div className="absolute top-0 left-1/4 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-slate-700/50">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center font-black text-2xl shadow-lg shadow-emerald-950/40 shrink-0">
-                {profileName
-                  ? profileName.charAt(0).toUpperCase()
-                  : user?.email
-                  ? user.email.charAt(0).toUpperCase()
-                  : <UserIcon className="w-8 h-8" />}
+              <div className="w-20 h-20 rounded-[1.25rem] bg-gradient-to-tr from-emerald-600 via-emerald-500 to-cyan-400 text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-emerald-950/40 shrink-0 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+                <span className="relative z-10">
+                  {profileName
+                    ? profileName.charAt(0).toUpperCase()
+                    : user?.email
+                    ? user.email.charAt(0).toUpperCase()
+                    : <UserIcon className="w-9 h-9" />}
+                </span>
               </div>
               <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
                     {profileName || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : (t('profile.defaultBuyer') || 'Customer'))}
                   </h1>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                    <Sparkles className="w-3 h-3" />
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm shadow-emerald-500/10">
+                    <Sparkles className="w-3.5 h-3.5" />
                     {isMerchant ? 'Merchant Account' : (t('profile.verifiedBuyer') || 'Verified Buyer')}
                   </span>
                 </div>
-                <p className="text-xs md:text-sm text-slate-400 mt-1">
+                <p className="text-sm md:text-base text-slate-400 mt-2">
                   {user?.email || (t('profile.guestNotice') || 'Active device wallet for instant counter redemptions')}
                 </p>
               </div>
@@ -322,39 +329,39 @@ export default function ProfilePage() {
           </div>
 
           {/* Quick Metrics */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4 pt-6">
-            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 text-center">
-              <div className="text-2xl md:text-3xl font-black text-white font-mono">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-8 relative z-10">
+            <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-slate-600/50 transition-all group">
+              <div className="text-3xl md:text-4xl font-black text-white font-mono group-hover:scale-105 transition-transform">
                 {tickets.length}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">
+              <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">
                 {t('profile.totalClaims') || 'Total Claims'}
               </div>
             </div>
 
-            <div className="bg-slate-950/70 border border-amber-500/30 rounded-2xl p-4 text-center">
-              <div className="text-2xl md:text-3xl font-black text-amber-400 font-mono">
+            <div className="bg-gradient-to-br from-amber-950/30 to-slate-900/40 border border-amber-500/40 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-amber-500/50 transition-all group shadow-lg shadow-amber-950/20">
+              <div className="text-3xl md:text-4xl font-black text-amber-400 font-mono group-hover:scale-105 transition-transform">
                 {activeCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-amber-300 uppercase tracking-wider mt-1">
+              <div className="text-[11px] md:text-xs font-bold text-amber-300 uppercase tracking-wider mt-2">
                 Active Holds
               </div>
             </div>
 
-            <div className="bg-slate-950/70 border border-emerald-500/30 rounded-2xl p-4 text-center">
-              <div className="text-2xl md:text-3xl font-black text-emerald-400 font-mono">
+            <div className="bg-gradient-to-br from-emerald-950/30 to-slate-900/40 border border-emerald-500/40 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-emerald-500/50 transition-all group shadow-lg shadow-emerald-950/20">
+              <div className="text-3xl md:text-4xl font-black text-emerald-400 font-mono group-hover:scale-105 transition-transform">
                 {readyCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-emerald-400 uppercase tracking-wider mt-1">
+              <div className="text-[11px] md:text-xs font-bold text-emerald-400 uppercase tracking-wider mt-2">
                 {t('profile.readyToRedeem') || 'Ready to Redeem'}
               </div>
             </div>
 
-            <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-4 text-center">
-              <div className="text-2xl md:text-3xl font-black text-amber-400 font-mono">
+            <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-slate-600/50 transition-all group">
+              <div className="text-3xl md:text-4xl font-black text-amber-400 font-mono group-hover:scale-105 transition-transform">
                 {reviewedCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">
+              <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">
                 {t('profile.reviewsGiven') || 'Reviews Given'}
               </div>
             </div>
@@ -362,27 +369,29 @@ export default function ProfilePage() {
         </section>
 
         {/* Claim Tickets Section */}
-        <section className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <section className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h2 className="text-xl md:text-2xl font-black text-white tracking-tight flex items-center gap-2.5">
-                <Ticket className="w-6 h-6 text-emerald-400" />
+              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                  <Ticket className="w-5 h-5 text-emerald-400" />
+                </div>
                 <span>{t('profile.claimTicketsTitle') || 'My Claim Tickets & Vouchers'}</span>
               </h2>
-              <p className="text-xs md:text-sm text-slate-400 mt-1">
+              <p className="text-sm md:text-base text-slate-400 mt-2.5">
                 Present active holds to pay with M-PESA at shop counters or rate your past experiences.
               </p>
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-xl self-start sm:self-auto flex-wrap">
+            <div className="flex items-center gap-2 bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 p-1.5 rounded-[1rem] self-start sm:self-auto flex-wrap shadow-lg shadow-black/10">
               <button
                 type="button"
                 onClick={() => setActiveTab('active')}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all min-h-[34px] cursor-pointer ${
+                className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'active'
-                    ? 'bg-amber-600 text-white shadow-sm'
-                    : 'text-amber-400 hover:text-white'
+                    ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-950/30'
+                    : 'text-amber-400 hover:text-white hover:bg-slate-800/50'
                 }`}
               >
                 Active Holds ({activeCount})
@@ -390,10 +399,10 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('ready')}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all min-h-[34px] cursor-pointer ${
+                className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'ready'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-950/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                 }`}
               >
                 {t('profile.tabReady') || 'Ready to Redeem'} ({readyCount})
@@ -401,10 +410,10 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('all')}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all min-h-[34px] cursor-pointer ${
+                className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'all'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-950/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                 }`}
               >
                 {t('profile.tabAll') || 'All'} ({tickets.length})
@@ -412,10 +421,10 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('reviewed')}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all min-h-[34px] cursor-pointer ${
+                className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'reviewed'
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-950/30'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
                 }`}
               >
                 {t('profile.tabReviewed') || 'Reviewed'} ({reviewedCount})
@@ -425,16 +434,16 @@ export default function ProfilePage() {
 
           {/* Empty State */}
           {filteredTickets.length === 0 && (
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-12 text-center space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full bg-slate-800/80 text-slate-400 flex items-center justify-center">
-                <Ticket className="w-8 h-8" />
+            <div className="bg-gradient-to-br from-slate-900/60 via-slate-900/40 to-slate-900/20 border border-slate-700/50 rounded-[2rem] p-16 text-center space-y-6 backdrop-blur-sm shadow-lg shadow-black/10">
+              <div className="w-20 h-20 mx-auto rounded-[1.25rem] bg-gradient-to-br from-slate-800/60 to-slate-800/30 text-slate-400 flex items-center justify-center border border-slate-700/50 shadow-lg shadow-black/20">
+                <Ticket className="w-10 h-10" />
               </div>
-              <h3 className="text-lg font-bold text-white">
+              <h3 className="text-xl font-black text-white">
                 {isMerchant
                   ? 'Claim tickets are for buyers'
                   : (t('profile.noTicketsTitle') || 'No claim tickets found in this tab')}
               </h3>
-              <p className="text-xs md:text-sm text-slate-400 max-w-sm mx-auto">
+              <p className="text-sm md:text-base text-slate-300 max-w-md mx-auto leading-relaxed">
                 {isMerchant
                   ? 'Your account is registered as a merchant. Customers present tickets at your counter to redeem offers.'
                   : (t('profile.noTicketsDesc') || 'Explore deals nearby in Addis Ababa to claim discounts and pay with M-PESA.')}
@@ -442,17 +451,17 @@ export default function ProfilePage() {
               {isMerchant ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors min-h-[44px]"
+                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-lg shadow-emerald-950/40"
                 >
-                  <Store className="w-4 h-4" />
+                  <Store className="w-5 h-5" />
                   <span>Go to Merchant Dashboard</span>
                 </Link>
               ) : (
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-colors min-h-[44px]"
+                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-lg shadow-emerald-950/40"
                 >
-                  <ShoppingBag className="w-4 h-4" />
+                  <ShoppingBag className="w-5 h-5" />
                   <span>{t('profile.browseDeals') || 'Browse Nearby Deals'}</span>
                 </Link>
               )}
@@ -460,7 +469,7 @@ export default function ProfilePage() {
           )}
 
           {/* Ticket Cards Grid */}
-          <div className="space-y-6">
+          <div className="space-y-8">
             {filteredTickets.map((ticket) => {
               const isClaimed = ticket.status === 'claimed';
               const isPaid = ticket.status === 'paid';
@@ -475,28 +484,28 @@ export default function ProfilePage() {
               return (
               <div
                 key={ticket.id}
-                className={`bg-slate-900/90 border rounded-3xl overflow-hidden shadow-xl transition-all backdrop-blur-md ${
-                  isClaimed ? 'border-amber-500/50 shadow-amber-950/20' : isExpired ? 'border-rose-900/40 opacity-75' : 'border-slate-800 hover:border-slate-700'
+                className={`bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/40 border rounded-[2rem] overflow-hidden shadow-2xl shadow-black/20 transition-all backdrop-blur-xl hover:shadow-black/30 ${
+                  isClaimed ? 'border-amber-500/60 shadow-amber-950/20' : isExpired ? 'border-rose-900/50 opacity-80' : 'border-slate-700/50 hover:border-slate-600/60'
                 }`}
               >
                 {/* Ticket Top Header */}
-                <div className="p-5 md:p-6 bg-slate-900 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      isClaimed ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                <div className="p-6 md:p-7 bg-slate-900/70 backdrop-blur-sm border-b border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className={`w-12 h-12 rounded-[0.875rem] flex items-center justify-center shrink-0 ${
+                      isClaimed ? 'bg-amber-500/15 text-amber-400 border-2 border-amber-500/30' : 'bg-emerald-500/15 text-emerald-400 border-2 border-emerald-500/30'
                     }`}>
-                      <Store className="w-5 h-5" />
+                      <Store className="w-6 h-6" />
                     </div>
                     <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-base">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-bold text-white text-lg">
                           {ticket.merchantName}
                         </span>
-                        <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full">
                           {t('deal.approvedShop') || 'Approved shop'}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-slate-400 mt-1">
                         {isClaimed
                           ? `Claimed ${formatDateTime(ticket.claimedAt)}`
                           : isPaid
@@ -508,33 +517,33 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2.5">
                     {isClaimed ? (
                       <span
-                        className={`inline-flex items-center gap-1.5 text-xs font-mono font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${
+                        className={`inline-flex items-center gap-2 text-xs font-mono font-extrabold px-4 py-2.5 rounded-full uppercase tracking-wider border shadow-lg ${
                           secondsLeft <= 180
-                            ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
-                            : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                            ? 'bg-gradient-to-r from-rose-600 to-rose-500 text-white border-rose-400/30 animate-pulse shadow-rose-950/40'
+                            : 'bg-gradient-to-r from-amber-600 to-amber-500 text-white border-amber-400/30 shadow-amber-950/40'
                         }`}
                       >
-                        <Clock className="w-3.5 h-3.5" />
+                        <Clock className="w-4 h-4" />
                         <span>
                           Active Hold: {Math.floor(secondsLeft / 60)}m {secondsLeft % 60 < 10 ? '0' : ''}{secondsLeft % 60}s
                         </span>
                       </span>
                     ) : isPaid ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border bg-emerald-500/15 text-emerald-400 border-emerald-500/30">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span className="inline-flex items-center gap-2 text-xs font-extrabold px-4 py-2.5 rounded-full uppercase tracking-wider border bg-gradient-to-r from-emerald-600 to-emerald-500 text-white border-emerald-400/30 shadow-lg shadow-emerald-950/40">
+                        <CheckCircle2 className="w-4 h-4" />
                         <span>{t('profile.readyToRedeem') || 'Ready to Redeem'}</span>
                       </span>
                     ) : isRedeemed ? (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border bg-slate-800 text-slate-400 border-slate-700">
-                        <Check className="w-3.5 h-3.5" />
+                      <span className="inline-flex items-center gap-2 text-xs font-extrabold px-4 py-2.5 rounded-full uppercase tracking-wider border bg-slate-700/60 text-slate-300 border-slate-600/60 shadow-lg shadow-black/20">
+                        <Check className="w-4 h-4" />
                         <span>{t('profile.redeemed') || 'Redeemed'}</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider border bg-rose-950/40 text-rose-400 border-rose-500/30">
-                        <XCircle className="w-3.5 h-3.5" />
+                      <span className="inline-flex items-center gap-2 text-xs font-extrabold px-4 py-2.5 rounded-full uppercase tracking-wider border bg-rose-950/50 text-rose-300 border-rose-500/40 shadow-lg shadow-rose-950/40">
+                        <XCircle className="w-4 h-4" />
                         <span>Expired • Quota Returned</span>
                       </span>
                     )}
@@ -542,52 +551,59 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Ticket Body */}
-                <div className="p-5 md:p-6 space-y-6">
+                <div className="p-6 md:p-8 space-y-8">
                   {/* Deal Title & Amount */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                      <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2">
                         {isClaimed ? 'Reserved Offer (Pay at Counter)' : t('dashboard.dealTitle') || 'Claimed Deal'}
                       </div>
-                      <h3 className="text-lg md:text-xl font-black text-white">
+                      <h3 className="text-xl md:text-2xl font-black text-white leading-tight">
                         {ticket.dealTitle}
                       </h3>
                       {ticket.itemCode && (
-                        <div className="text-xs font-mono text-slate-400 mt-1">
-                          Item Code: <span className="text-slate-200">{ticket.itemCode}</span>
+                        <div className="text-sm font-mono text-slate-400 mt-2">
+                          Item Code: <span className="text-slate-200 font-bold">{ticket.itemCode}</span>
                         </div>
                       )}
                     </div>
                     <div className="sm:text-right">
-                      <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+                      <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2">
                         {isClaimed ? 'Due at Counter' : t('dashboard.amount') || 'Amount Paid'}
                       </div>
-                      <div className={`text-2xl font-black font-mono ${isClaimed ? 'text-amber-400' : isExpired ? 'text-slate-500' : 'text-emerald-400'}`}>
-                        {ticket.amount.toLocaleString()} <span className="text-sm font-bold text-slate-300">ETB</span>
+                      <div className={`text-3xl md:text-4xl font-black font-mono ${isClaimed ? 'text-amber-400' : isExpired ? 'text-slate-500' : 'text-emerald-400'}`}>
+                        {ticket.amount.toLocaleString()} <span className="text-base font-bold text-slate-300">ETB</span>
                       </div>
                     </div>
                   </div>
 
                   {/* VOUCHER REDEMPTION PASS (High-Contrast Counter Presentation) */}
-                  <div className={`border-2 rounded-2xl p-5 md:p-6 relative overflow-hidden shadow-inner ${
+                  <div className={`border-2 rounded-[1.5rem] p-6 md:p-8 relative overflow-hidden shadow-xl ${
                     isClaimed
-                      ? 'bg-slate-950 border-amber-500/40'
+                      ? 'bg-gradient-to-br from-amber-950/30 to-slate-950 border-amber-500/50 shadow-amber-950/30'
                       : isExpired
                       ? 'bg-slate-950/60 border-rose-950/60'
-                      : 'bg-slate-950 border-emerald-500/30'
+                      : 'bg-gradient-to-br from-emerald-950/30 to-slate-950 border-emerald-500/40 shadow-emerald-950/30'
                   }`}>
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    {/* Ambient glow */}
+                    {!isExpired && (
+                      <div className={`absolute top-0 right-0 w-64 h-64 blur-[100px] rounded-full pointer-events-none ${
+                        isClaimed ? 'bg-amber-500/10' : 'bg-emerald-500/10'
+                      }`}></div>
+                    )}
+
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
                         {!isExpired && (
-                          <div className="shrink-0">
-                            <QrCodeSvg value={ticket.redemptionCode} size={92} />
+                          <div className="shrink-0 p-3 bg-white rounded-[1rem] shadow-xl">
+                            <QrCodeSvg value={ticket.redemptionCode} size={100} />
                           </div>
                         )}
-                        <div className="space-y-1">
-                          <div className={`text-xs font-bold uppercase tracking-widest flex items-center gap-1.5 ${
+                        <div className="space-y-2.5">
+                          <div className={`text-[11px] font-extrabold uppercase tracking-widest flex items-center gap-2 ${
                             isClaimed ? 'text-amber-400' : isExpired ? 'text-rose-400' : 'text-emerald-400'
                           }`}>
-                            <Sparkles className="w-3.5 h-3.5" />
+                            <Sparkles className="w-4 h-4" />
                             <span>
                               {isClaimed
                                 ? 'Counter Reservation Pass'
@@ -596,15 +612,15 @@ export default function ProfilePage() {
                                 : t('mpesa.oneTimeCode') || 'Counter Redemption Code'}
                             </span>
                           </div>
-                          <div className={`font-mono text-2xl md:text-3xl font-black tracking-widest selection:bg-emerald-600 ${
+                          <div className={`font-mono text-3xl md:text-4xl font-black tracking-widest selection:bg-emerald-600 ${
                             isExpired ? 'text-slate-500 line-through' : 'text-white'
                           }`}>
                             {ticket.redemptionCode}
                           </div>
-                          <p className="text-xs text-slate-400 max-w-md">
+                          <p className="text-sm text-slate-400 max-w-md leading-relaxed">
                             {isClaimed ? (
                               <span>
-                                Present this code at <strong>{ticket.merchantName}</strong>. Pay with M-PESA at the counter within {ticket.holdMinutes || 30} minutes. If unpaid, quota is automatically restored to the shop.
+                                Present this code at <strong className="text-white">{ticket.merchantName}</strong>. Pay with M-PESA at the counter within {ticket.holdMinutes || 30} minutes. If unpaid, quota is automatically restored to the shop.
                               </span>
                             ) : isExpired ? (
                               <span>
@@ -617,12 +633,12 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-3 flex-wrap">
                         {isClaimed && (
                           <button
                             type="button"
                             onClick={() => setSelectedTicketForPayment(ticket)}
-                            className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 min-h-[44px] cursor-pointer"
+                            className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all shadow-xl shadow-emerald-950/40 flex items-center gap-2 min-h-[48px] cursor-pointer border border-emerald-400/20"
                           >
                             <span>Pay with M-PESA at Counter</span>
                           </button>
@@ -632,16 +648,16 @@ export default function ProfilePage() {
                           <button
                             type="button"
                             onClick={() => handleCopy(ticket.redemptionCode, ticket.id)}
-                            className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 min-h-[44px] cursor-pointer border border-slate-700"
+                            className="bg-slate-800/80 hover:bg-slate-700 text-white text-sm font-bold px-5 py-3.5 rounded-[0.875rem] transition-all shadow-lg flex items-center gap-2 min-h-[48px] cursor-pointer border border-slate-600/50 backdrop-blur-sm"
                           >
                             {copiedCodeId === ticket.id ? (
                               <>
-                                <Check className="w-4 h-4 text-emerald-200" />
+                                <Check className="w-4.5 h-4.5 text-emerald-200" />
                                 <span>{t('mpesa.codeCopied') || 'Copied!'}</span>
                               </>
                             ) : (
                               <>
-                                <Copy className="w-4 h-4" />
+                                <Copy className="w-4.5 h-4.5" />
                                 <span>{t('mpesa.copyCode') || 'Copy Code'}</span>
                               </>
                             )}
@@ -652,7 +668,7 @@ export default function ProfilePage() {
                           <button
                             type="button"
                             onClick={() => handleCancelHold(ticket.id)}
-                            className="bg-slate-900 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 text-xs font-semibold px-3 py-2.5 rounded-xl transition-colors min-h-[44px] border border-slate-800 hover:border-rose-900"
+                            className="bg-slate-900/80 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 text-sm font-semibold px-4 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] border border-slate-700/60 hover:border-rose-900/60 backdrop-blur-sm"
                             title="Release hold early"
                           >
                             <span>Cancel Hold</span>
@@ -663,7 +679,7 @@ export default function ProfilePage() {
                           <button
                             type="button"
                             onClick={() => handleMarkRedeemed(ticket.id)}
-                            className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold px-3 py-2.5 rounded-xl transition-colors min-h-[44px] border border-slate-700"
+                            className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-sm font-semibold px-4 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] border border-slate-600/50 backdrop-blur-sm"
                             title="Mark as picked up"
                           >
                             <span>{t('profile.markPickedUp') || 'Mark Picked Up'}</span>
@@ -673,32 +689,32 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Receipt & Order Metadata */}
-                    <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-4 text-xs font-mono text-slate-400">
+                    <div className="mt-5 pt-5 border-t border-slate-700/50 flex flex-wrap items-center gap-5 text-xs font-mono text-slate-400">
                       {ticket.receipt && (
                         <div>
-                          <span className="text-slate-500">Receipt:</span>{' '}
-                          <span className="text-slate-300 font-bold">{ticket.receipt}</span>
+                          <span className="text-slate-500 font-bold uppercase tracking-wider">Receipt:</span>{' '}
+                          <span className="text-slate-200 font-bold">{ticket.receipt}</span>
                         </div>
                       )}
                       <div>
-                        <span className="text-slate-500">Order ID:</span>{' '}
-                        <span className="text-slate-300">{ticket.orderId}</span>
+                        <span className="text-slate-500 font-bold uppercase tracking-wider">Order ID:</span>{' '}
+                        <span className="text-slate-200 font-bold">{ticket.orderId}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* 5-STAR RATING & REVIEW SECTION */}
-                  <div className="pt-2 border-t border-slate-800/80">
+                  <div className="pt-6 border-t border-slate-700/50">
                     {/* View existing review */}
                     {ticket.rating && editingReviewId !== ticket.id && (
-                      <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 md:p-5 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                        <div className="space-y-1.5 flex-1">
-                          <div className="flex items-center gap-2">
-                            <div className="flex items-center gap-0.5 text-amber-400">
+                      <div className="bg-gradient-to-br from-slate-900/70 via-slate-900/50 to-slate-900/30 border border-slate-700/50 rounded-[1.5rem] p-6 md:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-5 backdrop-blur-sm shadow-lg shadow-black/10">
+                        <div className="space-y-3 flex-1">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-1 text-amber-400">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`w-4 h-4 ${
+                                  className={`w-5 h-5 ${
                                     star <= (ticket.rating || 0)
                                       ? 'fill-amber-400 text-amber-400'
                                       : 'text-slate-700'
@@ -706,21 +722,21 @@ export default function ProfilePage() {
                                 />
                               ))}
                             </div>
-                            <span className="text-xs font-bold text-amber-400">
+                            <span className="text-sm font-extrabold text-amber-400">
                               {getStarRatingLabel(ticket.rating)}
                             </span>
                             {ticket.reviewedAt && (
-                              <span className="text-[11px] text-slate-500">
+                              <span className="text-xs text-slate-500 font-mono">
                                 • {formatDateTime(ticket.reviewedAt)}
                               </span>
                             )}
                           </div>
                           {ticket.reviewComment ? (
-                            <p className="text-sm text-slate-200 italic leading-relaxed">
+                            <p className="text-base text-slate-200 leading-relaxed">
                               &ldquo;{ticket.reviewComment}&rdquo;
                             </p>
                           ) : (
-                            <p className="text-xs text-slate-500 italic">
+                            <p className="text-sm text-slate-500 italic">
                               {t('profile.noWrittenReview') || 'Rating submitted without written comment.'}
                             </p>
                           )}
@@ -729,9 +745,9 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           onClick={() => handleStartReview(ticket)}
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg transition-colors shrink-0 min-h-[36px]"
+                          className="inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-700 px-4 py-2.5 rounded-xl transition-all shrink-0 min-h-[40px] border border-slate-700/60 backdrop-blur-sm shadow-sm"
                         >
-                          <Edit3 className="w-3.5 h-3.5" />
+                          <Edit3 className="w-4 h-4" />
                           <span>{t('profile.editReview') || 'Edit Review'}</span>
                         </button>
                       </div>
@@ -739,11 +755,13 @@ export default function ProfilePage() {
 
                     {/* Review Form (New or Editing) */}
                     {(!ticket.rating || editingReviewId === ticket.id) && (
-                      <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-5 space-y-4">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
-                            <MessageSquarePlus className="w-4 h-4 text-emerald-400" />
-                            <h4 className="text-sm font-bold text-white">
+                      <div className="bg-gradient-to-br from-slate-900/70 via-slate-900/50 to-slate-900/30 border border-slate-700/50 rounded-[1.5rem] p-6 md:p-7 space-y-5 backdrop-blur-sm shadow-lg shadow-black/10">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                              <MessageSquarePlus className="w-4.5 h-4.5 text-emerald-400" />
+                            </div>
+                            <h4 className="text-base font-black text-white">
                               {ticket.rating
                                 ? (t('profile.editReviewTitle') || 'Update Your Review')
                                 : (t('profile.leaveReviewTitle') || 'Rate & Review This Deal')}
@@ -753,7 +771,7 @@ export default function ProfilePage() {
                             <button
                               type="button"
                               onClick={() => setEditingReviewId(null)}
-                              className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                              className="text-sm text-slate-400 hover:text-white font-bold underline cursor-pointer"
                             >
                               {t('profile.cancel') || 'Cancel'}
                             </button>
@@ -761,8 +779,8 @@ export default function ProfilePage() {
                         </div>
 
                         {/* Interactive Stars Selector */}
-                        <div className="flex items-center gap-3 flex-wrap">
-                          <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-4 flex-wrap">
+                          <div className="flex items-center gap-1.5">
                             {[1, 2, 3, 4, 5].map((star) => {
                               const activeStars = hoverRating || ratingInput;
                               const isFilled = star <= activeStars;
@@ -773,21 +791,21 @@ export default function ProfilePage() {
                                   onClick={() => setRatingInput(star)}
                                   onMouseEnter={() => setHoverRating(star)}
                                   onMouseLeave={() => setHoverRating(0)}
-                                  className="p-1 min-h-[36px] min-w-[36px] flex items-center justify-center transition-transform hover:scale-110 cursor-pointer"
+                                  className="p-1.5 min-h-[44px] min-w-[44px] flex items-center justify-center transition-transform hover:scale-110 cursor-pointer"
                                   aria-label={`Rate ${star} stars`}
                                 >
                                   <Star
-                                    className={`w-7 h-7 transition-colors ${
+                                    className={`w-8 h-8 transition-colors ${
                                       isFilled
                                         ? 'fill-amber-400 text-amber-400'
-                                        : 'text-slate-700 hover:text-slate-500'
+                                        : 'text-slate-700 hover:text-slate-600'
                                     }`}
                                   />
                                 </button>
                               );
                             })}
                           </div>
-                          <span className="text-sm font-bold text-amber-400">
+                          <span className="text-sm font-extrabold text-amber-400">
                             {getStarRatingLabel(hoverRating || ratingInput)}
                           </span>
                         </div>
@@ -795,11 +813,11 @@ export default function ProfilePage() {
                         {/* Review Comment Input */}
                         <div>
                           <textarea
-                            rows={2}
+                            rows={3}
                             value={commentInput}
                             onChange={(e) => setCommentInput(e.target.value)}
                             placeholder={t('profile.reviewPlaceholder') || 'How was the deal? Quick counter redemption, great quality, recommended?'}
-                            className="w-full bg-slate-900 border border-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 rounded-xl p-3 text-sm text-white placeholder:text-slate-500 focus:outline-none transition-colors"
+                            className="w-full bg-slate-900/60 border border-slate-700/60 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-[0.875rem] p-4 text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all backdrop-blur-sm shadow-inner"
                           />
                         </div>
 
@@ -809,9 +827,9 @@ export default function ProfilePage() {
                             type="button"
                             disabled={reviewSubmitting}
                             onClick={() => handleSubmitReview(ticket.id)}
-                            className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all shadow-md flex items-center gap-1.5 min-h-[40px] cursor-pointer"
+                            className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:from-slate-800 disabled:to-slate-700 text-white font-extrabold text-sm px-6 py-3 rounded-[0.875rem] transition-all shadow-lg shadow-emerald-950/40 flex items-center gap-2 min-h-[44px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            <Star className="w-3.5 h-3.5 fill-current" />
+                            <Star className="w-4 h-4 fill-current" />
                             <span>{t('profile.submitReview') || 'Submit Review'}</span>
                           </button>
                         </div>
