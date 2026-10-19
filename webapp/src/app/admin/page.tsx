@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 import {
   Users,
   ShieldCheck,
@@ -306,6 +308,9 @@ const INITIAL_REPORTS: DisputeReport[] = [
 ];
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+  const { user, role, isAdmin, loading } = useAuth();
+
   const [users, setUsers] = useState<UserProfile[]>(INITIAL_ADMIN_USERS);
   const [deals, setDeals] = useState<DealAdminItem[]>(INITIAL_ADMIN_DEALS);
   const [reports, setReports] = useState<DisputeReport[]>(INITIAL_REPORTS);
@@ -317,6 +322,19 @@ export default function AdminDashboardPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<string>('Just now');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Authentication & Authorization Check
+  useEffect(() => {
+    if (!loading) {
+      if (!user) {
+        // Not logged in - redirect to login
+        router.push('/login');
+      } else if (!isAdmin && role !== 'admin') {
+        // Logged in but not admin - redirect to home
+        router.push('/');
+      }
+    }
+  }, [user, role, isAdmin, loading, router]);
 
   // Claim Quota Management State
   const [quotasSummary, setQuotasSummary] = useState<(DealQuotaInfo & { dealTitle?: string; merchantName?: string })[]>(() => {
@@ -561,6 +579,44 @@ export default function AdminDashboardPage() {
         : 'Scanned all active holds: zero expired claims found. All active holds are within validity windows.'
     );
   };
+
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-blue-600 flex items-center justify-center text-white shadow-md shadow-emerald-600/20 mx-auto animate-pulse">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <p className="text-slate-600 font-medium">Verifying admin credentials...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not admin
+  if (!user || (!isAdmin && role !== 'admin')) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl p-8 border border-slate-200/80 shadow-xl max-w-md w-full text-center space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 mx-auto">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900">Access Denied</h2>
+          <p className="text-sm text-slate-600">
+            You need administrator privileges to access this dashboard.
+          </p>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-md transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Return to Home</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 text-slate-800 font-sans pb-20 relative overflow-hidden selection:bg-emerald-500 selection:text-white">
