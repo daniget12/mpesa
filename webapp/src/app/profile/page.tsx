@@ -215,27 +215,27 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#05070C] via-[#0A0D12] to-[#0F131C] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
       {/* Header */}
-      <header className="border-b border-violet-900/40 bg-gradient-to-r from-violet-950/30 via-slate-900/50 to-orange-950/30 backdrop-blur-xl sticky top-0 z-30 px-4 md:px-8 py-4 flex items-center justify-between shadow-lg shadow-violet-950/20">
+      <header className="border-b border-emerald-200/60 bg-white/80 backdrop-blur-xl sticky top-0 z-30 px-4 md:px-8 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors bg-violet-900/30 hover:bg-violet-800/40 px-3 py-1.5 rounded-lg min-h-[38px] border border-violet-700/30"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg min-h-[38px] border border-slate-200"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{t('profile.backHome') || 'Back to Deals'}</span>
           </Link>
-          <div className="h-4 w-px bg-violet-700/40 hidden sm:block"></div>
-          <span className="text-sm font-bold text-white hidden sm:inline">
-            <span className="text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text">Tirf</span> Market Profile
+          <div className="h-4 w-px bg-slate-300 hidden sm:block"></div>
+          <span className="text-sm font-bold text-slate-900 hidden sm:inline">
+            <span className="text-transparent bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text">Tirf</span> Market Profile
           </span>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-300 bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/40 px-3 py-1.5 rounded-lg transition-colors min-h-[38px]"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-lg transition-colors min-h-[38px]"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>{t('profile.exploreMore') || 'Explore More Deals'}</span>
@@ -255,28 +255,28 @@ export default function ProfilePage() {
 
         {/* Merchant Portal Banner */}
         {isMerchant && (
-          <section className="mb-8 p-6 bg-gradient-to-br from-violet-950/40 via-purple-950/30 to-fuchsia-950/20 border border-violet-500/40 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-md shadow-lg shadow-violet-950/30">
+          <section className="mb-8 p-6 bg-gradient-to-br from-emerald-100 via-blue-50 to-violet-50 border border-emerald-200 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-md shadow-md">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-violet-500/20 text-violet-300 flex items-center justify-center shrink-0 border border-violet-400/30">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200">
                 <Store className="w-6 h-6" />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-base font-bold text-white">Merchant Account Active</h3>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <h3 className="text-base font-bold text-slate-900">Merchant Account Active</h3>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200">
+                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
                     <span>{merchantRating.average.toFixed(1)}</span>
-                    <span className="text-slate-400 font-normal">({merchantRating.count} reviews)</span>
+                    <span className="text-slate-600 font-normal">({merchantRating.count} reviews)</span>
                   </span>
                 </div>
-                <p className="text-xs text-slate-300 mt-0.5">
+                <p className="text-xs text-slate-700 mt-0.5">
                   Claim vouchers are for buyers. Manage your shop, check counter redemptions, and post deals on your Merchant Dashboard.
                 </p>
               </div>
             </div>
             <Link
               href="/dashboard"
-              className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-violet-950/40 shrink-0 whitespace-nowrap min-h-[40px] flex items-center justify-center"
+              className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition-all shadow-md shrink-0 whitespace-nowrap min-h-[40px] flex items-center justify-center"
             >
               Go to Merchant Dashboard
             </Link>
@@ -284,15 +284,15 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Card */}
-        <section className="bg-gradient-to-br from-violet-950/30 via-slate-900/60 to-orange-950/30 border border-violet-500/30 rounded-[2rem] p-6 md:p-8 mb-10 shadow-2xl shadow-violet-950/40 relative overflow-hidden backdrop-blur-xl">
+        <section className="bg-white/90 border border-emerald-200 rounded-[2rem] p-6 md:p-8 mb-10 shadow-xl relative overflow-hidden backdrop-blur-xl">
           {/* Ambient glow effect */}
-          <div className="absolute top-0 left-1/4 w-64 h-64 bg-violet-500/10 blur-[100px] rounded-full pointer-events-none"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+          <div className="absolute top-0 left-1/4 w-64 h-64 bg-emerald-200/40 blur-[100px] rounded-full pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-200/40 blur-[120px] rounded-full pointer-events-none"></div>
 
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-violet-500/20">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-emerald-200">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-[1.25rem] bg-gradient-to-tr from-violet-600 via-purple-500 to-fuchsia-400 text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-violet-950/60 shrink-0 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
+              <div className="w-20 h-20 rounded-[1.25rem] bg-gradient-to-tr from-emerald-500 via-blue-500 to-violet-400 text-white flex items-center justify-center font-black text-3xl shadow-lg shrink-0 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent"></div>
                 <span className="relative z-10">
                   {profileName
                     ? profileName.charAt(0).toUpperCase()
@@ -303,15 +303,15 @@ export default function ProfilePage() {
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                  <h1 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">
                     {profileName || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : (t('profile.defaultBuyer') || 'Customer'))}
                   </h1>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-violet-300 bg-violet-500/20 border border-violet-400/40 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm shadow-violet-500/20">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-700 bg-emerald-100 border border-emerald-200 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
                     <Sparkles className="w-3.5 h-3.5" />
                     {isMerchant ? 'Merchant Account' : (t('profile.verifiedBuyer') || 'Verified Buyer')}
                   </span>
                 </div>
-                <p className="text-sm md:text-base text-slate-400 mt-2">
+                <p className="text-sm md:text-base text-slate-600 mt-2">
                   {user?.email || (t('profile.guestNotice') || 'Active device wallet for instant counter redemptions')}
                 </p>
               </div>
@@ -320,7 +320,7 @@ export default function ProfilePage() {
             {!user && isSupabaseConfigured && (
               <Link
                 href="/login"
-                className="inline-flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-colors border border-slate-700"
+                className="inline-flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-900 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors border border-slate-300"
               >
                 <UserIcon className="w-3.5 h-3.5" />
                 <span>{t('header.signin') || 'Sign In / Register'}</span>
@@ -330,38 +330,38 @@ export default function ProfilePage() {
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-8 relative z-10">
-            <div className="bg-gradient-to-br from-violet-900/40 to-slate-900/40 border border-violet-500/30 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-violet-400/50 transition-all group">
-              <div className="text-3xl md:text-4xl font-black text-violet-300 font-mono group-hover:scale-105 transition-transform">
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-emerald-300 transition-all group shadow-sm">
+              <div className="text-3xl md:text-4xl font-black text-emerald-700 font-mono group-hover:scale-105 transition-transform">
                 {tickets.length}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-violet-400 uppercase tracking-wider mt-2">
+              <div className="text-[11px] md:text-xs font-bold text-emerald-600 uppercase tracking-wider mt-2">
                 {t('profile.totalClaims') || 'Total Claims'}
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-orange-950/40 to-slate-900/40 border border-orange-500/40 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-orange-400/50 transition-all group shadow-lg shadow-orange-950/30">
-              <div className="text-3xl md:text-4xl font-black text-orange-400 font-mono group-hover:scale-105 transition-transform">
+            <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-200 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-orange-300 transition-all group shadow-sm">
+              <div className="text-3xl md:text-4xl font-black text-orange-600 font-mono group-hover:scale-105 transition-transform">
                 {activeCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-orange-300 uppercase tracking-wider mt-2">
+              <div className="text-[11px] md:text-xs font-bold text-orange-600 uppercase tracking-wider mt-2">
                 Active Holds
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-rose-950/40 to-slate-900/40 border border-rose-500/40 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-rose-400/50 transition-all group shadow-lg shadow-rose-950/30">
-              <div className="text-3xl md:text-4xl font-black text-rose-400 font-mono group-hover:scale-105 transition-transform">
+            <div className="bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-200 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-rose-300 transition-all group shadow-sm">
+              <div className="text-3xl md:text-4xl font-black text-rose-600 font-mono group-hover:scale-105 transition-transform">
                 {readyCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-rose-300 uppercase tracking-wider mt-2">
+              <div className="text-[11px] md:text-xs font-bold text-rose-600 uppercase tracking-wider mt-2">
                 {t('profile.readyToRedeem') || 'Ready to Redeem'}
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-slate-600/50 transition-all group">
-              <div className="text-3xl md:text-4xl font-black text-amber-400 font-mono group-hover:scale-105 transition-transform">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 border border-blue-200 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-blue-300 transition-all group shadow-sm">
+              <div className="text-3xl md:text-4xl font-black text-amber-600 font-mono group-hover:scale-105 transition-transform">
                 {reviewedCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">
+              <div className="text-[11px] md:text-xs font-bold text-blue-600 uppercase tracking-wider mt-2">
                 {t('profile.reviewsGiven') || 'Reviews Given'}
               </div>
             </div>
@@ -372,26 +372,26 @@ export default function ProfilePage() {
         <section className="space-y-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
-              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-                  <Ticket className="w-5 h-5 text-emerald-400" />
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center">
+                  <Ticket className="w-5 h-5 text-emerald-600" />
                 </div>
                 <span>{t('profile.claimTicketsTitle') || 'My Claim Tickets & Vouchers'}</span>
               </h2>
-              <p className="text-sm md:text-base text-slate-400 mt-2.5">
+              <p className="text-sm md:text-base text-slate-600 mt-2.5">
                 Present active holds to pay with M-PESA at shop counters or rate your past experiences.
               </p>
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-2 bg-gradient-to-r from-violet-950/40 to-slate-900/60 backdrop-blur-sm border border-violet-700/30 p-1.5 rounded-[1rem] self-start sm:self-auto flex-wrap shadow-lg shadow-violet-950/20">
+            <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm border border-slate-200 p-1.5 rounded-[1rem] self-start sm:self-auto flex-wrap shadow-sm">
               <button
                 type="button"
                 onClick={() => setActiveTab('active')}
                 className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'active'
-                    ? 'bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-950/40'
-                    : 'text-orange-300 hover:text-white hover:bg-violet-900/30'
+                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-md'
+                    : 'text-orange-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 Active Holds ({activeCount})
@@ -401,8 +401,8 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('ready')}
                 className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'ready'
-                    ? 'bg-gradient-to-r from-rose-600 to-pink-500 text-white shadow-lg shadow-rose-950/40'
-                    : 'text-slate-400 hover:text-white hover:bg-violet-900/30'
+                    ? 'bg-gradient-to-r from-rose-500 to-pink-500 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 {t('profile.tabReady') || 'Ready to Redeem'} ({readyCount})
@@ -412,8 +412,8 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('all')}
                 className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'all'
-                    ? 'bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-lg shadow-violet-950/40'
-                    : 'text-slate-400 hover:text-white hover:bg-violet-900/30'
+                    ? 'bg-gradient-to-r from-emerald-500 to-blue-500 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 {t('profile.tabAll') || 'All'} ({tickets.length})
@@ -423,8 +423,8 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('reviewed')}
                 className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'reviewed'
-                    ? 'bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-lg shadow-violet-950/40'
-                    : 'text-slate-400 hover:text-white hover:bg-violet-900/30'
+                    ? 'bg-gradient-to-r from-emerald-500 to-blue-500 text-white shadow-md'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
                 }`}
               >
                 {t('profile.tabReviewed') || 'Reviewed'} ({reviewedCount})
@@ -434,16 +434,16 @@ export default function ProfilePage() {
 
           {/* Empty State */}
           {filteredTickets.length === 0 && (
-            <div className="bg-gradient-to-br from-violet-950/40 via-slate-900/40 to-orange-950/20 border border-violet-500/30 rounded-[2rem] p-16 text-center space-y-6 backdrop-blur-sm shadow-lg shadow-violet-950/30">
-              <div className="w-20 h-20 mx-auto rounded-[1.25rem] bg-gradient-to-br from-violet-900/50 to-purple-900/30 text-violet-300 flex items-center justify-center border border-violet-500/40 shadow-lg shadow-violet-950/40">
+            <div className="bg-white/90 border border-slate-200 rounded-[2rem] p-16 text-center space-y-6 backdrop-blur-sm shadow-lg">
+              <div className="w-20 h-20 mx-auto rounded-[1.25rem] bg-gradient-to-br from-emerald-100 to-blue-100 text-emerald-600 flex items-center justify-center border border-emerald-200 shadow-md">
                 <Ticket className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-black text-white">
+              <h3 className="text-xl font-black text-slate-900">
                 {isMerchant
                   ? 'Claim tickets are for buyers'
                   : (t('profile.noTicketsTitle') || 'No claim tickets found in this tab')}
               </h3>
-              <p className="text-sm md:text-base text-slate-300 max-w-md mx-auto leading-relaxed">
+              <p className="text-sm md:text-base text-slate-600 max-w-md mx-auto leading-relaxed">
                 {isMerchant
                   ? 'Your account is registered as a merchant. Customers present tickets at your counter to redeem offers.'
                   : (t('profile.noTicketsDesc') || 'Explore deals nearby in Addis Ababa to claim discounts and pay with M-PESA.')}
@@ -451,7 +451,7 @@ export default function ProfilePage() {
               {isMerchant ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-lg shadow-violet-950/50"
+                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-md"
                 >
                   <Store className="w-5 h-5" />
                   <span>Go to Merchant Dashboard</span>
@@ -459,7 +459,7 @@ export default function ProfilePage() {
               ) : (
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-orange-600 to-rose-500 hover:from-orange-500 hover:to-rose-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-lg shadow-orange-950/40"
+                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-orange-500 to-rose-500 hover:from-orange-400 hover:to-rose-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-md"
                 >
                   <ShoppingBag className="w-5 h-5" />
                   <span>{t('profile.browseDeals') || 'Browse Nearby Deals'}</span>
@@ -484,28 +484,28 @@ export default function ProfilePage() {
               return (
               <div
                 key={ticket.id}
-                className={`bg-gradient-to-br from-violet-950/30 via-slate-900/60 to-purple-950/30 border rounded-[2rem] overflow-hidden shadow-2xl shadow-violet-950/20 transition-all backdrop-blur-xl hover:shadow-violet-950/30 ${
+                className={`bg-white/90 border rounded-[2rem] overflow-hidden shadow-lg transition-all backdrop-blur-xl hover:shadow-xl ${
                   isClaimed ? 'border-amber-500/60 shadow-amber-950/30' : isExpired ? 'border-rose-900/50 opacity-80' : 'border-violet-500/30 hover:border-violet-400/50'
                 }`}
               >
                 {/* Ticket Top Header */}
-                <div className="p-6 md:p-7 bg-gradient-to-r from-violet-950/50 to-slate-900/70 backdrop-blur-sm border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="p-6 md:p-7 bg-gradient-to-r from-emerald-50/50 to-blue-50/50 backdrop-blur-sm border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-[0.875rem] flex items-center justify-center shrink-0 ${
-                      isClaimed ? 'bg-amber-500/15 text-amber-400 border-2 border-amber-500/30' : 'bg-violet-500/20 text-violet-300 border-2 border-violet-400/40'
+                      isClaimed ? 'bg-amber-100 text-amber-600 border-2 border-amber-200' : 'bg-emerald-100 text-emerald-600 border-2 border-emerald-200'
                     }`}>
                       <Store className="w-6 h-6" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2.5">
-                        <span className="font-bold text-white text-lg">
+                        <span className="font-bold text-slate-900 text-lg">
                           {ticket.merchantName}
                         </span>
-                        <span className="text-[10px] font-extrabold text-violet-300 bg-violet-500/15 border border-violet-400/30 px-2.5 py-1 rounded-full">
+                        <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-100 border border-emerald-200 px-2.5 py-1 rounded-full">
                           {t('deal.approvedShop') || 'Approved shop'}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-400 mt-1">
+                      <div className="text-xs text-slate-600 mt-1">
                         {isClaimed
                           ? `Claimed ${formatDateTime(ticket.claimedAt)}`
                           : isPaid
@@ -537,12 +537,12 @@ export default function ProfilePage() {
                         <span>{t('profile.readyToRedeem') || 'Ready to Redeem'}</span>
                       </span>
                     ) : isRedeemed ? (
-                      <span className="inline-flex items-center gap-2 text-xs font-extrabold px-4 py-2.5 rounded-full uppercase tracking-wider border bg-slate-700/60 text-slate-300 border-slate-600/60 shadow-lg shadow-black/20">
+                      <span className="inline-flex items-center gap-2 text-xs font-extrabold px-4 py-2.5 rounded-full uppercase tracking-wider border bg-slate-200 text-slate-700 border-slate-300 shadow-sm">
                         <Check className="w-4 h-4" />
                         <span>{t('profile.redeemed') || 'Redeemed'}</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-2 text-xs font-extrabold px-4 py-2.5 rounded-full uppercase tracking-wider border bg-rose-950/50 text-rose-300 border-rose-500/40 shadow-lg shadow-rose-950/40">
+                      <span className="inline-flex items-center gap-2 text-xs font-extrabold px-4 py-2.5 rounded-full uppercase tracking-wider border bg-rose-100 text-rose-700 border-rose-200 shadow-sm">
                         <XCircle className="w-4 h-4" />
                         <span>Expired • Quota Returned</span>
                       </span>
@@ -555,35 +555,35 @@ export default function ProfilePage() {
                   {/* Deal Title & Amount */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2">
+                      <div className="text-xs font-extrabold uppercase tracking-widest text-slate-600 mb-2">
                         {isClaimed ? 'Reserved Offer (Pay at Counter)' : t('dashboard.dealTitle') || 'Claimed Deal'}
                       </div>
-                      <h3 className="text-xl md:text-2xl font-black text-white leading-tight">
+                      <h3 className="text-xl md:text-2xl font-black text-slate-900 leading-tight">
                         {ticket.dealTitle}
                       </h3>
                       {ticket.itemCode && (
-                        <div className="text-sm font-mono text-slate-400 mt-2">
-                          Item Code: <span className="text-slate-200 font-bold">{ticket.itemCode}</span>
+                        <div className="text-sm font-mono text-slate-600 mt-2">
+                          Item Code: <span className="text-slate-900 font-bold">{ticket.itemCode}</span>
                         </div>
                       )}
                     </div>
                     <div className="sm:text-right">
-                      <div className="text-xs font-extrabold uppercase tracking-widest text-slate-400 mb-2">
+                      <div className="text-xs font-extrabold uppercase tracking-widest text-slate-600 mb-2">
                         {isClaimed ? 'Due at Counter' : t('dashboard.amount') || 'Amount Paid'}
                       </div>
-                      <div className={`text-3xl md:text-4xl font-black font-mono ${isClaimed ? 'text-amber-400' : isExpired ? 'text-slate-500' : 'text-emerald-400'}`}>
-                        {ticket.amount.toLocaleString()} <span className="text-base font-bold text-slate-300">ETB</span>
+                      <div className={`text-3xl md:text-4xl font-black font-mono ${isClaimed ? 'text-amber-600' : isExpired ? 'text-slate-500' : 'text-emerald-600'}`}>
+                        {ticket.amount.toLocaleString()} <span className="text-base font-bold text-slate-600">ETB</span>
                       </div>
                     </div>
                   </div>
 
                   {/* VOUCHER REDEMPTION PASS (High-Contrast Counter Presentation) */}
-                  <div className={`border-2 rounded-[1.5rem] p-6 md:p-8 relative overflow-hidden shadow-xl ${
+                  <div className={`border-2 rounded-[1.5rem] p-6 md:p-8 relative overflow-hidden shadow-lg ${
                     isClaimed
-                      ? 'bg-gradient-to-br from-amber-950/30 to-slate-950 border-amber-500/50 shadow-amber-950/30'
+                      ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-300'
                       : isExpired
-                      ? 'bg-slate-950/60 border-rose-950/60'
-                      : 'bg-gradient-to-br from-emerald-950/30 to-slate-950 border-emerald-500/40 shadow-emerald-950/30'
+                      ? 'bg-slate-100 border-rose-300'
+                      : 'bg-gradient-to-br from-emerald-50 to-blue-50 border-emerald-300'
                   }`}>
                     {/* Ambient glow */}
                     {!isExpired && (
@@ -601,7 +601,7 @@ export default function ProfilePage() {
                         )}
                         <div className="space-y-2.5">
                           <div className={`text-[11px] font-extrabold uppercase tracking-widest flex items-center gap-2 ${
-                            isClaimed ? 'text-amber-400' : isExpired ? 'text-rose-400' : 'text-emerald-400'
+                            isClaimed ? 'text-amber-600' : isExpired ? 'text-rose-600' : 'text-emerald-600'
                           }`}>
                             <Sparkles className="w-4 h-4" />
                             <span>
@@ -613,14 +613,14 @@ export default function ProfilePage() {
                             </span>
                           </div>
                           <div className={`font-mono text-3xl md:text-4xl font-black tracking-widest selection:bg-emerald-600 ${
-                            isExpired ? 'text-slate-500 line-through' : 'text-white'
+                            isExpired ? 'text-slate-500 line-through' : 'text-slate-900'
                           }`}>
                             {ticket.redemptionCode}
                           </div>
-                          <p className="text-sm text-slate-400 max-w-md leading-relaxed">
+                          <p className="text-sm text-slate-700 max-w-md leading-relaxed">
                             {isClaimed ? (
                               <span>
-                                Present this code at <strong className="text-white">{ticket.merchantName}</strong>. Pay with M-PESA at the counter within {ticket.holdMinutes || 30} minutes. If unpaid, quota is automatically restored to the shop.
+                                Present this code at <strong className="text-slate-900">{ticket.merchantName}</strong>. Pay with M-PESA at the counter within {ticket.holdMinutes || 30} minutes. If unpaid, quota is automatically restored to the shop.
                               </span>
                             ) : isExpired ? (
                               <span>
@@ -638,7 +638,7 @@ export default function ProfilePage() {
                           <button
                             type="button"
                             onClick={() => setSelectedTicketForPayment(ticket)}
-                            className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all shadow-xl shadow-emerald-950/40 flex items-center gap-2 min-h-[48px] cursor-pointer border border-emerald-400/20"
+                            className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 active:scale-[0.98] text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all shadow-lg flex items-center gap-2 min-h-[48px] cursor-pointer border border-emerald-400/20"
                           >
                             <span>Pay with M-PESA at Counter</span>
                           </button>
@@ -648,11 +648,11 @@ export default function ProfilePage() {
                           <button
                             type="button"
                             onClick={() => handleCopy(ticket.redemptionCode, ticket.id)}
-                            className="bg-slate-800/80 hover:bg-slate-700 text-white text-sm font-bold px-5 py-3.5 rounded-[0.875rem] transition-all shadow-lg flex items-center gap-2 min-h-[48px] cursor-pointer border border-slate-600/50 backdrop-blur-sm"
+                            className="bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold px-5 py-3.5 rounded-[0.875rem] transition-all shadow-md flex items-center gap-2 min-h-[48px] cursor-pointer border border-slate-200"
                           >
                             {copiedCodeId === ticket.id ? (
                               <>
-                                <Check className="w-4.5 h-4.5 text-emerald-200" />
+                                <Check className="w-4.5 h-4.5 text-emerald-600" />
                                 <span>{t('mpesa.codeCopied') || 'Copied!'}</span>
                               </>
                             ) : (
@@ -668,7 +668,7 @@ export default function ProfilePage() {
                           <button
                             type="button"
                             onClick={() => handleCancelHold(ticket.id)}
-                            className="bg-slate-900/80 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 text-sm font-semibold px-4 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] border border-slate-700/60 hover:border-rose-900/60 backdrop-blur-sm"
+                            className="bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 text-sm font-semibold px-4 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] border border-slate-200 hover:border-rose-300"
                             title="Release hold early"
                           >
                             <span>Cancel Hold</span>
@@ -679,7 +679,7 @@ export default function ProfilePage() {
                           <button
                             type="button"
                             onClick={() => handleMarkRedeemed(ticket.id)}
-                            className="bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-sm font-semibold px-4 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] border border-slate-600/50 backdrop-blur-sm"
+                            className="bg-white hover:bg-slate-50 text-slate-700 text-sm font-semibold px-4 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] border border-slate-200"
                             title="Mark as picked up"
                           >
                             <span>{t('profile.markPickedUp') || 'Mark Picked Up'}</span>
@@ -689,25 +689,25 @@ export default function ProfilePage() {
                     </div>
 
                     {/* Receipt & Order Metadata */}
-                    <div className="mt-5 pt-5 border-t border-slate-700/50 flex flex-wrap items-center gap-5 text-xs font-mono text-slate-400">
+                    <div className="mt-5 pt-5 border-t border-slate-200 flex flex-wrap items-center gap-5 text-xs font-mono text-slate-600">
                       {ticket.receipt && (
                         <div>
                           <span className="text-slate-500 font-bold uppercase tracking-wider">Receipt:</span>{' '}
-                          <span className="text-slate-200 font-bold">{ticket.receipt}</span>
+                          <span className="text-slate-900 font-bold">{ticket.receipt}</span>
                         </div>
                       )}
                       <div>
                         <span className="text-slate-500 font-bold uppercase tracking-wider">Order ID:</span>{' '}
-                        <span className="text-slate-200 font-bold">{ticket.orderId}</span>
+                        <span className="text-slate-900 font-bold">{ticket.orderId}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* 5-STAR RATING & REVIEW SECTION */}
-                  <div className="pt-6 border-t border-slate-700/50">
+                  <div className="pt-6 border-t border-slate-200">
                     {/* View existing review */}
                     {ticket.rating && editingReviewId !== ticket.id && (
-                      <div className="bg-gradient-to-br from-violet-950/40 via-purple-900/30 to-slate-900/30 border border-violet-500/30 rounded-[1.5rem] p-6 md:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-5 backdrop-blur-sm shadow-lg shadow-violet-950/20">
+                      <div className="bg-white/90 border border-slate-200 rounded-[1.5rem] p-6 md:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-5 backdrop-blur-sm shadow-md">
                         <div className="space-y-3 flex-1">
                           <div className="flex items-center gap-3 flex-wrap">
                             <div className="flex items-center gap-1 text-amber-400">
@@ -722,7 +722,7 @@ export default function ProfilePage() {
                                 />
                               ))}
                             </div>
-                            <span className="text-sm font-extrabold text-amber-400">
+                            <span className="text-sm font-extrabold text-amber-600">
                               {getStarRatingLabel(ticket.rating)}
                             </span>
                             {ticket.reviewedAt && (
@@ -732,7 +732,7 @@ export default function ProfilePage() {
                             )}
                           </div>
                           {ticket.reviewComment ? (
-                            <p className="text-base text-slate-200 leading-relaxed">
+                            <p className="text-base text-slate-700 leading-relaxed">
                               &ldquo;{ticket.reviewComment}&rdquo;
                             </p>
                           ) : (
@@ -745,7 +745,7 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           onClick={() => handleStartReview(ticket)}
-                          className="inline-flex items-center gap-2 text-sm font-bold text-violet-300 hover:text-white bg-violet-900/40 hover:bg-violet-800/50 px-4 py-2.5 rounded-xl transition-all shrink-0 min-h-[40px] border border-violet-500/40 backdrop-blur-sm shadow-sm"
+                          className="inline-flex items-center gap-2 text-sm font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-100 hover:bg-emerald-200 px-4 py-2.5 rounded-xl transition-all shrink-0 min-h-[40px] border border-emerald-200"
                         >
                           <Edit3 className="w-4 h-4" />
                           <span>{t('profile.editReview') || 'Edit Review'}</span>
@@ -755,13 +755,13 @@ export default function ProfilePage() {
 
                     {/* Review Form (New or Editing) */}
                     {(!ticket.rating || editingReviewId === ticket.id) && (
-                      <div className="bg-gradient-to-br from-orange-950/30 via-rose-950/20 to-slate-900/30 border border-orange-500/30 rounded-[1.5rem] p-6 md:p-7 space-y-5 backdrop-blur-sm shadow-lg shadow-orange-950/20">
+                      <div className="bg-gradient-to-br from-orange-50 via-rose-50 to-pink-50 border border-orange-200 rounded-[1.5rem] p-6 md:p-7 space-y-5 backdrop-blur-sm shadow-md">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-400/40 flex items-center justify-center">
-                              <MessageSquarePlus className="w-4.5 h-4.5 text-orange-300" />
+                            <div className="w-9 h-9 rounded-xl bg-orange-100 border border-orange-200 flex items-center justify-center">
+                              <MessageSquarePlus className="w-4.5 h-4.5 text-orange-600" />
                             </div>
-                            <h4 className="text-base font-black text-white">
+                            <h4 className="text-base font-black text-slate-900">
                               {ticket.rating
                                 ? (t('profile.editReviewTitle') || 'Update Your Review')
                                 : (t('profile.leaveReviewTitle') || 'Rate & Review This Deal')}
@@ -771,7 +771,7 @@ export default function ProfilePage() {
                             <button
                               type="button"
                               onClick={() => setEditingReviewId(null)}
-                              className="text-sm text-slate-400 hover:text-white font-bold underline cursor-pointer"
+                              className="text-sm text-slate-600 hover:text-slate-900 font-bold underline cursor-pointer"
                             >
                               {t('profile.cancel') || 'Cancel'}
                             </button>
@@ -797,15 +797,15 @@ export default function ProfilePage() {
                                   <Star
                                     className={`w-8 h-8 transition-colors ${
                                       isFilled
-                                        ? 'fill-amber-400 text-amber-400'
-                                        : 'text-slate-700 hover:text-slate-600'
+                                        ? 'fill-amber-500 text-amber-500'
+                                        : 'text-slate-300 hover:text-slate-400'
                                     }`}
                                   />
                                 </button>
                               );
                             })}
                           </div>
-                          <span className="text-sm font-extrabold text-amber-400">
+                          <span className="text-sm font-extrabold text-amber-600">
                             {getStarRatingLabel(hoverRating || ratingInput)}
                           </span>
                         </div>
@@ -817,7 +817,7 @@ export default function ProfilePage() {
                             value={commentInput}
                             onChange={(e) => setCommentInput(e.target.value)}
                             placeholder={t('profile.reviewPlaceholder') || 'How was the deal? Quick counter redemption, great quality, recommended?'}
-                            className="w-full bg-slate-900/60 border border-orange-500/40 focus:border-orange-400 focus:ring-2 focus:ring-orange-500/30 rounded-[0.875rem] p-4 text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all backdrop-blur-sm shadow-inner"
+                            className="w-full bg-white border border-orange-200 focus:border-orange-400 focus:ring-2 focus:ring-orange-200 rounded-[0.875rem] p-4 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none transition-all"
                           />
                         </div>
 
@@ -827,7 +827,7 @@ export default function ProfilePage() {
                             type="button"
                             disabled={reviewSubmitting}
                             onClick={() => handleSubmitReview(ticket.id)}
-                            className="bg-gradient-to-r from-orange-600 to-rose-500 hover:from-orange-500 hover:to-rose-400 disabled:from-slate-800 disabled:to-slate-700 text-white font-extrabold text-sm px-6 py-3 rounded-[0.875rem] transition-all shadow-lg shadow-orange-950/40 flex items-center gap-2 min-h-[44px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                            className="bg-gradient-to-r from-orange-600 to-rose-500 hover:from-orange-500 hover:to-rose-400 disabled:from-slate-300 disabled:to-slate-400 text-white font-extrabold text-sm px-6 py-3 rounded-[0.875rem] transition-all shadow-md flex items-center gap-2 min-h-[44px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Star className="w-4 h-4 fill-current" />
                             <span>{t('profile.submitReview') || 'Submit Review'}</span>
