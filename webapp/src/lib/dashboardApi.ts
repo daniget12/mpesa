@@ -121,13 +121,13 @@ export function mapStats(raw: Partial<StatsResponse>): DashboardStats {
   };
 }
 
-// SessionStorage token management (never logged or printed)
+// Persistent and Session token management (never logged or printed)
 const TOKEN_KEY = 'tm_merchant_token';
 
 export function getStoredToken(): string | null {
   if (typeof window === 'undefined') return null;
   try {
-    return sessionStorage.getItem(TOKEN_KEY);
+    return sessionStorage.getItem(TOKEN_KEY) || localStorage.getItem(TOKEN_KEY);
   } catch {
     return null;
   }
@@ -137,8 +137,9 @@ export function setStoredToken(token: string): void {
   if (typeof window === 'undefined') return;
   try {
     sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_KEY, token);
   } catch {
-    // SessionStorage disabled
+    // Storage disabled
   }
 }
 
@@ -146,8 +147,9 @@ export function clearStoredToken(): void {
   if (typeof window === 'undefined') return;
   try {
     sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TOKEN_KEY);
   } catch {
-    // SessionStorage disabled
+    // Storage disabled
   }
 }
 
@@ -318,6 +320,13 @@ export async function verifyAuthCode(
 
     if (data?.token) {
       setStoredToken(data.token);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(`tm_merchant_jwt_${normalizedEmail}`, data.token);
+        } catch {
+          // localStorage disabled
+        }
+      }
       return { token: data.token };
     }
 

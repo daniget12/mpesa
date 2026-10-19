@@ -14,8 +14,17 @@ import {
   Store,
   ShoppingBag,
   ArrowRight,
+  Lock,
+  Eye,
+  EyeOff,
+  ShieldCheck,
 } from 'lucide-react';
 import { requestAuthCode, verifyAuthCode } from '@/lib/dashboardApi';
+import {
+  verifyMerchantPassword,
+  setMerchantPassword,
+  hasMerchantPassword,
+} from '@/lib/merchantAuth';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import '@/styles/modern-auth.css';
 
@@ -35,10 +44,16 @@ export default function ModernAuthCard({
   const router = useRouter();
   const [isActive, setIsActive] = useState(initialMode === 'signup');
 
-  // Merchant 6-digit email code state
+  // Merchant authentication state
+  const [merchantMode, setMerchantMode] = useState<'password' | 'otp' | 'set-password'>('password');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [code, setCode] = useState('');
   const [codeSent, setCodeSent] = useState(false);
+  const [verifiedToken, setVerifiedToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -49,6 +64,22 @@ export default function ModernAuthCard({
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [isCustomerSignup, setIsCustomerSignup] = useState(false);
+
+  // Complete merchant redirect helper
+  const completeMerchantLogin = (destination?: string) => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirect = destination || searchParams.get('redirect') || '/dashboard';
+    setTimeout(() => {
+      if (onSuccess) {
+        onSuccess();
+      } else if (onClose) {
+        onClose();
+        router.push(redirect);
+      } else {
+        router.push(redirect);
+      }
+    }, 600);
+  };
 
   // Clear messages when flipping panels
   const switchToInfo = () => {
@@ -61,6 +92,41 @@ export default function ModernAuthCard({
     setIsActive(false);
     setError(null);
     setSuccessMsg(null);
+  };
+
+  // Merchant Sign In with Password (Default)
+  const handleMerchantPasswordSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@')) {
+      setError('Please enter a valid merchant email address.');
+      return;
+    }
+    if (!password) {
+      setError('Please enter your password.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+
+    try {
+      const res = await verifyMerchantPassword(cleanEmail, password);
+      if (res.success) {
+        setSuccessMsg('Sign in successful! Opening merchant dashboard...');
+        completeMerchantLogin();
+      } else if (res.notFound) {
+        setError('No password has been set for this shop yet. Please use "Sign in with one-time code" to set your password.');
+      } else {
+        setError(res.error || 'Invalid email or password.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Sign in failed. Please try again.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Step 1: Request 6-digit login code via email
@@ -109,24 +175,52 @@ export default function ModernAuthCard({
         return;
       }
 
-      setSuccessMsg('Verification successful! Opening merchant dashboard...');
+      const receivedToken = res.token || null;
+      setVerifiedToken(receivedToken);
 
-      // Get redirect URL from query params
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirect = searchParams.get('redirect') || '/dashboard';
-
-      setTimeout(() => {
-        if (onSuccess) {
-          onSuccess();
-        } else if (onClose) {
-          onClose();
-          router.push(redirect);
-        } else {
-          router.push(redirect);
-        }
-      }, 600);
+      // Check if merchant already has a password set
+      const alreadyHas = hasMerchantPassword(cleanEmail);
+      if (!alreadyHas) {
+        setSuccessMsg('Code verified! Set your password now for instant login next time.');
+        setMerchantMode('set-password');
+      } else {
+        setSuccessMsg('Verification successful! Opening merchant dashboard...');
+        completeMerchantLogin();
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to verify code.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 3: Set Password after verification
+  const handleSetMerchantPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = email.trim().toLowerCase();
+    if (!newPassword || newPassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await setMerchantPassword(cleanEmail, newPassword, undefined, verifiedToken || undefined);
+      if (res.success) {
+        setSuccessMsg('Password saved! Opening merchant dashboard...');
+        completeMerchantLogin();
+      } else {
+        setError(res.error || 'Failed to save password.');
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save password.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -490,18 +584,30 @@ export default function ModernAuthCard({
           </form>
         </div>
 
-        {/* RIGHT CONTAINER: MERCHANT SIGN IN (Emailed 6-digit Code Flow) */}
+        {/* RIGHT CONTAINER: MERCHANT SIGN IN (Password & One-Time Code Support) */}
         <div className="form-container sign-in">
           <div className="py-8 px-6 text-center flex flex-col justify-center items-center h-full max-w-sm mx-auto">
             <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-700 flex items-center justify-center mb-3">
-              <KeyRound className="w-6 h-6" />
+              {merchantMode === 'set-password' ? (
+                <ShieldCheck className="w-6 h-6" />
+              ) : (
+                <KeyRound className="w-6 h-6" />
+              )}
             </div>
 
             <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight mb-1">
-              Merchant Portal
+              {merchantMode === 'set-password'
+                ? 'Set Your Password'
+                : merchantMode === 'otp'
+                ? 'One-Time Sign In'
+                : 'Merchant Portal'}
             </h1>
             <p className="text-xs text-gray-500 mb-4">
-              Enter your registered shop email to receive a 6-digit sign-in code.
+              {merchantMode === 'set-password'
+                ? 'Create a password for fast future logins without email codes.'
+                : merchantMode === 'otp'
+                ? 'Enter your registered shop email to receive a 6-digit login code.'
+                : 'Sign in directly with your registered shop email and password.'}
             </p>
 
             {error && (
@@ -518,8 +624,9 @@ export default function ModernAuthCard({
               </div>
             )}
 
-            {!codeSent ? (
-              <form onSubmit={handleRequestCode} className="w-full space-y-3">
+            {/* MODE 1: EMAIL & PASSWORD (DEFAULT) */}
+            {merchantMode === 'password' && (
+              <form onSubmit={handleMerchantPasswordSignIn} className="w-full space-y-3">
                 <div className="w-full text-left">
                   <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
                     Registered Merchant Email
@@ -538,6 +645,44 @@ export default function ModernAuthCard({
                   </div>
                 </div>
 
+                <div className="w-full text-left">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMerchantMode('otp');
+                        setError(null);
+                        setSuccessMsg(null);
+                      }}
+                      className="text-[11px] text-green-700 hover:underline font-semibold cursor-pointer"
+                    >
+                      Forgot / Set Password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      className="form-input !pl-10 !pr-10"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -546,67 +691,205 @@ export default function ModernAuthCard({
                   {loading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    'Send 6-Digit Code'
-                  )}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyCode} className="w-full space-y-3">
-                <div className="w-full text-left">
-                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    6-Digit Verification Code
-                  </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]{6}"
-                    maxLength={6}
-                    placeholder="123456"
-                    className="form-input text-center font-mono tracking-widest text-lg font-bold"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    required
-                    autoFocus
-                  />
-                  <p className="text-[11px] text-gray-500 mt-1 text-center">
-                    Sent to <span className="font-semibold text-gray-700">{email}</span>
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || code.trim().length !== 6}
-                  className="action-btn w-full flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    'Verify & Open Dashboard'
+                    'Sign In to Dashboard'
                   )}
                 </button>
 
-                <div className="flex items-center justify-between pt-2">
+                <div className="pt-2 text-center">
                   <button
                     type="button"
                     onClick={() => {
-                      setCodeSent(false);
-                      setCode('');
+                      setMerchantMode('otp');
                       setError(null);
                       setSuccessMsg(null);
                     }}
                     className="text-xs text-gray-500 hover:text-green-700 font-semibold inline-flex items-center gap-1 cursor-pointer"
                   >
-                    <ArrowLeft className="w-3.5 h-3.5" />
-                    Change email
+                    <span>Sign in with one-time email code instead</span>
                   </button>
+                </div>
+              </form>
+            )}
 
+            {/* MODE 2: ONE-TIME EMAIL CODE (RECOVERY / INITIAL SETUP) */}
+            {merchantMode === 'otp' && (
+              <>
+                {!codeSent ? (
+                  <form onSubmit={handleRequestCode} className="w-full space-y-3">
+                    <div className="w-full text-left">
+                      <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        Registered Merchant Email
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="email"
+                          placeholder="merchant@yourshop.et"
+                          className="form-input !pl-10"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="action-btn w-full flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'Send 6-Digit Code'
+                      )}
+                    </button>
+
+                    <div className="pt-2 text-center">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMerchantMode('password');
+                          setError(null);
+                          setSuccessMsg(null);
+                        }}
+                        className="text-xs text-gray-500 hover:text-green-700 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Back to Password Login</span>
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleVerifyCode} className="w-full space-y-3">
+                    <div className="w-full text-left">
+                      <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                        6-Digit Verification Code
+                      </label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]{6}"
+                        maxLength={6}
+                        placeholder="123456"
+                        className="form-input text-center font-mono tracking-widest text-lg font-bold"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        required
+                        autoFocus
+                      />
+                      <p className="text-[11px] text-gray-500 mt-1 text-center">
+                        Sent to <span className="font-semibold text-gray-700">{email}</span>
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading || code.trim().length !== 6}
+                      className="action-btn w-full flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        'Verify & Continue'
+                      )}
+                    </button>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCodeSent(false);
+                          setCode('');
+                          setError(null);
+                          setSuccessMsg(null);
+                        }}
+                        className="text-xs text-gray-500 hover:text-green-700 font-semibold inline-flex items-center gap-1 cursor-pointer"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        Change email
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={handleRequestCode}
+                        className="text-xs text-green-700 hover:underline font-semibold cursor-pointer"
+                      >
+                        Resend code
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </>
+            )}
+
+            {/* MODE 3: SET PASSWORD AFTER OTP VERIFICATION */}
+            {merchantMode === 'set-password' && (
+              <form onSubmit={handleSetMerchantPassword} className="w-full space-y-3">
+                <div className="w-full text-left">
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    New Password (min 6 characters)
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="At least 6 characters"
+                      className="form-input !pl-10 !pr-10"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="w-full text-left">
+                  <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    Confirm Password
+                  </label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Repeat your new password"
+                      className="form-input !pl-10"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || newPassword.length < 6}
+                  className="action-btn w-full flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    'Save Password & Open Dashboard'
+                  )}
+                </button>
+
+                <div className="pt-2 text-center">
                   <button
                     type="button"
-                    disabled={loading}
-                    onClick={handleRequestCode}
-                    className="text-xs text-green-700 hover:underline font-semibold cursor-pointer"
+                    onClick={() => completeMerchantLogin()}
+                    className="text-xs text-gray-500 hover:text-gray-700 font-semibold cursor-pointer"
                   >
-                    Resend code
+                    Skip and open dashboard
                   </button>
                 </div>
               </form>

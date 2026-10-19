@@ -14,7 +14,10 @@ import {
   ExternalLink, 
   Navigation, 
   FileCheck, 
-  Globe 
+  Globe,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { 
@@ -26,6 +29,7 @@ import {
   MerchantRegisterPayload 
 } from '@/lib/api';
 import { processStorefrontPhoto, ProcessedPhotoResult } from '@/lib/photoUtils';
+import { setMerchantPassword } from '@/lib/merchantAuth';
 
 const CATEGORIES = [
   'cafe',
@@ -49,6 +53,9 @@ export default function MerchantRegisterPage() {
   const [licenseNumber, setLicenseNumber] = useState('');
   const [tinNumber, setTinNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [ownerPhone, setOwnerPhone] = useState('');
   const [mpesaPhone, setMpesaPhone] = useState('');
   const [tillNumber, setTillNumber] = useState('');
@@ -162,6 +169,12 @@ export default function MerchantRegisterPage() {
       errors.email = 'Invalid email address format';
     }
 
+    if (!password || password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    } else if (password !== confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
     const cleanOwnerPhone = sanitizePhone(ownerPhone);
     if (!isValidEthiopianPhone(cleanOwnerPhone)) {
       errors.ownerPhone = 'Invalid ownerPhone number. Accepted: 07xxxxxxxx, 09xxxxxxxx, +251...';
@@ -218,6 +231,7 @@ export default function MerchantRegisterPage() {
       const res = await registerMerchant(payload);
       setSubmitSuccess(true);
       setAssignedMerchantId(res.merchantId);
+      await setMerchantPassword(email.trim(), password, shopName.trim());
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 400) {
@@ -338,7 +352,7 @@ export default function MerchantRegisterPage() {
                 {t('register.step1Desc') || '1. Our team reviews your business information and tax details.'}
               </p>
               <p className="text-xs text-emerald-800 leading-relaxed">
-                {t('register.step2Desc') || '2. Once approved, log in to your Merchant Dashboard at /dashboard with your registered email using an OTP verification code.'}
+                {t('register.step2Desc') || '2. Once approved, log in to your Merchant Dashboard at /dashboard with your registered email and password.'}
               </p>
             </div>
 
@@ -550,8 +564,8 @@ export default function MerchantRegisterPage() {
                   {fieldErrors.email && (
                     <p className="text-[11px] text-red-600 mt-1">{fieldErrors.email}</p>
                   )}
-                  <p className="text-[11px] text-gray-400 mt-0.5">
-                    Used to sign in to your Merchant Dashboard with OTP email verification code.
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Used to sign in to your Merchant Dashboard with your password.
                   </p>
                 </div>
 
@@ -627,12 +641,81 @@ export default function MerchantRegisterPage() {
                 </div>
               </div>
 
-              {/* Section 3: Coordinates in Addis Ababa */}
+              {/* Section 3: Merchant Password & Security */}
+              <div className="space-y-4 pt-2">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-1.5 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-green-600" />
+                  <span>3. Merchant Login Password</span>
+                </h2>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Set Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={6}
+                        placeholder="At least 6 characters"
+                        className={`w-full min-h-[46px] pl-3.5 pr-10 py-2.5 bg-gray-50 border rounded-xl font-medium text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 text-sm ${
+                          fieldErrors.password ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                        }`}
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (fieldErrors.password) setFieldErrors(prev => ({ ...prev, password: '' }));
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                        tabIndex={-1}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    {fieldErrors.password && (
+                      <p className="text-[11px] text-red-600 mt-1">{fieldErrors.password}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Confirm Password <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      placeholder="Repeat your password"
+                      className={`w-full min-h-[46px] px-3.5 py-2.5 bg-gray-50 border rounded-xl font-medium text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 text-sm ${
+                        fieldErrors.confirmPassword ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
+                      }`}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (fieldErrors.confirmPassword) setFieldErrors(prev => ({ ...prev, confirmPassword: '' }));
+                      }}
+                    />
+                    {fieldErrors.confirmPassword && (
+                      <p className="text-[11px] text-red-600 mt-1">{fieldErrors.confirmPassword}</p>
+                    )}
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500">
+                  You will use this password to sign in directly to your Merchant Dashboard without needing email OTP codes.
+                </p>
+              </div>
+
+              {/* Section 4: Coordinates in Addis Ababa */}
               <div className="space-y-4 pt-2">
                 <div className="flex items-center justify-between border-b border-gray-100 pb-1.5 flex-wrap gap-2">
                   <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-green-600" />
-                    <span>3. {t('register.locationSection') || 'Shop Coordinates in Addis Ababa'}</span>
+                    <span>4. {t('register.locationSection') || 'Shop Coordinates in Addis Ababa'}</span>
                   </h2>
 
                   <button
@@ -706,11 +789,11 @@ export default function MerchantRegisterPage() {
                 </div>
               </div>
 
-              {/* Section 4: Storefront Photo */}
+              {/* Section 5: Storefront Photo */}
               <div className="space-y-3 pt-2">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-1.5 flex items-center gap-1.5">
                   <Upload className="w-3.5 h-3.5 text-green-600" />
-                  <span>4. {t('register.photoSection') || 'Storefront Photo'} <span className="text-red-500">*</span></span>
+                  <span>5. {t('register.photoSection') || 'Storefront Photo'} <span className="text-red-500">*</span></span>
                 </h2>
 
                 <p className="text-xs text-gray-500 leading-relaxed">

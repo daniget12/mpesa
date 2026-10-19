@@ -51,9 +51,19 @@ import {
   Receipt,
   Plus,
   Calendar,
+  Lock,
+  Eye,
+  EyeOff,
+  Key,
 } from 'lucide-react';
 import NotificationBell from '@/components/NotificationBell';
 import { notifyCustomerNewDealNearby } from '@/lib/notifications';
+import {
+  verifyMerchantPassword,
+  setMerchantPassword,
+  hasMerchantPassword,
+  getSavedMerchantToken,
+} from '@/lib/merchantAuth';
 
 // Animated counter hook
 function useAnimatedNumber(target: number, duration: number = 400): number {
@@ -93,12 +103,23 @@ export default function DashboardPage() {
   const [token, setToken] = useState<string | null>(null);
   const [merchant, setMerchant] = useState<MerchantMe | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+  const [authMethod, setAuthMethod] = useState<'password' | 'otp' | 'set-password'>('password');
   const [emailInput, setEmailInput] = useState<string>('');
+  const [passwordInput, setPasswordInput] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [newPasswordInput, setNewPasswordInput] = useState<string>('');
+  const [confirmPasswordInput, setConfirmPasswordInput] = useState<string>('');
   const [codeInput, setCodeInput] = useState<string>('');
   const [codeSent, setCodeSent] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authMessage, setAuthMessage] = useState<string | null>(null);
+
+  // Password Management Modal State (Set / Change password)
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState<boolean>(false);
+  const [passwordModalSuccess, setPasswordModalSuccess] = useState<string | null>(null);
+  const [passwordModalError, setPasswordModalError] = useState<string | null>(null);
+  const [passwordModalLoading, setPasswordModalLoading] = useState<boolean>(false);
 
   // Dashboard Stats State
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -286,6 +307,102 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [token, merchant?.status, statusOverride, fetchStats]);
 
+  // Handle Password Sign-In (Default)
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanEmail = emailInput.trim().toLowerCase();
+    if (!cleanEmail || !passwordInput) return;
+
+    setAuthLoading(true);
+    setAuthError(null);
+    setAuthMessage(null);
+
+    try {
+      const res = await verifyMerchantPassword(cleanEmail, passwordInput);
+      if (!res.success) {
+        if (res.notFound) {
+          setAuthError('No password has been set for this shop yet. Click "Sign in with one-time code" below to verify and create your password.');
+        } else {
+          setAuthError(res.error || 'Invalid email or password.');
+        }
+        return;
+      }
+
+      // Check token
+      const sessionToken = res.token || getSavedMerchantToken(cleanEmail) || getStoredToken();
+      if (sessionToken) {
+        setToken(sessionToken);
+        setLoading(true);
+        const me = await fetchMerchantMe(sessionToken);
+        setMerchant(me);
+        if (me.status === 'approved') {
+          await fetchStats(sessionToken, true);
+          await loadDeals(sessionToken);
+        }
+      } else {
+        // In case no cached token exists on this device yet, prompt OTP once to bind device
+        setAuthError('Password verified! A one-time verification code is required once on this browser to link your shop session.');
+        setAuthMethod('otp');
+      }
+    } catch (err: unknown) {
+      if (err instanceof DashboardApiError) {
+        setAuthError(err.message);
+      } else {
+        setAuthError('Could not log in with password. Please try again.');
+      }
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Handle Save / Change Merchant Password
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPasswordInput || newPasswordInput.length < 6) {
+      setPasswordModalError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (newPasswordInput !== confirmPasswordInput) {
+      setPasswordModalError('Passwords do not match.');
+      return;
+    }
+
+    const targetEmail = (merchant?.email || emailInput).trim().toLowerCase();
+    if (!targetEmail) {
+      setPasswordModalError('No merchant email address detected.');
+      return;
+    }
+
+    setPasswordModalLoading(true);
+    setPasswordModalError(null);
+    setPasswordModalSuccess(null);
+
+    try {
+      const res = await setMerchantPassword(
+        targetEmail,
+        newPasswordInput,
+        merchant?.shopName || merchant?.name,
+        token || undefined
+      );
+
+      if (res.success) {
+        setPasswordModalSuccess('Password successfully saved! You can now log in directly using this password.');
+        setTimeout(() => {
+          setIsPasswordModalOpen(false);
+          setPasswordModalSuccess(null);
+          setNewPasswordInput('');
+          setConfirmPasswordInput('');
+        }, 1500);
+      } else {
+        setPasswordModalError(res.error || 'Failed to save password.');
+      }
+    } catch (err: unknown) {
+      setPasswordModalError(err instanceof Error ? err.message : 'Failed to save password.');
+    } finally {
+      setPasswordModalLoading(false);
+    }
+  };
+
   // Handle Send Code
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -334,6 +451,11 @@ export default function DashboardPage() {
           await fetchStats(result.token, true);
           await loadDeals(result.token);
         }
+
+        // If they don't have a password set, prompt them
+        if (!hasMerchantPassword(emailInput.trim().toLowerCase())) {
+          setIsPasswordModalOpen(true);
+        }
       } else {
         setAuthError('No session token received from verification server.');
       }
@@ -357,12 +479,15 @@ export default function DashboardPage() {
     setDeals([]);
     setCodeSent(false);
     setEmailInput('');
+    setPasswordInput('');
     setCodeInput('');
     setAuthError(null);
     setAuthMessage(null);
     setStatusOverride(null);
     setRedeemResult(null);
     setRedeemCodeInput('');
+    setIsPasswordModalOpen(false);
+    setAuthMethod('password');
   };
 
   // Handle Redeem / Verify Code (Live POST /api/merchant/redeem)
@@ -496,17 +621,23 @@ export default function DashboardPage() {
 
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-gradient-to-b bg-white border border-gray-200/80 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
-            <div className="text-center mb-8">
+            <div className="text-center mb-6">
               <div className="w-14 h-14 bg-white border border-emerald-500/20 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/15">
-                <KeyRound className="w-7 h-7" />
+                {authMethod === 'otp' ? <KeyRound className="w-7 h-7" /> : <Lock className="w-7 h-7" />}
               </div>
-              <h1 className="text-2xl font-black text-black mb-2">{t('dashboard.loginTitle')}</h1>
-              <p className="text-gray-700 text-xs sm:text-sm">{t('dashboard.loginSubtitle')}</p>
+              <h1 className="text-2xl font-black text-black mb-2">
+                {authMethod === 'otp' ? 'One-Time Sign In' : t('dashboard.loginTitle')}
+              </h1>
+              <p className="text-gray-700 text-xs sm:text-sm">
+                {authMethod === 'otp'
+                  ? 'Enter your shop email to receive a 6-digit verification code.'
+                  : 'Sign in directly with your registered shop email and password.'}
+              </p>
             </div>
 
             {authError && (
-              <div className="mb-6 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-xl text-xs sm:text-sm flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-400" />
+              <div className="mb-6 bg-rose-500/10 border border-rose-500/30 text-rose-700 p-4 rounded-xl text-xs sm:text-sm flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-rose-600" />
                 <span>{authError}</span>
               </div>
             )}
@@ -518,8 +649,9 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {!codeSent ? (
-              <form onSubmit={handleSendCode} className="space-y-4">
+            {authMethod === 'password' ? (
+              /* PASSWORD SIGN-IN (DEFAULT) */
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-2">
                     {t('dashboard.email')}
@@ -533,7 +665,45 @@ export default function DashboardPage() {
                       placeholder="merchant@yourshop.et"
                       className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-black placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all pl-11 text-sm"
                     />
-                    <Mail className="w-5 h-5 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-5 h-5 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider">
+                      Password
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMethod('otp');
+                        setAuthError(null);
+                        setAuthMessage(null);
+                      }}
+                      className="text-xs text-emerald-600 hover:underline font-semibold cursor-pointer"
+                    >
+                      Forgot / Set Password?
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      placeholder="Enter your password"
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-black placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all pl-11 pr-11 text-sm"
+                    />
+                    <Lock className="w-5 h-5 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
                   </div>
                 </div>
 
@@ -543,50 +713,126 @@ export default function DashboardPage() {
                   className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50 disabled:opacity-50 text-sm"
                 >
                   {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                  <span>{t('dashboard.sendCode')}</span>
+                  <span>Sign In to Dashboard</span>
                 </button>
+
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMethod('otp');
+                      setAuthError(null);
+                      setAuthMessage(null);
+                    }}
+                    className="text-xs text-gray-600 hover:text-emerald-700 font-semibold cursor-pointer inline-flex items-center gap-1"
+                  >
+                    <span>Sign in with one-time email code instead</span>
+                  </button>
+                </div>
               </form>
             ) : (
-              <form onSubmit={handleVerifyCode} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-2">
-                    {t('dashboard.code')}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    value={codeInput}
-                    onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ''))}
-                    placeholder="123456"
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-center text-2xl font-mono tracking-widest text-emerald-700 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  />
-                  <p className="text-[11px] text-gray-700 text-center mt-1">
-                    Sent to <span className="font-semibold text-black">{emailInput}</span>
-                  </p>
-                </div>
+              /* OTP VERIFICATION CODE (RECOVERY OR INITIAL PROMPT) */
+              <>
+                {!codeSent ? (
+                  <form onSubmit={handleSendCode} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-2">
+                        {t('dashboard.email')}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="email"
+                          required
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          placeholder="merchant@yourshop.et"
+                          className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-black placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all pl-11 text-sm"
+                        />
+                        <Mail className="w-5 h-5 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                      </div>
+                    </div>
 
-                <button
-                  type="submit"
-                  disabled={authLoading || codeInput.length !== 6}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50 disabled:opacity-50 text-sm"
-                >
-                  {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                  <span>{t('dashboard.verifyCode')}</span>
-                </button>
+                    <button
+                      type="submit"
+                      disabled={authLoading}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50 disabled:opacity-50 text-sm"
+                    >
+                      {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                      <span>{t('dashboard.sendCode')}</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCodeSent(false);
-                    setCodeInput('');
-                    setAuthError(null);
-                  }}
-                  className="w-full text-xs text-gray-700 hover:text-black transition-colors text-center py-2 cursor-pointer"
-                >
-                  Use a different email address
-                </button>
-              </form>
+                    <div className="text-center pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMethod('password');
+                          setAuthError(null);
+                          setAuthMessage(null);
+                        }}
+                        className="text-xs text-gray-600 hover:text-emerald-700 font-semibold cursor-pointer inline-flex items-center gap-1"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>Back to Password Login</span>
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleVerifyCode} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-2">
+                        {t('dashboard.code')}
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        maxLength={6}
+                        value={codeInput}
+                        onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ''))}
+                        placeholder="123456"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-center text-2xl font-mono tracking-widest text-emerald-700 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                      />
+                      <p className="text-[11px] text-gray-700 text-center mt-1">
+                        Sent to <span className="font-semibold text-black">{emailInput}</span>
+                      </p>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authLoading || codeInput.length !== 6}
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50 disabled:opacity-50 text-sm"
+                    >
+                      {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                      <span>{t('dashboard.verifyCode')}</span>
+                    </button>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCodeSent(false);
+                          setCodeInput('');
+                          setAuthError(null);
+                        }}
+                        className="text-xs text-gray-600 hover:text-black transition-colors text-center py-1 cursor-pointer"
+                      >
+                        Change email
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAuthMethod('password');
+                          setCodeSent(false);
+                          setAuthError(null);
+                        }}
+                        className="text-xs text-emerald-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        Password sign-in
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </>
             )}
 
             <div className="mt-6 pt-6 border-t border-gray-200/80 text-center">
@@ -895,7 +1141,7 @@ export default function DashboardPage() {
             </button>
 
             {isProfileOpen && (
-              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-gray-200/60 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm animate-fade-in">
+              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-gray-200/60 grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm animate-fade-in">
                 <div className="space-y-1">
                   <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
                     {t('register.shopName') || 'Shop Name'}
@@ -925,8 +1171,55 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 </div>
+
+                <div className="space-y-1">
+                  <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
+                    Account Password
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPasswordModalError(null);
+                        setPasswordModalSuccess(null);
+                        setNewPasswordInput('');
+                        setConfirmPasswordInput('');
+                        setIsPasswordModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold border border-emerald-200 transition-colors cursor-pointer"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>{hasMerchantPassword(merchant.email || emailInput) ? 'Change Password' : 'Set Password'}</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tip Banner: Prompt to set password if merchant hasn't set one yet */}
+        {merchant?.email && !hasMerchantPassword(merchant.email) && (
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-2xl text-xs sm:text-sm flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2.5">
+              <Key className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>
+                <strong>Set your merchant password:</strong> Sign in faster without waiting for email verification codes.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setPasswordModalError(null);
+                setPasswordModalSuccess(null);
+                setNewPasswordInput('');
+                setConfirmPasswordInput('');
+                setIsPasswordModalOpen(true);
+              }}
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shrink-0 cursor-pointer transition-colors shadow-xs"
+            >
+              Set Password
+            </button>
           </div>
         )}
 
@@ -1567,6 +1860,99 @@ export default function DashboardPage() {
               )}
             </div>
       </main>
+
+      {/* Password Management Modal */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl border border-gray-200 shadow-2xl w-full max-w-md p-6 sm:p-8 relative">
+            <div className="text-center mb-6">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                <Lock className="w-6 h-6" />
+              </div>
+              <h2 className="text-xl font-black text-black">
+                {hasMerchantPassword(merchant?.email || emailInput) ? 'Change Merchant Password' : 'Set Merchant Password'}
+              </h2>
+              <p className="text-xs text-gray-600 mt-1">
+                You can use this password to sign in to your dashboard instantly without email OTP codes.
+              </p>
+            </div>
+
+            {passwordModalError && (
+              <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs p-3 rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{passwordModalError}</span>
+              </div>
+            )}
+
+            {passwordModalSuccess && (
+              <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-xl flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{passwordModalSuccess}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSavePassword} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-1.5">
+                  New Password (min 6 chars)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-black text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 pl-4 pr-11"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-1.5">
+                  Confirm New Password
+                </label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={6}
+                  value={confirmPasswordInput}
+                  onChange={(e) => setConfirmPasswordInput(e.target.value)}
+                  placeholder="Repeat new password"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-black text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsPasswordModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 hover:text-black font-semibold text-xs transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={passwordModalLoading || newPasswordInput.length < 6}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {passwordModalLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  <span>Save Password</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
