@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/MiniAppContext';
 import { Claim } from '@/types/miniapp';
-import { Ticket, Clock, CheckCircle2, ChevronRight } from 'lucide-react';
+import { Ticket, Clock, CheckCircle2, ChevronRight, PiggyBank } from 'lucide-react';
 
 interface MyClaimsProps {
   onSelectClaim: (claim: Claim) => void;
@@ -16,6 +16,9 @@ export const MyClaims: React.FC<MyClaimsProps> = ({ onSelectClaim, onExploreDeal
 
   const activeClaims = claims.filter(c => c.status === 'reserved' || c.status === 'paid');
   const pastClaims = claims.filter(c => c.status !== 'reserved' && c.status !== 'paid');
+
+  const totalSavedETB = claims.reduce((sum, c) => sum + Math.max(0, c.originalPrice - c.finalPrice), 0);
+  const totalOffersClaimed = claims.length;
 
   const displayedList = activeTab === 'active' ? activeClaims : pastClaims;
 
@@ -66,7 +69,7 @@ export const MyClaims: React.FC<MyClaimsProps> = ({ onSelectClaim, onExploreDeal
 
   return (
     <div className="space-y-4 pb-20 animate-in fade-in duration-200">
-      {/* Title & Tabs */}
+      {/* Title */}
       <div>
         <h2 className="text-xl font-extrabold text-slate-900">
           {t.myClaimsTab}
@@ -74,6 +77,31 @@ export const MyClaims: React.FC<MyClaimsProps> = ({ onSelectClaim, onExploreDeal
         <p className="text-xs text-slate-500 mt-0.5">
           Your active redemption vouchers and cashless M-PESA receipts.
         </p>
+      </div>
+
+      {/* Customer Savings & Claims Banner */}
+      <div className="p-4 bg-gradient-to-r from-emerald-700 via-emerald-800 to-teal-900 text-white rounded-2xl shadow-sm flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20">
+            <PiggyBank className="w-5 h-5 text-emerald-100" />
+          </div>
+          <div>
+            <span className="text-emerald-200 text-[10px] font-bold uppercase tracking-wider block">
+              Total Saved
+            </span>
+            <span className="text-xl font-black font-mono tracking-tight text-white">
+              {totalSavedETB.toLocaleString()} <span className="text-xs font-bold text-emerald-200">ETB</span>
+            </span>
+          </div>
+        </div>
+        <div className="border-l border-white/20 pl-4 text-right">
+          <span className="text-emerald-200 text-[10px] font-bold uppercase tracking-wider block">
+            Offers Claimed
+          </span>
+          <span className="text-xl font-black font-mono tracking-tight text-white">
+            {totalOffersClaimed} <span className="text-xs font-bold text-emerald-200">{totalOffersClaimed === 1 ? 'deal' : 'deals'}</span>
+          </span>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -158,9 +186,16 @@ export const MyClaims: React.FC<MyClaimsProps> = ({ onSelectClaim, onExploreDeal
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] text-slate-400 uppercase block">Paid</span>
-                  <span className="font-extrabold text-emerald-800 text-sm tabular-nums">
-                    {claim.finalPrice} ETB
-                  </span>
+                  <div className="flex items-center gap-1.5 justify-end">
+                    {claim.originalPrice > claim.finalPrice && (
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded">
+                        Saved {claim.originalPrice - claim.finalPrice} ETB
+                      </span>
+                    )}
+                    <span className="font-extrabold text-emerald-800 text-sm tabular-nums">
+                      {claim.finalPrice} ETB
+                    </span>
+                  </div>
                 </div>
               </div>
 

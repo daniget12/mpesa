@@ -5,17 +5,23 @@ import Link from 'next/link';
 import { X, Sparkles, ShoppingBag, Ticket, ArrowRight } from 'lucide-react';
 import { WebNotification, markAsRead } from '@/lib/notifications';
 import { useAuth } from '@/context/AuthContext';
+import { getStoredToken } from '@/lib/dashboardApi';
 
 interface ActiveToast extends WebNotification {
   toastId: string;
 }
 
 export default function NotificationToastContainer() {
-  const { isMerchant } = useAuth();
+  const { user, isMerchant } = useAuth();
   const [toasts, setToasts] = useState<ActiveToast[]>([]);
 
   useEffect(() => {
     const handleToastEvent = (e: Event) => {
+      // Notification toasts should not work without login
+      const merchantToken = getStoredToken();
+      const isLoggedIn = Boolean(user || merchantToken);
+      if (!isLoggedIn) return;
+
       const customEvent = e as CustomEvent<WebNotification>;
       const notif = customEvent.detail;
       if (!notif) return;
@@ -42,7 +48,7 @@ export default function NotificationToastContainer() {
     return () => {
       window.removeEventListener('tirf_notification_toast', handleToastEvent);
     };
-  }, [isMerchant]);
+  }, [isMerchant, user]);
 
   const handleDismiss = (toastId: string, notifId: string) => {
     markAsRead(notifId);

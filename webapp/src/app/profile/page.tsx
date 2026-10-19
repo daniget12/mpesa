@@ -32,6 +32,7 @@ import {
   MessageSquarePlus,
   Edit3,
   XCircle,
+  PiggyBank,
 } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -146,6 +147,20 @@ export default function ProfilePage() {
   const activeCount = tickets.filter((t) => t.status === 'claimed').length;
   const readyCount = tickets.filter((t) => t.status === 'paid').length;
   const reviewedCount = tickets.filter((t) => Boolean(t.rating)).length;
+
+  // Total customer savings across all claimed tickets
+  const totalSavedETB = tickets.reduce((sum, ticket) => {
+    let original = ticket.originalPrice;
+    if (!original && ticket.discountPct && ticket.discountPct > 0 && ticket.discountPct < 100) {
+      original = Math.round(ticket.amount / (1 - ticket.discountPct / 100));
+    }
+    if (original && original > ticket.amount) {
+      return sum + (original - ticket.amount);
+    }
+    return sum;
+  }, 0);
+
+  const totalOffersClaimed = tickets.length;
 
   const formatDateTime = (isoString?: string) => {
     if (!isoString) return '';
@@ -328,14 +343,42 @@ export default function ProfilePage() {
             )}
           </div>
 
+          {/* Customer Savings & Claims Banner */}
+          <div className="mt-8 p-6 bg-gradient-to-r from-emerald-600 via-emerald-700 to-teal-800 text-white rounded-[1.5rem] shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative overflow-hidden">
+            <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-40 h-40 bg-white/5 rounded-full pointer-events-none blur-2xl"></div>
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/20 shadow-inner">
+                <PiggyBank className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <span className="text-emerald-100 text-xs font-bold uppercase tracking-wider block">
+                  {t('profile.totalSaved') || 'Total Money Saved'}
+                </span>
+                <span className="text-3xl md:text-4xl font-black font-mono tracking-tight text-white">
+                  {totalSavedETB.toLocaleString()} <span className="text-base font-bold text-emerald-200">ETB</span>
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 sm:border-l sm:border-white/20 sm:pl-8 relative z-10">
+              <div>
+                <span className="text-emerald-100 text-xs font-bold uppercase tracking-wider block">
+                  {t('profile.offersClaimed') || 'Total Offers Claimed'}
+                </span>
+                <span className="text-3xl md:text-4xl font-black font-mono tracking-tight text-white">
+                  {totalOffersClaimed} <span className="text-base font-bold text-emerald-200">{totalOffersClaimed === 1 ? 'offer' : 'offers'}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-8 relative z-10">
             <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-200 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-emerald-300 transition-all group shadow-sm">
               <div className="text-3xl md:text-4xl font-black text-emerald-700 font-mono group-hover:scale-105 transition-transform">
-                {tickets.length}
+                {totalOffersClaimed}
               </div>
               <div className="text-[11px] md:text-xs font-bold text-emerald-600 uppercase tracking-wider mt-2">
-                {t('profile.totalClaims') || 'Total Claims'}
+                {t('profile.offersClaimed') || 'Offers Claimed'}
               </div>
             </div>
 
@@ -481,6 +524,12 @@ export default function ProfilePage() {
                 secondsLeft = Math.max(0, Math.floor((new Date(ticket.holdExpiresAt).getTime() - currentTime) / 1000));
               }
 
+              let originalPrice = ticket.originalPrice;
+              if (!originalPrice && ticket.discountPct && ticket.discountPct > 0 && ticket.discountPct < 100) {
+                originalPrice = Math.round(ticket.amount / (1 - ticket.discountPct / 100));
+              }
+              const ticketSavings = (originalPrice && originalPrice > ticket.amount) ? (originalPrice - ticket.amount) : 0;
+
               return (
               <div
                 key={ticket.id}
@@ -574,6 +623,12 @@ export default function ProfilePage() {
                       <div className={`text-3xl md:text-4xl font-black font-mono ${isClaimed ? 'text-amber-600' : isExpired ? 'text-slate-500' : 'text-emerald-600'}`}>
                         {ticket.amount.toLocaleString()} <span className="text-base font-bold text-slate-600">ETB</span>
                       </div>
+                      {ticketSavings > 0 && (
+                        <div className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-lg mt-2 shadow-sm">
+                          <PiggyBank className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>Saved {ticketSavings.toLocaleString()} ETB {ticket.discountPct ? `(${ticket.discountPct}% off)` : ''}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 

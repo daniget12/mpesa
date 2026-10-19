@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import {
   Bell,
@@ -10,6 +10,8 @@ import {
   Sparkles,
   ExternalLink,
   Trash2,
+  Lock,
+  LogIn,
 } from 'lucide-react';
 import {
   getNotifications,
@@ -19,9 +21,24 @@ import {
   WebNotification,
 } from '@/lib/notifications';
 import { useAuth } from '@/context/AuthContext';
+import { useLanguage } from '@/context/LanguageContext';
+import { getStoredToken } from '@/lib/dashboardApi';
 
 interface NotificationBellProps {
   onDealClick?: (dealId: string) => void;
+}
+
+function subscribeStorage(callback: () => void) {
+  window.addEventListener('storage', callback);
+  window.addEventListener('tirf_notifications_updated', callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener('tirf_notifications_updated', callback);
+  };
+}
+
+function getStoredTokenSnapshot(): string | null {
+  return getStoredToken();
 }
 
 function formatRelativeTime(isoString: string): string {
@@ -40,17 +57,30 @@ function formatRelativeTime(isoString: string): string {
 }
 
 export default function NotificationBell({ onDealClick }: NotificationBellProps) {
-  const { isMerchant } = useAuth();
+  const { user, isMerchant } = useAuth();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
-  const [notifications, setNotifications] = useState<WebNotification[]>(() =>
-    getNotifications(isMerchant ? 'merchant' : 'customer')
+
+  const merchantToken = useSyncExternalStore(
+    subscribeStorage,
+    getStoredTokenSnapshot,
+    () => null
   );
+
+  const isLoggedIn = Boolean(user || merchantToken);
+
+  const [rawNotifications, setRawNotifications] = useState<WebNotification[]>(() => {
+    if (typeof window === 'undefined') return [];
+    return getNotifications(isMerchant ? 'merchant' : 'customer');
+  });
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!isLoggedIn) return;
+
     const handleUpdate = () => {
-      setNotifications(getNotifications(isMerchant ? 'merchant' : 'customer'));
+      setRawNotifications(getNotifications(isMerchant ? 'merchant' : 'customer'));
     };
 
     window.addEventListener('tirf_notifications_updated', handleUpdate);
@@ -60,7 +90,9 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
       window.removeEventListener('tirf_notifications_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [isMerchant]);
+  }, [isMerchant, isLoggedIn]);
+
+  const notifications = isLoggedIn ? rawNotifications : [];
 
   // Click outside and escape key handling
   useEffect(() => {
@@ -160,64 +192,91 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
           <div className="p-3.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="font-bold text-sm text-slate-900">Notifications</span>
-              {unreadCount > 0 && (
+              {isLoggedIn && unreadCount > 0 && (
                 <span className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-800 rounded-full">
                   {unreadCount} new
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-1">
-              {unreadCount > 0 && (
-                <button
-                  type="button"
-                  onClick={handleMarkAllRead}
-                  className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded transition-colors"
-                  title="Mark all as read"
-                >
-                  <CheckCheck className="w-3.5 h-3.5" />
-                  <span>Mark read</span>
-                </button>
-              )}
-              {notifications.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors"
-                  title="Clear all notifications"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
+            {isLoggedIn && (
+              <div className="flex items-center gap-1">
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleMarkAllRead}
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50 px-2 py-1 rounded transition-colors cursor-pointer"
+                    title="Mark all as read"
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    <span>Mark read</span>
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="p-1 text-slate-400 hover:text-slate-600 rounded transition-colors cursor-pointer"
+                    title="Clear all notifications"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Persona Sub-header & Filter Tabs */}
-          <div className="px-3.5 py-2 border-b border-slate-100 bg-white flex items-center justify-between text-xs">
-            <span className="font-medium text-slate-500">
-              {isMerchant ? 'Merchant Alerts' : 'Customer Alerts'}
-            </span>
-            <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
-              <button
-                type="button"
-                onClick={() => setFilter('all')}
-                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                  filter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
-                }`}
+          {!isLoggedIn ? (
+            /* Sign-in Required View */
+            <div className="p-8 text-center flex flex-col items-center justify-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-200 shadow-2xs">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div className="space-y-1">
+                <h4 className="text-sm font-bold text-slate-900">
+                  {t('notifications.loginRequired') || 'Sign in to view notifications'}
+                </h4>
+                <p className="text-xs text-slate-500 max-w-[240px] mx-auto leading-relaxed">
+                  {t('notifications.loginDesc') || 'Sign in to receive deal alerts near you and live order updates.'}
+                </p>
+              </div>
+              <Link
+                href="/login"
+                onClick={() => setIsOpen(false)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm cursor-pointer"
               >
-                All
-              </button>
-              <button
-                type="button"
-                onClick={() => setFilter('unread')}
-                className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors ${
-                  filter === 'unread' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                Unread
-              </button>
+                <LogIn className="w-3.5 h-3.5" />
+                <span>{t('notifications.signInButton') || 'Sign In / Register'}</span>
+              </Link>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Persona Sub-header & Filter Tabs */}
+              <div className="px-3.5 py-2 border-b border-slate-100 bg-white flex items-center justify-between text-xs">
+                <span className="font-medium text-slate-500">
+                  {isMerchant ? 'Merchant Alerts' : 'Customer Alerts'}
+                </span>
+                <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => setFilter('all')}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                      filter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFilter('unread')}
+                    className={`px-2 py-0.5 rounded text-[11px] font-semibold transition-colors cursor-pointer ${
+                      filter === 'unread' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Unread
+                  </button>
+                </div>
+              </div>
 
           {/* List */}
           <div className="max-h-[380px] overflow-y-auto divide-y divide-slate-100">
@@ -283,6 +342,8 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
               ))
             )}
           </div>
+            </>
+          )}
         </div>
       )}
     </div>
