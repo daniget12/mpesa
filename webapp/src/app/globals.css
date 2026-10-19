@@ -98,7 +98,8 @@
   --duration-moderate: 350ms;
 }
 
-@media (prefers-color-scheme: dark) {
+/* Dark mode disabled - app uses light theme only */
+/* @media (prefers-color-scheme: dark) {
   :root {
     --background: #020617;
     --foreground: #f8fafc;
@@ -120,7 +121,7 @@
     --input: #1e293b;
     --ring: #94a3b8;
   }
-}
+} */
 
 .dark {
   --background: #020617;
