@@ -11,8 +11,6 @@ import {
   AlertCircle, 
   Loader2, 
   ArrowLeft, 
-  ExternalLink, 
-  Navigation, 
   FileCheck, 
   Globe,
   Lock,
@@ -30,6 +28,19 @@ import {
 } from '@/lib/api';
 import { processStorefrontPhoto, ProcessedPhotoResult } from '@/lib/photoUtils';
 import { setMerchantPassword } from '@/lib/merchantAuth';
+import dynamic from 'next/dynamic';
+
+const LocationPickerMap = dynamic(
+  () => import('@/components/merchant/LocationPickerMap'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-[320px] rounded-2xl bg-gray-100 flex items-center justify-center text-gray-500 border border-gray-200">
+        <Loader2 className="w-6 h-6 animate-spin text-green-600" />
+      </div>
+    ),
+  }
+);
 
 const CATEGORIES = [
   'cafe',
@@ -64,8 +75,6 @@ export default function MerchantRegisterPage() {
   // Location State (Default: Bole area Addis Ababa)
   const [lat, setLat] = useState('9.00540');
   const [lon, setLon] = useState('38.78400');
-  const [isLocating, setIsLocating] = useState(false);
-  const [locationError, setLocationError] = useState<string | null>(null);
 
   // Photo State
   const [photoData, setPhotoData] = useState<ProcessedPhotoResult | null>(null);
@@ -81,41 +90,6 @@ export default function MerchantRegisterPage() {
 
   // Field validation errors
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-
-  // Geolocation Handler (opt-in)
-  const handleUseCurrentLocation = () => {
-    setLocationError(null);
-    if (typeof window === 'undefined' || !('geolocation' in navigator)) {
-      setLocationError('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsLocating(false);
-        const userLat = pos.coords.latitude;
-        const userLon = pos.coords.longitude;
-
-        // Validate within Addis Ababa boundaries [8.80..9.15, 38.60..38.95]
-        if (userLat < 8.80 || userLat > 9.15 || userLon < 38.60 || userLon > 38.95) {
-          setLocationError(
-            t('register.coordError') ||
-            'Coordinates must be within Addis Ababa (lat 8.80..9.15, lon 38.60..38.95)'
-          );
-        } else {
-          setLat(userLat.toFixed(5));
-          setLon(userLon.toFixed(5));
-          setLocationError(null);
-        }
-      },
-      () => {
-        setIsLocating(false);
-        setLocationError('Unable to retrieve location. Please grant permission or enter manually.');
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
-  };
 
   // Photo Upload Handler with client-side canvas resize
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,12 +151,12 @@ export default function MerchantRegisterPage() {
 
     const cleanOwnerPhone = sanitizePhone(ownerPhone);
     if (!isValidEthiopianPhone(cleanOwnerPhone)) {
-      errors.ownerPhone = 'Invalid ownerPhone number. Accepted: 07xxxxxxxx, 09xxxxxxxx, +251...';
+      errors.ownerPhone = 'Invalid ownerPhone number. Accepted: 07xxxxxxxx, +251...';
     }
 
     const cleanMpesaPhone = sanitizePhone(mpesaPhone);
     if (!isValidEthiopianPhone(cleanMpesaPhone)) {
-      errors.mpesaPhone = 'Invalid mpesaPhone number. Accepted: 07xxxxxxxx, 09xxxxxxxx, +251...';
+      errors.mpesaPhone = 'Invalid mpesaPhone number. Accepted: 07xxxxxxxx, +251...';
     }
 
     const numLat = parseFloat(lat);
@@ -258,8 +232,6 @@ export default function MerchantRegisterPage() {
       setSubmitting(false);
     }
   };
-
-  const openStreetMapUrl = `https://www.openstreetmap.org/?mlat=${encodeURIComponent(lat)}&mlon=${encodeURIComponent(lon)}#map=16/${encodeURIComponent(lat)}/${encodeURIComponent(lon)}`;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -577,7 +549,7 @@ export default function MerchantRegisterPage() {
                     <input
                       type="tel"
                       required
-                      placeholder="0911223344"
+                      placeholder="0711223344"
                       className={`w-full min-h-[46px] px-3.5 py-2.5 bg-gray-50 border rounded-xl font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 text-sm ${
                         fieldErrors.ownerPhone ? 'border-red-400 bg-red-50/30' : 'border-gray-200'
                       }`}
@@ -710,83 +682,26 @@ export default function MerchantRegisterPage() {
                 </p>
               </div>
 
-              {/* Section 4: Coordinates in Addis Ababa */}
+              {/* Section 4: Shop Location on Map */}
               <div className="space-y-4 pt-2">
-                <div className="flex items-center justify-between border-b border-gray-100 pb-1.5 flex-wrap gap-2">
-                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-green-600" />
-                    <span>4. {t('register.locationSection') || 'Shop Coordinates in Addis Ababa'}</span>
-                  </h2>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 border-b border-gray-100 pb-1.5 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-green-600" />
+                  <span>4. {t('register.locationSection') || 'Shop Location on Map'}</span>
+                </h2>
 
-                  <button
-                    type="button"
-                    onClick={handleUseCurrentLocation}
-                    disabled={isLocating}
-                    className="min-h-[44px] text-xs font-semibold text-green-700 hover:text-green-800 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Navigation className={`w-3.5 h-3.5 ${isLocating ? 'animate-spin' : ''}`} />
-                    <span>{isLocating ? t('register.locating') : (t('register.useLocation') || 'Use my current location')}</span>
-                  </button>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      {t('register.latLabel') || 'Latitude (8.80 – 9.15)'} <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.00001"
-                      min="8.80"
-                      max="9.15"
-                      required
-                      className="w-full min-h-[46px] px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 text-sm"
-                      value={lat}
-                      onChange={(e) => {
-                        setLat(e.target.value);
-                        setLocationError(null);
-                      }}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">
-                      {t('register.lonLabel') || 'Longitude (38.60 – 38.95)'} <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      step="0.00001"
-                      min="38.60"
-                      max="38.95"
-                      required
-                      className="w-full min-h-[46px] px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-mono text-gray-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-green-600 text-sm"
-                      value={lon}
-                      onChange={(e) => {
-                        setLon(e.target.value);
-                        setLocationError(null);
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {locationError && (
-                  <p className="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200 font-medium">
-                    {locationError}
-                  </p>
-                )}
-
-                <div className="flex items-center justify-between text-xs text-gray-500">
-                  <span>Coordinates: <span className="font-mono text-gray-800">{parseFloat(lat || '0').toFixed(5)}, {parseFloat(lon || '0').toFixed(5)}</span></span>
-                  <a
-                    href={openStreetMapUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="min-h-[44px] text-green-700 hover:text-green-800 font-semibold inline-flex items-center gap-1 hover:underline cursor-pointer"
-                  >
-                    <span>{t('register.checkOSM') || 'Check on OpenStreetMap'}</span>
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                </div>
+                <LocationPickerMap
+                  lat={lat}
+                  lon={lon}
+                  shopName={shopName}
+                  onChange={(newLat, newLon) => {
+                    setLat(newLat);
+                    setLon(newLon);
+                    if (fieldErrors.location) {
+                      setFieldErrors((prev) => ({ ...prev, location: '' }));
+                    }
+                  }}
+                  error={fieldErrors.location}
+                />
               </div>
 
               {/* Section 5: Storefront Photo */}

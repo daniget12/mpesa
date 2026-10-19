@@ -490,7 +490,7 @@ export default function ModernAuthCard({
                   id="customer-phone"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="09xxxxxxxx"
+                  placeholder="07xxxxxxxx"
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
                 />
               </div>

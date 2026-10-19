@@ -30,7 +30,7 @@ export const ClaimReserveModal: React.FC<ClaimReserveModalProps> = ({ onBack, on
   const handlePayClick = () => {
     const cleaned = customerPhone.replace(/\D/g, '');
     if (cleaned.length < 9) {
-      setPhoneError('Please enter a valid Ethiopian phone number (e.g. 2519... or 2517...)');
+      setPhoneError('Please enter a valid Ethiopian phone number (e.g. 07... or 2517...)');
       return;
     }
     setPhoneError(null);
@@ -105,7 +105,7 @@ export const ClaimReserveModal: React.FC<ClaimReserveModalProps> = ({ onBack, on
                 setCustomerPhone(e.target.value);
                 setPhoneError(null);
               }}
-              placeholder="2519XXXXXXXX or 251700404709"
+              placeholder="07XXXXXXXX or 251700404709"
               className="w-full h-12 pl-10 pr-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-mono font-medium text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
             />
           </div>
