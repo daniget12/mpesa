@@ -630,7 +630,7 @@ export const WebsiteHome: React.FC = () => {
                   Nearby Deals on Map ({filteredAndSortedDeals.length} found)
                 </span>
                 <span className="text-xs text-slate-500 font-medium">
-                  Tap any shop pin to view details and pay with M-PESA
+                  Tap any shop pin to view details and claim deals
                 </span>
               </div>
             </div>

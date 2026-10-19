@@ -1,6 +1,7 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { X, MapPin, Star, Ticket, Clock, Sparkles, Copy, Check } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { X, MapPin, Star, Ticket, Clock, Sparkles, Copy, Check, Smartphone } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/context/AuthContext';
 import { QrCodeSvg } from '@/components/common/QrCodeSvg';
@@ -45,16 +46,49 @@ interface DealDetailsModalProps {
 }
 
 export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAtShop, onMerchantClick }: DealDetailsModalProps) {
-  const { isMerchant, isBuyer } = useAuth();
+  const router = useRouter();
+  const { user, isMerchant, isBuyer } = useAuth();
   const [claimedTicket, setClaimedTicket] = useState<CustomerClaimTicket | null>(null);
   const [copiedCode, setCopiedCode] = useState(false);
   const [secondsRemaining, setSecondsRemaining] = useState<number>(0);
+
+  // 10-second Claim countdown state
+  const [claimActive, setClaimActive] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState<number>(10);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (claimActive) {
+      timerRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setClaimActive(false);
+            return 10;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [claimActive]);
 
   const dealKey = `${deal?.id || deal?.dealId || ''}_${isOpen}`;
   const [prevKey, setPrevKey] = useState(dealKey);
   if (dealKey !== prevKey) {
     setPrevKey(dealKey);
     setClaimedTicket(null);
+    setClaimActive(false);
   }
 
   // Live countdown timer for active hold
@@ -97,6 +131,34 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
     });
     if (res.success && res.ticket) {
       setClaimedTicket(res.ticket);
+    }
+  };
+
+  const handleClaimClick = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!user) {
+      router.push('/login?redirect=/');
+      return;
+    }
+    setCountdown(10);
+    setClaimActive(true);
+  };
+
+  const handleCancelClaim = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setClaimActive(false);
+    setCountdown(10);
+  };
+
+  const handlePayClick = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setClaimActive(false);
+    if (onBuy) {
+      onBuy();
+    } else {
+      handleClaim();
     }
   };
 
@@ -267,15 +329,36 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
                   >
                     All Claimed
                   </button>
-                  ) : (
+                  ) : !claimActive ? (
                     <button 
                       type="button"
-                      onClick={onBuy || handleClaim} 
-                      className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg shadow-green-600/30 cursor-pointer text-base flex items-center gap-2"
+                      onClick={handleClaimClick} 
+                      className="min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-xl transition-colors shadow-lg shadow-emerald-600/30 cursor-pointer text-base flex items-center gap-2"
                     >
                       <Ticket className="w-5 h-5" />
-                      <span>Pay with M-PESA</span>
+                      <span>Claim</span>
                     </button>
+                  ) : (
+                    <div className="flex items-center gap-2 animate-fade-in">
+                      <button 
+                        type="button"
+                        onClick={handlePayClick} 
+                        className="min-h-[44px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-emerald-600/30 cursor-pointer text-base flex items-center gap-2"
+                      >
+                        <Smartphone className="w-5 h-5" />
+                        <span>Pay with M-PESA</span>
+                        <span className="px-2 py-0.5 rounded-full bg-black/20 text-xs font-mono font-bold">
+                          {countdown}s
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelClaim}
+                        className="min-h-[44px] px-4 py-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-sm cursor-pointer transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   )
                 ) : isMerchant ? (
                   <span className="text-xs font-semibold text-slate-500 bg-white px-4 py-2.5 rounded-xl border border-slate-200">
@@ -377,15 +460,36 @@ export default function DealDetailsModal({ deal, isOpen, onClose, onBuy, onPayAt
               >
                 All Claimed
               </button>
-            ) : (
+            ) : !claimActive ? (
               <button 
                 type="button"
-                onClick={onBuy || handleClaim} 
-                className="min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-md shadow-green-600/30 flex items-center justify-center gap-1.5 cursor-pointer text-sm"
+                onClick={handleClaimClick} 
+                className="min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-6 rounded-xl transition-colors shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 cursor-pointer text-sm"
               >
                 <Ticket className="w-4 h-4" />
-                <span>Pay with M-PESA</span>
+                <span>Claim</span>
               </button>
+            ) : (
+              <div className="flex items-center gap-2 animate-fade-in">
+                <button 
+                  type="button"
+                  onClick={handlePayClick} 
+                  className="min-h-[44px] bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold py-2 px-3.5 rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5 cursor-pointer text-xs"
+                >
+                  <Smartphone className="w-4 h-4" />
+                  <span>Pay with M-PESA</span>
+                  <span className="px-1.5 py-0.5 rounded-full bg-black/20 text-[10px] font-mono font-bold">
+                    {countdown}s
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelClaim}
+                  className="min-h-[44px] px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs cursor-pointer transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             )}
           </div>
         ) : isMerchant ? (

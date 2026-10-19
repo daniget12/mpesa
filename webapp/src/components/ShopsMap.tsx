@@ -206,7 +206,7 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
                   text-align: center;
                   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
                 ">
-                  Pay with M-PESA
+                  Claim Deal
                 </button>
               </div>
             </div>
@@ -511,7 +511,7 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
               className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer flex items-center gap-1.5"
             >
               <Zap className="w-3.5 h-3.5 fill-current" />
-              <span>Pay with M-PESA</span>
+              <span>Claim Deal</span>
             </button>
           </div>
         </div>
@@ -522,7 +522,7 @@ export const ShopsMap: React.FC<ShopsMapProps> = ({
         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
         <span>{deals.length} approved shops in Bole</span>
         <span className="text-slate-500">•</span>
-        <span className="text-slate-400">Tap pin to view and pay with M-PESA</span>
+        <span className="text-slate-400">Tap pin to view and claim deals</span>
       </div>
     </div>
   );

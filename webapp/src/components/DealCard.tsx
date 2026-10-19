@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import {
   MapPin,
   CheckCircle2,
@@ -12,8 +13,10 @@ import {
   Scissors,
   ShoppingBag,
   Smartphone,
+  Ticket,
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
+import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -72,8 +75,65 @@ export default function DealCard({
   onClick,
   onMerchantClick,
 }: DealProps) {
+  const router = useRouter();
+  const { user } = useAuth();
   const { t } = useLanguage();
   const [imageError, setImageError] = useState(false);
+
+  // 10-second Claim countdown state
+  const [claimActive, setClaimActive] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState<number>(10);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (claimActive) {
+      timerRef.current = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setClaimActive(false);
+            return 10;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [claimActive]);
+
+  const handleClaimClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      router.push('/login?redirect=/');
+      return;
+    }
+    setCountdown(10);
+    setClaimActive(true);
+  };
+
+  const handleCancelClaim = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setClaimActive(false);
+    setCountdown(10);
+  };
+
+  const handlePayClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setClaimActive(false);
+    onBuy();
+  };
 
   const catKey = (category || 'cafe').toLowerCase();
   const IconComponent = CATEGORY_ICONS[catKey] || ShoppingBag;
@@ -179,20 +239,44 @@ export default function DealCard({
             </div>
           </div>
 
-          {/* Large Pill Pay Button (at least 44px) */}
-          <Button
-            type="button"
-            variant="mpesa"
-            size="default"
-            onClick={(e) => {
-              e.stopPropagation();
-              onBuy();
-            }}
-            className="min-h-[44px] h-11 sm:h-12 px-5 rounded-full font-bold text-xs sm:text-sm shadow-soft-sm hover:shadow-soft-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
-          >
-            <Smartphone className="w-4 h-4" />
-            <span>{t("deal.payMpesa") || "Pay with M-PESA"}</span>
-          </Button>
+          {/* Claim / Pay with M-PESA & Cancel Actions */}
+          {!claimActive ? (
+            <Button
+              type="button"
+              variant="mpesa"
+              size="default"
+              onClick={handleClaimClick}
+              className="min-h-[44px] h-11 sm:h-12 px-5 rounded-full font-bold text-xs sm:text-sm shadow-soft-sm hover:shadow-soft-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+            >
+              <Ticket className="w-4 h-4" />
+              <span>{t("deal.claim") || "Claim"}</span>
+            </Button>
+          ) : (
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+              <Button
+                type="button"
+                variant="mpesa"
+                size="default"
+                onClick={handlePayClick}
+                className="min-h-[44px] h-11 sm:h-12 px-3 sm:px-4 rounded-full font-bold text-xs shadow-md hover:shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shrink-0"
+              >
+                <Smartphone className="w-4 h-4 shrink-0" />
+                <span className="whitespace-nowrap">{t("deal.payMpesa") || "Pay with M-PESA"}</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-black/25 text-[10px] sm:text-xs font-mono font-bold shrink-0">
+                  {countdown}s
+                </span>
+              </Button>
+
+              <button
+                type="button"
+                onClick={handleCancelClaim}
+                className="min-h-[44px] h-11 sm:h-12 px-2.5 sm:px-3 rounded-full font-bold text-xs text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 transition-colors flex items-center justify-center cursor-pointer shrink-0"
+                title="Cancel claim"
+              >
+                <span>{t("deal.cancel") || "Cancel"}</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
