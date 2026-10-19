@@ -16,6 +16,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { requestAuthCode, verifyAuthCode } from '@/lib/dashboardApi';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import '@/styles/modern-auth.css';
 
 interface ModernAuthCardProps {
@@ -41,6 +42,13 @@ export default function ModernAuthCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Customer auth state (Supabase)
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPassword, setCustomerPassword] = useState('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [isCustomerSignup, setIsCustomerSignup] = useState(false);
 
   // Clear messages when flipping panels
   const switchToInfo = () => {
@@ -102,18 +110,148 @@ export default function ModernAuthCard({
       }
 
       setSuccessMsg('Verification successful! Opening merchant dashboard...');
+
+      // Get redirect URL from query params
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirect = searchParams.get('redirect') || '/dashboard';
+
       setTimeout(() => {
         if (onSuccess) {
           onSuccess();
         } else if (onClose) {
           onClose();
-          router.push('/dashboard');
+          router.push(redirect);
         } else {
-          router.push('/dashboard');
+          router.push(redirect);
         }
       }, 600);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to verify code.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Customer Sign In with Supabase
+  const handleCustomerSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isSupabaseConfigured) {
+      setError('Authentication is not configured. Please contact support.');
+      return;
+    }
+
+    const cleanEmail = customerEmail.trim().toLowerCase();
+    if (!cleanEmail || !customerPassword) {
+      setError('Please enter your email and password.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password: customerPassword,
+      });
+
+      if (signInError) throw signInError;
+
+      setSuccessMsg('Sign in successful! Redirecting...');
+
+      // Get redirect URL from query params
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirect = searchParams.get('redirect') || '/';
+
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess();
+        } else if (onClose) {
+          onClose();
+          router.push(redirect);
+        } else {
+          router.push(redirect);
+        }
+      }, 600);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to sign in.';
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Customer Sign Up with Supabase
+  const handleCustomerSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isSupabaseConfigured) {
+      setError('Authentication is not configured. Please contact support.');
+      return;
+    }
+
+    const cleanEmail = customerEmail.trim().toLowerCase();
+    if (!cleanEmail || !customerPassword || !customerName) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+
+    if (customerPassword.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: customerPassword,
+        options: {
+          data: {
+            full_name: customerName,
+            phone: customerPhone || null,
+            account_type: 'buyer',
+          },
+        },
+      });
+
+      if (signUpError) throw signUpError;
+
+      // Create profile record
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: data.user.id,
+            full_name: customerName,
+            phone: customerPhone || null,
+            account_type: 'buyer',
+            role: 'user',
+          });
+
+        if (profileError) console.error('Profile creation error:', profileError);
+      }
+
+      setSuccessMsg('Account created successfully! Redirecting...');
+
+      // Get redirect URL from query params
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirect = searchParams.get('redirect') || '/';
+
+      setTimeout(() => {
+        if (onSuccess) {
+          onSuccess();
+        } else if (onClose) {
+          onClose();
+          router.push(redirect);
+        } else {
+          router.push(redirect);
+        }
+      }, 600);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to create account.';
       setError(msg);
     } finally {
       setLoading(false);
@@ -156,74 +294,200 @@ export default function ModernAuthCard({
                 : 'text-gray-500 hover:text-gray-800'
             }`}
           >
-            Customer & Shop Info
+            Customer Access
           </button>
         </div>
 
-        {/* LEFT CONTAINER: CUSTOMERS & NEW MERCHANTS (No Login Needed for Customers) */}
+        {/* LEFT CONTAINER: CUSTOMER SIGN IN / SIGN UP */}
         <div className="form-container sign-up">
-          <div className="py-8 px-6 text-center flex flex-col justify-center items-center h-full max-w-sm mx-auto">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3">
+          <form onSubmit={isCustomerSignup ? handleCustomerSignUp : handleCustomerSignIn} className="py-8 px-6 max-w-sm mx-auto">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 mx-auto">
               <ShoppingBag className="w-6 h-6" />
             </div>
 
-            <h2 className="text-xl font-extrabold text-gray-900 tracking-tight mb-2">
-              Customer Access
+            <h2 className="text-xl font-extrabold text-gray-900 tracking-tight mb-1 text-center">
+              {isCustomerSignup ? 'Create Customer Account' : 'Customer Sign In'}
             </h2>
+            <p className="text-xs text-gray-500 mb-4 text-center">
+              {isCustomerSignup
+                ? 'Sign up to track your claims and deals'
+                : 'Access your claims and order history'}
+            </p>
 
-            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3 mb-4 text-left">
-              <p className="text-xs text-emerald-900 font-semibold mb-1 flex items-center gap-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                No account or login required!
-              </p>
-              <p className="text-[11px] text-emerald-700 leading-relaxed">
-                Customers can browse deals within 2 km and pay with Safaricom M-PESA directly on any deal.
-              </p>
+            {/* Error / Success Messages */}
+            {error && (
+              <div className="mb-3 bg-red-50 border border-red-100 text-red-700 px-3 py-2 rounded-lg flex items-start gap-2 text-xs">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {successMsg && (
+              <div className="mb-3 bg-green-50 border border-green-100 text-green-700 px-3 py-2 rounded-lg flex items-start gap-2 text-xs">
+                <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{successMsg}</span>
+              </div>
+            )}
+
+            {/* Customer Name (signup only) */}
+            {isCustomerSignup && (
+              <div className="mb-3">
+                <label htmlFor="customer-name" className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  id="customer-name"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  required={isCustomerSignup}
+                  placeholder="Enter your full name"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
+                />
+              </div>
+            )}
+
+            {/* Customer Email */}
+            <div className="mb-3">
+              <label htmlFor="customer-email" className="block text-xs font-bold text-gray-700 mb-1.5">
+                Email Address *
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="email"
+                  id="customer-email"
+                  value={customerEmail}
+                  onChange={(e) => setCustomerEmail(e.target.value)}
+                  required
+                  placeholder="customer@example.com"
+                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
+                />
+              </div>
             </div>
 
-            <Link
-              href="/"
-              onClick={() => {
-                if (onClose) onClose();
-              }}
-              className="action-btn w-full flex items-center justify-center gap-2 mb-4"
-            >
-              <span>Explore Nearby Deals</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {/* Customer Password */}
+            <div className="mb-3">
+              <label htmlFor="customer-password" className="block text-xs font-bold text-gray-700 mb-1.5">
+                Password *
+              </label>
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="password"
+                  id="customer-password"
+                  value={customerPassword}
+                  onChange={(e) => setCustomerPassword(e.target.value)}
+                  required
+                  placeholder={isCustomerSignup ? "At least 6 characters" : "Enter your password"}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
+                />
+              </div>
+            </div>
 
-            <div className="w-full border-t border-gray-100 pt-4 mt-2">
+            {/* Customer Phone (signup only, optional) */}
+            {isCustomerSignup && (
+              <div className="mb-4">
+                <label htmlFor="customer-phone" className="block text-xs font-bold text-gray-700 mb-1.5">
+                  Phone Number (Optional)
+                </label>
+                <input
+                  type="tel"
+                  id="customer-phone"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="09xxxxxxxx"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
+                />
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !isSupabaseConfigured}
+              className="action-btn w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{isCustomerSignup ? 'Creating Account...' : 'Signing In...'}</span>
+                </>
+              ) : (
+                <>
+                  <span>{isCustomerSignup ? 'Create Account' : 'Sign In'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+
+            {/* Toggle between signin/signup */}
+            <div className="mt-4 text-center text-xs text-gray-600">
+              {isCustomerSignup ? (
+                <>
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomerSignup(false);
+                      setError(null);
+                      setSuccessMsg(null);
+                    }}
+                    className="text-green-700 font-bold hover:underline"
+                  >
+                    Sign In
+                  </button>
+                </>
+              ) : (
+                <>
+                  Don&apos;t have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomerSignup(true);
+                      setError(null);
+                      setSuccessMsg(null);
+                    }}
+                    className="text-green-700 font-bold hover:underline"
+                  >
+                    Sign Up
+                  </button>
+                </>
+              )}
+            </div>
+
+            {/* Merchant Registration Link */}
+            <div className="w-full border-t border-gray-100 pt-4 mt-4">
               <div className="flex items-center justify-center gap-1.5 text-xs font-bold text-gray-700 mb-1">
                 <Store className="w-4 h-4 text-green-600" />
                 <span>Want to sell on TirfMarket?</span>
               </div>
-              <p className="text-[11px] text-gray-500 mb-3">
-                Register your shop with your Business TIN to post discounted deals.
+              <p className="text-[11px] text-gray-500 mb-2 text-center">
+                Register your shop to post discounted deals.
               </p>
               <Link
                 href="/merchant/register"
                 onClick={() => {
                   if (onClose) onClose();
                 }}
-                className="inline-flex items-center justify-center gap-1 text-xs font-bold text-green-700 hover:text-green-800 hover:underline"
+                className="inline-flex items-center justify-center gap-1 text-xs font-bold text-green-700 hover:text-green-800 hover:underline mx-auto"
               >
                 <span>Register your shop</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            {/* Mobile switch back to Sign In */}
-            <div className="md:hidden mt-4 text-xs text-gray-600">
-              Already a registered merchant?{' '}
+            {/* Mobile switch to Merchant Sign In */}
+            <div className="md:hidden mt-4 text-xs text-gray-600 text-center">
+              Are you a merchant?{' '}
               <button
                 type="button"
                 onClick={switchToSignIn}
-                className="text-green-600 font-bold hover:underline"
+                className="text-green-700 font-bold hover:underline"
               >
-                Sign In
+                Merchant Sign In
               </button>
             </div>
-          </div>
+          </form>
         </div>
 
         {/* RIGHT CONTAINER: MERCHANT SIGN IN (Emailed 6-digit Code Flow) */}

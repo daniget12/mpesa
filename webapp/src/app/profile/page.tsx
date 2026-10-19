@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
@@ -34,9 +35,17 @@ import {
 } from 'lucide-react';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { t } = useLanguage();
-  const { user, profileName, isMerchant } = useAuth();
+  const { user, profileName, isMerchant, loading: authLoading } = useAuth();
   const merchantRating = getRatingForMerchant(profileName || 'Bole Highland Cafe');
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !user && isSupabaseConfigured) {
+      router.push('/login?redirect=/profile');
+    }
+  }, [user, authLoading, router]);
 
   // Tickets State
   const [tickets, setTickets] = useState<CustomerClaimTicket[]>(() => {
@@ -170,6 +179,40 @@ export default function ProfilePage() {
         return '';
     }
   };
+
+  // Show loading screen while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sm text-slate-400 font-semibold">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if not authenticated (shouldn't reach here due to redirect, but just in case)
+  if (!user && isSupabaseConfigured) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <UserIcon className="w-16 h-16 mx-auto mb-4 text-slate-600" />
+          <h2 className="text-xl font-bold text-white mb-2">Authentication Required</h2>
+          <p className="text-sm text-slate-400 mb-6">
+            Please sign in to view your claims and profile.
+          </p>
+          <Link
+            href="/login?redirect=/profile"
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold px-6 py-3 rounded-xl transition-all shadow-lg"
+          >
+            <UserIcon className="w-4 h-4" />
+            Sign In / Register
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
