@@ -58,16 +58,16 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
   return (
     <div className="space-y-4 pb-20 animate-in fade-in duration-200">
       {/* Top Shop Bar & Store Switcher */}
-      <div className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between p-3.5 bg-white rounded-2xl border border-gray-200 shadow-sm">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-black shrink-0">
             <Store className="w-4 h-4" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-slate-900 truncate">
+            <h2 className="text-sm font-bold text-black truncate">
               {currentMerchantShop.name}
             </h2>
-            <p className="text-[10px] text-slate-500 font-mono">
+            <p className="text-[10px] text-gray-600 font-mono">
               TIN: {currentMerchantShop.tinNumber} · {currentMerchantShop.category}
             </p>
           </div>
@@ -81,7 +81,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
             setRedemptionResult(null);
           }}
           aria-label="Select merchant shop"
-          className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 font-medium focus:outline-none"
+          className="text-xs bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-gray-900 font-medium focus:outline-none"
         >
           {shops.map(s => (
             <option key={s.id} value={s.id}>
@@ -97,7 +97,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
           <label htmlFor="voucherCodeInput" className="text-xs font-bold uppercase tracking-wider text-emerald-700 font-mono">
             Redeem Customer Voucher
           </label>
-          <span className="text-[10px] text-slate-500">8-character code</span>
+          <span className="text-[10px] text-gray-600">8-character code</span>
         </div>
 
         <form onSubmit={handleRedeem} className="flex gap-2">
@@ -112,7 +112,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
               }}
               placeholder="e.g. K7M4Q9XR"
               maxLength={8}
-              className="w-full h-11 px-3 bg-white text-slate-900 placeholder:text-slate-400 font-mono text-base font-bold uppercase tracking-widest rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
+              className="w-full h-11 px-3 bg-white text-black placeholder:text-gray-500 font-mono text-base font-bold uppercase tracking-widest rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <button
@@ -125,7 +125,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
         </form>
 
         {/* Quick test code buttons */}
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-200 text-[11px] text-slate-600">
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-200 text-[11px] text-gray-700">
           <span>Demo quick test:</span>
           <button
             type="button"
@@ -163,26 +163,26 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
       {/* 4 STAT CARDS (Deals redeemed, Cashless sales, Pending, Failed) */}
       <div className="grid grid-cols-2 gap-3">
         {/* Stat 1: Deals Redeemed */}
-        <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-500 block">Deals Redeemed</span>
-          <div className="text-2xl font-black text-slate-900 mt-1 tabular-nums">
+        <div className="p-3.5 bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-gray-600 block">Deals Redeemed</span>
+          <div className="text-2xl font-black text-black mt-1 tabular-nums">
             {currentMerchantShop.dealsRedeemedCount}
           </div>
           <span className="text-[10px] text-emerald-700 font-medium">All verified via code</span>
         </div>
 
         {/* Stat 2: Cashless Sales (ETB) */}
-        <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-500 block">Cashless Sales</span>
+        <div className="p-3.5 bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-gray-600 block">Cashless Sales</span>
           <div className="text-2xl font-black text-emerald-800 mt-1 tabular-nums">
-            {currentMerchantShop.cashlessSalesTotal} <span className="text-xs font-bold text-slate-500">ETB</span>
+            {currentMerchantShop.cashlessSalesTotal} <span className="text-xs font-bold text-gray-600">ETB</span>
           </div>
           <span className="text-[10px] text-emerald-700 font-medium">Whole birr via M-PESA</span>
         </div>
 
         {/* Stat 3: Pending Claims */}
-        <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-500 block">Pending Pickup</span>
+        <div className="p-3.5 bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-gray-600 block">Pending Pickup</span>
           <div className="text-2xl font-black text-amber-700 mt-1 tabular-nums">
             {currentMerchantShop.pendingSalesCount}
           </div>
@@ -190,12 +190,12 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
         </div>
 
         {/* Stat 4: Failed */}
-        <div className="p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
-          <span className="text-[11px] font-semibold text-slate-500 block">Failed / Cancelled</span>
-          <div className="text-2xl font-black text-slate-600 mt-1 tabular-nums">
+        <div className="p-3.5 bg-white rounded-2xl border border-gray-200 shadow-sm">
+          <span className="text-[11px] font-semibold text-gray-600 block">Failed / Cancelled</span>
+          <div className="text-2xl font-black text-gray-700 mt-1 tabular-nums">
             {currentMerchantShop.failedSalesCount}
           </div>
-          <span className="text-[10px] text-slate-400 font-medium">Units auto-released</span>
+          <span className="text-[10px] text-gray-500 font-medium">Units auto-released</span>
         </div>
       </div>
 
@@ -211,7 +211,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
 
         <button
           onClick={onNavigateToMyDeals}
-          className="flex-1 py-3 px-3 bg-white hover:bg-gray-50 border border-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+          className="flex-1 py-3 px-3 bg-white hover:bg-gray-50 border border-gray-200 text-black rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors"
         >
           <Tag className="w-4 h-4 text-emerald-700" />
           <span>My Active Deals</span>
@@ -219,20 +219,20 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
       </div>
 
       {/* Recent Cashless Sales Feed */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-black">
             Recent Cashless Sales
           </h3>
-          <span className="text-[11px] text-slate-500">M-PESA Settlement</span>
+          <span className="text-[11px] text-gray-600">M-PESA Settlement</span>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-gray-200">
           {merchantSales.slice(0, 5).map((sale) => (
             <div key={sale.id} className="py-2.5 flex items-center justify-between text-xs">
               <div>
-                <h4 className="font-bold text-slate-900">{sale.dealTitle}</h4>
-                <div className="flex items-center gap-2 text-[10px] text-slate-500 font-mono mt-0.5">
+                <h4 className="font-bold text-black">{sale.dealTitle}</h4>
+                <div className="flex items-center gap-2 text-[10px] text-gray-600 font-mono mt-0.5">
                   <span>{sale.mpesaReceipt}</span>
                   <span>·</span>
                   <span>Code: {sale.redemptionCode}</span>

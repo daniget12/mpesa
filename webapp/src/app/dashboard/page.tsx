@@ -463,32 +463,32 @@ export default function DashboardPage() {
   // Render Login Form in Live Mode when unauthenticated
   if (!token) {
     return (
-      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans relative overflow-hidden">
+      <div className="min-h-screen bg-white text-black flex flex-col font-sans relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[300px] bg-white blur-[130px] rounded-full pointer-events-none -z-10" />
 
-        <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
+        <header className="border-b border-gray-200/80 bg-white/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-black transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Tirf Market</span>
           </Link>
           <div className="flex items-center gap-2">
             <span className="text-lg font-black tracking-tight">
-              <span className="text-emerald-600">Tirf</span>Market <span className="text-slate-600 font-semibold text-sm">Merchant Hub</span>
+              <span className="text-emerald-600">Tirf</span>Market <span className="text-gray-700 font-semibold text-sm">Merchant Hub</span>
             </span>
           </div>
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
+          <div className="w-full max-w-md bg-gradient-to-b bg-white border border-gray-200/80 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
             <div className="text-center mb-8">
               <div className="w-14 h-14 bg-white border border-emerald-500/20 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/15">
                 <KeyRound className="w-7 h-7" />
               </div>
-              <h1 className="text-2xl font-black text-slate-900 mb-2">{t('dashboard.loginTitle')}</h1>
-              <p className="text-slate-600 text-xs sm:text-sm">{t('dashboard.loginSubtitle')}</p>
+              <h1 className="text-2xl font-black text-black mb-2">{t('dashboard.loginTitle')}</h1>
+              <p className="text-gray-700 text-xs sm:text-sm">{t('dashboard.loginSubtitle')}</p>
             </div>
 
             {authError && (
@@ -508,7 +508,7 @@ export default function DashboardPage() {
             {!codeSent ? (
               <form onSubmit={handleSendCode} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-2">
                     {t('dashboard.email')}
                   </label>
                   <div className="relative">
@@ -518,9 +518,9 @@ export default function DashboardPage() {
                       value={emailInput}
                       onChange={(e) => setEmailInput(e.target.value)}
                       placeholder="merchant@yourshop.et"
-                      className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all pl-11 text-sm"
+                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-black placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all pl-11 text-sm"
                     />
-                    <Mail className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-5 h-5 text-gray-600 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
 
@@ -536,7 +536,7 @@ export default function DashboardPage() {
             ) : (
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-gray-900 uppercase tracking-wider mb-2">
                     {t('dashboard.code')}
                   </label>
                   <input
@@ -546,10 +546,10 @@ export default function DashboardPage() {
                     value={codeInput}
                     onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ''))}
                     placeholder="123456"
-                    className="w-full bg-white border border-slate-300 rounded-xl px-4 py-3.5 text-center text-2xl font-mono tracking-widest text-emerald-700 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 text-center text-2xl font-mono tracking-widest text-emerald-700 placeholder-gray-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   />
-                  <p className="text-[11px] text-slate-600 text-center mt-1">
-                    Sent to <span className="font-semibold text-slate-900">{emailInput}</span>
+                  <p className="text-[11px] text-gray-700 text-center mt-1">
+                    Sent to <span className="font-semibold text-black">{emailInput}</span>
                   </p>
                 </div>
 
@@ -569,15 +569,15 @@ export default function DashboardPage() {
                     setCodeInput('');
                     setAuthError(null);
                   }}
-                  className="w-full text-xs text-slate-600 hover:text-slate-900 transition-colors text-center py-2 cursor-pointer"
+                  className="w-full text-xs text-gray-700 hover:text-black transition-colors text-center py-2 cursor-pointer"
                 >
                   Use a different email address
                 </button>
               </form>
             )}
 
-            <div className="mt-6 pt-6 border-t border-slate-200/80 text-center">
-              <p className="text-xs text-slate-600">
+            <div className="mt-6 pt-6 border-t border-gray-200/80 text-center">
+              <p className="text-xs text-gray-700">
                 {t('dashboard.newShop')}{' '}
                 <Link
                   href="/merchant/register"
@@ -598,25 +598,25 @@ export default function DashboardPage() {
 
   if (loading && !merchant && !errorMessage) {
     return (
-      <div className="min-h-screen bg-white text-slate-900 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-white text-black flex flex-col items-center justify-center p-4">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mb-4" />
-        <p className="text-slate-600 text-sm">Verifying merchant session...</p>
+        <p className="text-gray-700 text-sm">Verifying merchant session...</p>
       </div>
     );
   }
 
   if (currentStatus === 'pending') {
     return (
-      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans relative">
-        <header className="border-b border-slate-200 bg-white/80 px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
+      <div className="min-h-screen bg-white text-black flex flex-col font-sans relative">
+        <header className="border-b border-gray-200 bg-white/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-black">
             <ArrowLeft className="w-4 h-4" />
             <span>Tirf Market</span>
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-slate-900 bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-black bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -631,9 +631,9 @@ export default function DashboardPage() {
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 inline-block mb-3">
               Under Review
             </span>
-            <h1 className="text-2xl font-black text-slate-900 mb-2">Application Under Review</h1>
-            <p className="text-slate-600 text-sm mb-6">
-              Your merchant application for <strong className="text-slate-900">{merchant?.shopName || merchant?.name || 'your shop'}</strong> is currently under review by TirfMarket compliance. We verify business TIN and storefront information before activation.
+            <h1 className="text-2xl font-black text-black mb-2">Application Under Review</h1>
+            <p className="text-gray-700 text-sm mb-6">
+              Your merchant application for <strong className="text-black">{merchant?.shopName || merchant?.name || 'your shop'}</strong> is currently under review by TirfMarket compliance. We verify business TIN and storefront information before activation.
             </p>
             <button
               type="button"
@@ -655,7 +655,7 @@ export default function DashboardPage() {
                   setLoading(false);
                 }
               }}
-              className="w-full bg-white hover:bg-slate-700 text-slate-900 font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              className="w-full bg-white hover:bg-white text-black font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Check Status</span>
@@ -668,16 +668,16 @@ export default function DashboardPage() {
 
   if (currentStatus === 'rejected') {
     return (
-      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans relative">
-        <header className="border-b border-slate-200 bg-white/80 px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
+      <div className="min-h-screen bg-white text-black flex flex-col font-sans relative">
+        <header className="border-b border-gray-200 bg-white/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-black">
             <ArrowLeft className="w-4 h-4" />
             <span>Tirf Market</span>
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-slate-900 bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-black bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -692,19 +692,19 @@ export default function DashboardPage() {
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 inline-block mb-3">
               Application Rejected
             </span>
-            <h1 className="text-2xl font-black text-slate-900 mb-2">Registration Not Approved</h1>
+            <h1 className="text-2xl font-black text-black mb-2">Registration Not Approved</h1>
             {(merchant?.rejectionReason || merchant?.error) && (
               <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 mb-4 text-left">
                 <span className="text-[11px] font-bold text-rose-300 block mb-1">Reason:</span>
                 <p className="text-xs text-rose-200">{merchant?.rejectionReason || merchant?.error}</p>
               </div>
             )}
-            <p className="text-slate-600 text-sm mb-6">
+            <p className="text-gray-700 text-sm mb-6">
               Your merchant registration was not approved. You can submit a new registration or contact support.
             </p>
             <Link
               href="/merchant/register"
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors block text-center"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-black font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors block text-center"
             >
               <span>Submit New Registration</span>
             </Link>
@@ -716,16 +716,16 @@ export default function DashboardPage() {
 
   if (currentStatus === 'suspended') {
     return (
-      <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans relative">
-        <header className="border-b border-slate-200 bg-white/80 px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
+      <div className="min-h-screen bg-white text-black flex flex-col font-sans relative">
+        <header className="border-b border-gray-200 bg-white/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-gray-700 hover:text-black">
             <ArrowLeft className="w-4 h-4" />
             <span>Tirf Market</span>
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-slate-900 bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-black bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -740,14 +740,14 @@ export default function DashboardPage() {
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 inline-block mb-3">
               Account Suspended
             </span>
-            <h1 className="text-2xl font-black text-slate-900 mb-2">Account Suspended</h1>
+            <h1 className="text-2xl font-black text-black mb-2">Account Suspended</h1>
             {(merchant?.rejectionReason || merchant?.error) && (
               <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 mb-4 text-left">
                 <span className="text-[11px] font-bold text-rose-300 block mb-1">Notice:</span>
                 <p className="text-xs text-rose-200">{merchant?.rejectionReason || merchant?.error}</p>
               </div>
             )}
-            <p className="text-slate-600 text-sm mb-6">
+            <p className="text-gray-700 text-sm mb-6">
               This merchant account is suspended. Please contact TirfMarket support to resolve this issue.
             </p>
           </div>
@@ -757,34 +757,34 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans pb-20 selection:bg-emerald-500 selection:text-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-white text-black flex flex-col font-sans pb-20 selection:bg-emerald-500 selection:text-white relative overflow-hidden">
       {/* Background Decorative Ambient Radial Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[340px] bg-gradient-to-b from-emerald-600/10 via-emerald-900/5 to-transparent blur-[140px] rounded-full pointer-events-none -z-10" />
 
       {/* Top Projector & Counter Header */}
-      <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
+      <header className="border-b border-gray-200/80 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
           {/* Left Brand & Shop Name */}
           <div className="flex items-center gap-3.5">
             <Link
               href="/"
-              className="p-2 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 transition-all"
+              className="p-2 text-gray-700 hover:text-black rounded-xl hover:bg-white border border-transparent hover:border-gray-200 transition-all"
               title="Return to Public Marketplace"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-500 flex items-center justify-center text-slate-900 shadow-lg shadow-emerald-600/25 border border-emerald-400/30">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-500 flex items-center justify-center text-black shadow-lg shadow-emerald-600/25 border border-emerald-400/30">
                 <Store className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-base sm:text-lg tracking-tight text-slate-900">
+                  <span className="font-black text-base sm:text-lg tracking-tight text-black">
                     {merchant?.shopName || merchant?.name || 'Merchant Portal'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-slate-600">
+                <div className="flex items-center gap-2 text-[11px] text-gray-700">
                   <span className="text-emerald-600 font-semibold flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     Verified Counter
@@ -798,7 +798,7 @@ export default function DashboardPage() {
 
           {/* Right Heartbeat & Actions */}
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="hidden md:flex items-center gap-2 text-xs text-slate-700 bg-white/90 px-3.5 py-1.5 rounded-xl border border-slate-200">
+            <div className="hidden md:flex items-center gap-2 text-xs text-gray-900 bg-white/90 px-3.5 py-1.5 rounded-xl border border-gray-200">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>Live Counter Feed: <strong className="text-emerald-600 font-mono">Real-time (15s)</strong></span>
             </div>
@@ -814,7 +814,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-slate-900 bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-black bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t('dashboard.logout')}</span>
@@ -823,7 +823,7 @@ export default function DashboardPage() {
             {/* Quick Link to Marketplace */}
             <Link
               href="/"
-              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-slate-800 text-xs font-bold rounded-xl border border-slate-300/80 shadow-xs transition-all flex items-center gap-1.5"
+              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-black text-xs font-bold rounded-xl border border-gray-200/80 shadow-xs transition-all flex items-center gap-1.5"
             >
               <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
               <span className="hidden sm:inline">Marketplace</span>
@@ -833,7 +833,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => setIsPostDealOpen((prev) => !prev)}
-              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-slate-900 text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isPostDealOpen ? 'Close' : 'Post Deal'}</span>
@@ -846,7 +846,7 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 w-full space-y-8">
         {/* Collapsible Shop Profile Panel */}
         {merchant && (
-          <div className="bg-gradient-to-b from-slate-900/80 to-slate-950/80 border border-slate-200/80 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl transition-all">
+          <div className="bg-gradient-to-b bg-white border border-gray-200/80 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl transition-all">
             <button
               type="button"
               onClick={() => setIsProfileOpen((prev) => !prev)}
@@ -859,7 +859,7 @@ export default function DashboardPage() {
                   <Store className="w-4 h-4" />
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">
+                  <span className="text-sm font-bold text-black group-hover:text-emerald-600 transition-colors">
                     {merchant.shopName || merchant.name || t('dashboard.shopProfile')}
                   </span>
                 </div>
@@ -874,32 +874,32 @@ export default function DashboardPage() {
                 }`}>
                   {currentStatus}
                 </span>
-                <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-gray-700 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
               </div>
             </button>
 
             {isProfileOpen && (
-              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm animate-fade-in">
+              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-gray-200/60 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm animate-fade-in">
                 <div className="space-y-1">
-                  <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
                     {t('register.shopName') || 'Shop Name'}
                   </div>
-                  <div className="font-bold text-slate-900 text-base">
+                  <div className="font-bold text-black text-base">
                     {merchant.shopName || merchant.name || 'Merchant Shop'}
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
                     {t('dashboard.category') || 'Category'}
                   </div>
-                  <div className="font-medium text-slate-800 capitalize">
+                  <div className="font-medium text-black capitalize">
                     {merchant.category || 'Shop'}
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-gray-700 uppercase tracking-wider">
                     {t('dashboard.status') || 'Status'}
                   </div>
                   <div className="flex flex-col gap-1 items-start">
@@ -945,14 +945,14 @@ export default function DashboardPage() {
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-slate-900 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-600/25 border border-emerald-400/30">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-black flex items-center justify-center shrink-0 shadow-lg shadow-emerald-600/25 border border-emerald-400/30">
                     <Tag className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-black text-black tracking-tight flex items-center gap-2">
                       {t('dashboard.redeemTitle')}
                     </h2>
-                    <p className="text-xs md:text-sm text-slate-600">
+                    <p className="text-xs md:text-sm text-gray-700">
                       Enter the 8-character code shown on customer&apos;s phone to verify and redeem.
                     </p>
                   </div>
@@ -969,13 +969,13 @@ export default function DashboardPage() {
                     placeholder="Enter 8-character code (e.g. K7M4Q9XR)"
                     disabled={redeemLoading}
                     maxLength={16}
-                    className="w-full bg-white border border-slate-300 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 rounded-2xl px-5 py-4 text-xl sm:text-2xl md:text-3xl font-mono tracking-wider md:tracking-widest text-emerald-700 placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:tracking-normal placeholder:text-slate-400 uppercase transition-all min-h-[58px]"
+                    className="w-full bg-white border border-gray-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 rounded-2xl px-5 py-4 text-xl sm:text-2xl md:text-3xl font-mono tracking-wider md:tracking-widest text-emerald-700 placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:tracking-normal placeholder:text-gray-500 uppercase transition-all min-h-[58px]"
                   />
                   {redeemCodeInput && (
                     <button
                       type="button"
                       onClick={() => setRedeemCodeInput('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 p-1"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-black p-1"
                     >
                       ✕
                     </button>
@@ -1008,7 +1008,7 @@ export default function DashboardPage() {
                     <div>
                       <span className="font-bold text-amber-200 block text-sm">{redeemResult.message}</span>
                       <p className="text-xs text-amber-300/80 mt-1">
-                        Redeemed at: <strong className="text-slate-900 font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
+                        Redeemed at: <strong className="text-black font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
                       </p>
                     </div>
                   </div>
@@ -1058,7 +1058,7 @@ export default function DashboardPage() {
 
               {/* HTTP 20x Success Card */}
               {redeemResult?.kind === 'success' && (
-                <div className="mt-5 bg-gradient-to-br from-emerald-950/50 via-slate-900/90 to-emerald-950/40 border-2 border-emerald-500/50 text-emerald-200 p-6 sm:p-7 rounded-3xl shadow-2xl shadow-emerald-950/40 animate-fade-in relative">
+                <div className="mt-5 bg-gradient-to-br from-emerald-50 to-white border-2 border-emerald-500/50 text-emerald-200 p-6 sm:p-7 rounded-3xl shadow-2xl shadow-emerald-950/40 animate-fade-in relative">
                   <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-emerald-500/20">
                     <div className="flex items-center gap-3">
                       <div className="p-2.5 bg-emerald-500/20 text-emerald-700 rounded-2xl border border-emerald-500/30 shadow-inner">
@@ -1069,7 +1069,7 @@ export default function DashboardPage() {
                           {t('dashboard.redeemSuccess')}
                         </h3>
                         <p className="text-xs text-emerald-600/80">
-                          {t('dashboard.redeemedAt') || 'Redeemed at'}: <strong className="text-slate-900 font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
+                          {t('dashboard.redeemedAt') || 'Redeemed at'}: <strong className="text-black font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
                         </p>
                       </div>
                     </div>
@@ -1077,7 +1077,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => setRedeemResult(null)}
-                      className="px-3 py-1.5 bg-white hover:bg-slate-700 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-white hover:bg-white text-gray-900 hover:text-black rounded-xl text-xs font-bold transition-colors cursor-pointer"
                     >
                       Redeem Next Voucher
                     </button>
@@ -1088,7 +1088,7 @@ export default function DashboardPage() {
                       <div className="text-[11px] font-semibold text-emerald-600/80 uppercase tracking-wider mb-1">
                         Deal Title
                       </div>
-                      <div className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
+                      <div className="text-lg sm:text-xl font-black text-black leading-tight">
                         {redeemResult.dealTitle}
                       </div>
                     </div>
@@ -1103,7 +1103,7 @@ export default function DashboardPage() {
                             {redeemResult.amount} <span className="text-base font-bold text-emerald-700">ETB</span>
                           </>
                         ) : (
-                          <span className="text-slate-600 font-mono">{DASH}</span>
+                          <span className="text-gray-700 font-mono">{DASH}</span>
                         )}
                       </div>
                       <div className="text-[11px] text-emerald-600/70 font-semibold mt-1">
@@ -1115,7 +1115,7 @@ export default function DashboardPage() {
                       <div className="text-[11px] font-semibold text-emerald-600/80 uppercase tracking-wider mb-1">
                         Order Reference
                       </div>
-                      <div className="text-xs sm:text-sm font-mono text-slate-700 break-all bg-white/60 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
+                      <div className="text-xs sm:text-sm font-mono text-gray-900 break-all bg-white/60 p-2.5 rounded-xl border border-gray-200 flex items-center justify-between gap-2">
                         <span>{redeemResult.id}</span>
                         {redeemResult.id !== DASH && (
                           <button
@@ -1125,7 +1125,7 @@ export default function DashboardPage() {
                               setCopiedOrderId(true);
                               setTimeout(() => setCopiedOrderId(false), 2000);
                             }}
-                            className="text-slate-600 hover:text-slate-900 p-1"
+                            className="text-gray-700 hover:text-black p-1"
                             title="Copy Order ID"
                           >
                             {copiedOrderId ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1149,14 +1149,14 @@ export default function DashboardPage() {
             {/* Post Deal Section (Live POST /api/merchant/deals) */}
             {isPostDealOpen && (
               <div className="bg-white border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden animate-fade-in">
-                <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
+                <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-200">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold">
                       <Plus className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-slate-900">Post New Deal</h3>
-                      <p className="text-xs text-slate-600">
+                      <h3 className="text-lg font-black text-black">Post New Deal</h3>
+                      <p className="text-xs text-gray-700">
                         Create a verified deal for nearby shoppers within 2 km.
                       </p>
                     </div>
@@ -1167,7 +1167,7 @@ export default function DashboardPage() {
                       setIsPostDealOpen(false);
                       setPostError(null);
                     }}
-                    className="text-xs text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-700 transition-colors cursor-pointer"
+                    className="text-xs text-gray-700 hover:text-black px-2.5 py-1 rounded-lg bg-white hover:bg-white transition-colors cursor-pointer"
                   >
                     ✕ Close
                   </button>
@@ -1183,7 +1183,7 @@ export default function DashboardPage() {
                 <form onSubmit={handlePostDealSubmit} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-bold text-gray-900 mb-1.5">
                         Deal Title (3-80 chars) *
                       </label>
                       <input
@@ -1194,13 +1194,13 @@ export default function DashboardPage() {
                         value={postTitle}
                         onChange={(e) => setPostTitle(e.target.value)}
                         placeholder="e.g. 25% Off Fresh Roast Coffee & Pastry"
-                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-black placeholder-gray-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        <label className="block text-xs font-bold text-gray-900 mb-1.5">
                           Price (ETB) *
                         </label>
                         <input
@@ -1210,11 +1210,11 @@ export default function DashboardPage() {
                           required
                           value={postPrice}
                           onChange={(e) => setPostPrice(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-900 focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono text-black focus:outline-none focus:border-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                        <label className="block text-xs font-bold text-gray-900 mb-1.5">
                           Discount ({postDiscountPct}%) *
                         </label>
                         <input
@@ -1224,23 +1224,23 @@ export default function DashboardPage() {
                           required
                           value={postDiscountPct}
                           onChange={(e) => setPostDiscountPct(Math.max(1, Math.min(90, parseInt(e.target.value) || 1)))}
-                          className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-600 focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-600 focus:outline-none focus:border-emerald-500"
                         />
-                        <span className="text-[10px] text-slate-600 block mt-0.5">New shops: max 50%</span>
+                        <span className="text-[10px] text-gray-700 block mt-0.5">New shops: max 50%</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-200/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-gray-200/80">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <label className="block text-xs font-bold text-gray-900 mb-1.5 flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-emerald-600" />
                         <span>Expiry Duration (Days) *</span>
                       </label>
                       <select
                         value={postExpiryDays}
                         onChange={(e) => setPostExpiryDays(parseInt(e.target.value))}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-black focus:outline-none focus:border-emerald-500"
                       >
                         <option value={1}>1 Day</option>
                         <option value={3}>3 Days</option>
@@ -1249,11 +1249,11 @@ export default function DashboardPage() {
                         <option value={14}>14 Days</option>
                         <option value={30}>30 Days</option>
                       </select>
-                      <span className="text-[10px] text-slate-600 block mt-0.5">New shops: up to 7 days only</span>
+                      <span className="text-[10px] text-gray-700 block mt-0.5">New shops: up to 7 days only</span>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      <label className="block text-xs font-bold text-gray-900 mb-1.5">
                         Item / Stock Code (Optional)
                       </label>
                       <input
@@ -1262,14 +1262,14 @@ export default function DashboardPage() {
                         value={postItemCode}
                         onChange={(e) => setPostItemCode(e.target.value.toUpperCase())}
                         placeholder="e.g. COFFEE-01"
-                        className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-slate-900 placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-black placeholder-gray-600 focus:outline-none focus:border-emerald-500"
                       />
-                      <span className="text-[10px] text-slate-600 block mt-0.5">3-20 letters/digits/dashes</span>
+                      <span className="text-[10px] text-gray-700 block mt-0.5">3-20 letters/digits/dashes</span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-white/80 rounded-xl border border-slate-200 flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-600">Final customer counter price:</span>
+                  <div className="p-3.5 bg-white/80 rounded-xl border border-gray-200 flex items-center justify-between text-xs font-mono">
+                    <span className="text-gray-700">Final customer counter price:</span>
                     <span className="text-emerald-600 font-black text-sm">
                       {Math.round(postPrice * (1 - postDiscountPct / 100))} ETB
                     </span>
@@ -1278,7 +1278,7 @@ export default function DashboardPage() {
                   <button
                     type="submit"
                     disabled={postLoading}
-                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-slate-900 font-black text-sm rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-black font-black text-sm rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {postLoading ? (
                       <>
@@ -1294,17 +1294,17 @@ export default function DashboardPage() {
             )}
 
             {/* Live Deals Section (GET /api/merchant/deals) */}
-            <div className="bg-white/80 border border-slate-200/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-xl">
-              <div className="p-5 md:p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white/80 border border-gray-200/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-xl">
+              <div className="p-5 md:p-6 border-b border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-white border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold shrink-0">
                     <Tag className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 text-base md:text-lg flex items-center gap-2">
+                    <h3 className="font-bold text-black text-base md:text-lg flex items-center gap-2">
                       <span>Active Shop Deals</span>
                     </h3>
-                    <p className="text-xs text-slate-600 mt-0.5">
+                    <p className="text-xs text-gray-700 mt-0.5">
                       Live published offers shown to shoppers within 2 km
                     </p>
                   </div>
@@ -1321,18 +1321,18 @@ export default function DashboardPage() {
               </div>
 
               {dealsLoading ? (
-                <div className="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                <div className="py-12 text-center text-gray-600 flex flex-col items-center justify-center gap-2">
                   <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
                   <p className="text-xs">Loading active deals...</p>
                 </div>
               ) : deals.length === 0 ? (
-                <div className="py-12 text-center text-slate-500 text-xs">
+                <div className="py-12 text-center text-gray-600 text-xs">
                   No active deals posted yet. Click &quot;Post Deal&quot; to publish your first offer.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
-                    <thead className="bg-white/70 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200/80">
+                    <thead className="bg-white/70 text-gray-700 text-xs uppercase font-semibold border-b border-gray-200/80">
                       <tr>
                         <th className="px-6 py-3.5">Deal</th>
                         <th className="px-6 py-3.5 text-right">Original Price</th>
@@ -1342,16 +1342,16 @@ export default function DashboardPage() {
                         <th className="px-6 py-3.5 text-right">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                    <tbody className="divide-y divide-gray-200 font-mono text-xs">
                       {deals.map((d) => (
                         <tr key={d.id} className="hover:bg-white/30 transition-colors">
-                          <td className="px-6 py-3.5 font-bold font-sans text-slate-900 max-w-xs truncate">
+                          <td className="px-6 py-3.5 font-bold font-sans text-black max-w-xs truncate">
                             <div>{d.title}</div>
                             {d.itemCode && (
-                              <span className="text-[10px] text-slate-600 font-mono">Code: {d.itemCode}</span>
+                              <span className="text-[10px] text-gray-700 font-mono">Code: {d.itemCode}</span>
                             )}
                           </td>
-                          <td className="px-6 py-3.5 text-right text-slate-600 line-through">
+                          <td className="px-6 py-3.5 text-right text-gray-700 line-through">
                             {d.price} ETB
                           </td>
                           <td className="px-6 py-3.5 text-center">
@@ -1362,14 +1362,14 @@ export default function DashboardPage() {
                           <td className="px-6 py-3.5 text-right font-black text-amber-400">
                             {d.finalAmount} ETB
                           </td>
-                          <td className="px-6 py-3.5 text-slate-700 font-sans text-xs">
+                          <td className="px-6 py-3.5 text-gray-900 font-sans text-xs">
                             {formatDate(d.expiryDate)}
                           </td>
                           <td className="px-6 py-3.5 text-right font-sans">
                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                               d.isActive
                                 ? 'text-emerald-600 bg-white border border-emerald-500/30'
-                                : 'text-slate-600 bg-white border border-slate-300'
+                                : 'text-gray-700 bg-white border border-gray-200'
                             }`}>
                               {d.isActive ? 'Active' : 'Paused'}
                             </span>
@@ -1385,9 +1385,9 @@ export default function DashboardPage() {
             {/* Primary Metrics Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {/* Deals Redeemed */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-600 mb-3">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
+              <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+                <div className="flex items-center justify-between text-gray-700 mb-3">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-700">
                     {t('dashboard.dealsRedeemed')}
                   </span>
                   <div className="p-2 bg-white text-emerald-600 rounded-xl border border-emerald-500/20">
@@ -1397,15 +1397,15 @@ export default function DashboardPage() {
                 <div className="text-4xl sm:text-5xl md:text-6xl font-black text-emerald-600 font-mono tracking-tight">
                   {animatedDealsRedeemed}
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium mt-2">
+                <div className="text-[11px] text-gray-600 font-medium mt-2">
                   Counter verified vouchers
                 </div>
               </div>
 
               {/* Cashless Sales */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-600 mb-3">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
+              <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
+                <div className="flex items-center justify-between text-gray-700 mb-3">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-700">
                     {t('dashboard.cashlessSales')}
                   </span>
                   <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
@@ -1415,15 +1415,15 @@ export default function DashboardPage() {
                 <div className="text-3xl sm:text-4xl md:text-5xl font-black text-amber-400 font-mono tracking-tight truncate">
                   {animatedSales.toLocaleString()} <span className="text-lg sm:text-xl font-bold">ETB</span>
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium mt-2">
+                <div className="text-[11px] text-gray-600 font-medium mt-2">
                   Cleared to M-PESA merchant till
                 </div>
               </div>
 
               {/* Pending Orders */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-sky-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-600 mb-3">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
+              <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-sky-500/40 transition-all">
+                <div className="flex items-center justify-between text-gray-700 mb-3">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-700">
                     {t('dashboard.pending')}
                   </span>
                   <div className="p-2 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
@@ -1433,15 +1433,15 @@ export default function DashboardPage() {
                 <div className="text-4xl sm:text-5xl md:text-6xl font-black text-sky-400 font-mono tracking-tight">
                   {animatedPending}
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium mt-2">
+                <div className="text-[11px] text-gray-600 font-medium mt-2">
                   Awaiting PIN STK on customer handset
                 </div>
               </div>
 
               {/* Failed Orders */}
-              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-rose-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-600 mb-3">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
+              <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-rose-500/40 transition-all">
+                <div className="flex items-center justify-between text-gray-700 mb-3">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-700">
                     {t('dashboard.failed')}
                   </span>
                   <div className="p-2 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20">
@@ -1451,24 +1451,24 @@ export default function DashboardPage() {
                 <div className="text-4xl sm:text-5xl md:text-6xl font-black text-rose-400 font-mono tracking-tight">
                   {animatedFailed}
                 </div>
-                <div className="text-[11px] text-slate-500 font-medium mt-2">
+                <div className="text-[11px] text-gray-600 font-medium mt-2">
                   Declined or cancelled PIN requests
                 </div>
               </div>
             </div>
 
             {/* Live Orders Stream List */}
-            <div className="bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl shadow-xl overflow-hidden">
-              <div className="p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-gradient-to-b bg-white border border-gray-200/80 rounded-2xl shadow-xl overflow-hidden">
+              <div className="p-6 border-b border-gray-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-white border border-emerald-500/20 text-emerald-600 flex items-center justify-center">
                     <Receipt className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                    <h2 className="text-lg font-black text-black flex items-center gap-2">
                       <span>{t('dashboard.recentOrders')}</span>
                     </h2>
-                    <p className="text-xs text-slate-600">
+                    <p className="text-xs text-gray-700">
                       Live Safaricom transaction receipts and redemption timeline
                     </p>
                   </div>
@@ -1482,12 +1482,12 @@ export default function DashboardPage() {
                       value={orderSearchQuery}
                       onChange={(e) => setOrderSearchQuery(e.target.value)}
                       placeholder="Search deal or receipt..."
-                      className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-500 focus:outline-none focus:border-emerald-500 min-h-[36px]"
+                      className="pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-xl text-xs text-black placeholder-gray-500 focus:outline-none focus:border-emerald-500 min-h-[36px]"
                     />
-                    <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <Search className="w-3.5 h-3.5 text-gray-600 absolute left-2.5 top-1/2 -translate-y-1/2" />
                   </div>
 
-                  <div className="hidden sm:flex items-center gap-2 text-xs text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200">
+                  <div className="hidden sm:flex items-center gap-2 text-xs text-gray-700 bg-white px-3 py-1.5 rounded-xl border border-gray-200">
                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span>Live Stream</span>
                   </div>
@@ -1495,34 +1495,34 @@ export default function DashboardPage() {
               </div>
 
               {loading && !stats ? (
-                <div className="py-20 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
+                <div className="py-20 text-center text-gray-600 flex flex-col items-center justify-center gap-3">
                   <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
                   <p className="text-xs sm:text-sm">Loading transactions...</p>
                 </div>
               ) : !stats?.recent || stats.recent.length === 0 ? (
-                <div className="py-16 text-center text-slate-500 text-xs sm:text-sm">
+                <div className="py-16 text-center text-gray-600 text-xs sm:text-sm">
                   {t('dashboard.noRecentOrders')}
                 </div>
               ) : filteredRecentOrders.length === 0 ? (
-                <div className="py-12 text-center text-slate-500 text-xs">
+                <div className="py-12 text-center text-gray-600 text-xs">
                   No orders match &quot;{orderSearchQuery}&quot;.
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
-                    <thead className="bg-white/70 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200/80">
+                    <thead className="bg-white/70 text-gray-700 text-xs uppercase font-semibold border-b border-gray-200/80">
                       <tr>
                         <th className="px-6 py-4">{t('dashboard.deal')}</th>
                         <th className="px-6 py-4 text-right">{t('dashboard.amount')}</th>
                         <th className="px-6 py-4">{t('dashboard.receipt')}</th>
                         <th className="px-6 py-4">{t('dashboard.paidAt')}</th>
-                        <th className="px-6 py-4 font-mono text-slate-500">{t('dashboard.orderId')}</th>
+                        <th className="px-6 py-4 font-mono text-gray-600">{t('dashboard.orderId')}</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y divide-gray-200">
                       {filteredRecentOrders.map((order: DashboardOrder) => (
                         <tr key={order.orderId} className="hover:bg-white/30 transition-colors">
-                          <td className="px-6 py-4 font-bold text-slate-900 max-w-xs truncate">
+                          <td className="px-6 py-4 font-bold text-black max-w-xs truncate">
                             {order.dealTitle || 'Deal'}
                           </td>
                           <td className="px-6 py-4 text-right font-mono font-bold text-amber-400 whitespace-nowrap">
@@ -1534,13 +1534,13 @@ export default function DashboardPage() {
                                 {order.receipt}
                               </span>
                             ) : (
-                              <span className="text-slate-600">-</span>
+                              <span className="text-gray-700">-</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-slate-600 text-xs whitespace-nowrap">
+                          <td className="px-6 py-4 text-gray-700 text-xs whitespace-nowrap">
                             {formatTime(order.paidAt)}
                           </td>
-                          <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap">
+                          <td className="px-6 py-4 font-mono text-xs text-gray-600 whitespace-nowrap">
                             {order.orderId}
                           </td>
                         </tr>
