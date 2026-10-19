@@ -92,12 +92,12 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
       </div>
 
       {/* "REDEEM A CODE" BOX AT THE TOP (Crucial Counter Tool) */}
-      <div className="bg-slate-900 text-white rounded-2xl p-4 shadow-lg border border-slate-800">
+      <div className="bg-emerald-50 rounded-2xl p-4 shadow-lg border border-emerald-200">
         <div className="flex items-center justify-between mb-2">
-          <label htmlFor="voucherCodeInput" className="text-xs font-bold uppercase tracking-wider text-emerald-400 font-mono">
+          <label htmlFor="voucherCodeInput" className="text-xs font-bold uppercase tracking-wider text-emerald-700 font-mono">
             Redeem Customer Voucher
           </label>
-          <span className="text-[10px] text-slate-400">8-character code</span>
+          <span className="text-[10px] text-slate-500">8-character code</span>
         </div>
 
         <form onSubmit={handleRedeem} className="flex gap-2">
@@ -112,7 +112,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
               }}
               placeholder="e.g. K7M4Q9XR"
               maxLength={8}
-              className="w-full h-11 px-3 bg-slate-800 text-white placeholder:text-slate-500 font-mono text-base font-bold uppercase tracking-widest rounded-xl border border-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              className="w-full h-11 px-3 bg-white text-slate-900 placeholder:text-slate-400 font-mono text-base font-bold uppercase tracking-widest rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500"
             />
           </div>
           <button
@@ -125,12 +125,12 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
         </form>
 
         {/* Quick test code buttons */}
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-slate-800 text-[11px] text-slate-400">
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-emerald-200 text-[11px] text-slate-600">
           <span>Demo quick test:</span>
           <button
             type="button"
             onClick={() => setInputCode('K7M4Q9XR')}
-            className="text-emerald-400 hover:underline font-mono"
+            className="text-emerald-700 hover:underline font-mono font-semibold"
           >
             K7M4Q9XR
           </button>
@@ -140,19 +140,19 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
         {redemptionResult && (
           <div className={`mt-3 p-3 rounded-xl border text-xs animate-in fade-in ${
             redemptionResult.type === 'success'
-              ? 'bg-emerald-950/80 border-emerald-500 text-emerald-200'
-              : 'bg-rose-950/80 border-rose-500 text-rose-200'
+              ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+              : 'bg-rose-50 border-rose-300 text-rose-900'
           }`}>
             <div className="flex items-start gap-2">
               {redemptionResult.type === 'success' ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               ) : (
-                <XCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
               )}
               <div>
                 <p className="font-bold">{redemptionResult.message}</p>
                 {redemptionResult.details && (
-                  <p className="text-[11px] opacity-80 mt-0.5">{redemptionResult.details}</p>
+                  <p className="text-[11px] opacity-70 mt-0.5">{redemptionResult.details}</p>
                 )}
               </div>
             </div>

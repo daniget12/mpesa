@@ -463,32 +463,32 @@ export default function DashboardPage() {
   // Render Login Form in Live Mode when unauthenticated
   if (!token) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 text-slate-900 flex flex-col font-sans relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[300px] bg-emerald-500/10 blur-[130px] rounded-full pointer-events-none -z-10" />
 
-        <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
+        <header className="border-b border-slate-200/80 bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Tirf Market</span>
           </Link>
           <div className="flex items-center gap-2">
             <span className="text-lg font-black tracking-tight">
-              <span className="text-emerald-400">Tirf</span>Market <span className="text-slate-400 font-semibold text-sm">Merchant Hub</span>
+              <span className="text-emerald-400">Tirf</span>Market <span className="text-slate-600 font-semibold text-sm">Merchant Hub</span>
             </span>
           </div>
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
+          <div className="w-full max-w-md bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
             <div className="text-center mb-8">
               <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/15">
                 <KeyRound className="w-7 h-7" />
               </div>
-              <h1 className="text-2xl font-black text-white mb-2">{t('dashboard.loginTitle')}</h1>
-              <p className="text-slate-400 text-xs sm:text-sm">{t('dashboard.loginSubtitle')}</p>
+              <h1 className="text-2xl font-black text-slate-900 mb-2">{t('dashboard.loginTitle')}</h1>
+              <p className="text-slate-600 text-xs sm:text-sm">{t('dashboard.loginSubtitle')}</p>
             </div>
 
             {authError && (
@@ -508,7 +508,7 @@ export default function DashboardPage() {
             {!codeSent ? (
               <form onSubmit={handleSendCode} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                     {t('dashboard.email')}
                   </label>
                   <div className="relative">
@@ -518,7 +518,7 @@ export default function DashboardPage() {
                       value={emailInput}
                       onChange={(e) => setEmailInput(e.target.value)}
                       placeholder="merchant@yourshop.et"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all pl-11 text-sm"
+                      className="w-full bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all pl-11 text-sm"
                     />
                     <Mail className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   </div>
@@ -527,7 +527,7 @@ export default function DashboardPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50 disabled:opacity-50 text-sm"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-slate-900 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50 disabled:opacity-50 text-sm"
                 >
                   {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
                   <span>{t('dashboard.sendCode')}</span>
@@ -536,7 +536,7 @@ export default function DashboardPage() {
             ) : (
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
                     {t('dashboard.code')}
                   </label>
                   <input
@@ -546,9 +546,9 @@ export default function DashboardPage() {
                     value={codeInput}
                     onChange={(e) => setCodeInput(e.target.value.replace(/\D/g, ''))}
                     placeholder="123456"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-center text-2xl font-mono tracking-widest text-emerald-400 placeholder-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    className="w-full bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 border border-slate-200 rounded-xl px-4 py-3.5 text-center text-2xl font-mono tracking-widest text-emerald-400 placeholder-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   />
-                  <p className="text-[11px] text-slate-400 text-center mt-1">
+                  <p className="text-[11px] text-slate-600 text-center mt-1">
                     Sent to <span className="font-semibold text-slate-200">{emailInput}</span>
                   </p>
                 </div>
@@ -556,7 +556,7 @@ export default function DashboardPage() {
                 <button
                   type="submit"
                   disabled={authLoading || codeInput.length !== 6}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50 disabled:opacity-50 text-sm"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 active:scale-[0.99] text-slate-900 font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-950/50 disabled:opacity-50 text-sm"
                 >
                   {authLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
                   <span>{t('dashboard.verifyCode')}</span>
@@ -569,15 +569,15 @@ export default function DashboardPage() {
                     setCodeInput('');
                     setAuthError(null);
                   }}
-                  className="w-full text-xs text-slate-400 hover:text-white transition-colors text-center py-2 cursor-pointer"
+                  className="w-full text-xs text-slate-600 hover:text-slate-900 transition-colors text-center py-2 cursor-pointer"
                 >
                   Use a different email address
                 </button>
               </form>
             )}
 
-            <div className="mt-6 pt-6 border-t border-slate-800/80 text-center">
-              <p className="text-xs text-slate-400">
+            <div className="mt-6 pt-6 border-t border-slate-200/80 text-center">
+              <p className="text-xs text-slate-600">
                 {t('dashboard.newShop')}{' '}
                 <Link
                   href="/merchant/register"
@@ -598,25 +598,25 @@ export default function DashboardPage() {
 
   if (loading && !merchant && !errorMessage) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 text-slate-900 flex flex-col items-center justify-center p-4">
         <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mb-4" />
-        <p className="text-slate-400 text-sm">Verifying merchant session...</p>
+        <p className="text-slate-600 text-sm">Verifying merchant session...</p>
       </div>
     );
   }
 
   if (currentStatus === 'pending') {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative">
-        <header className="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 text-slate-900 flex flex-col font-sans relative">
+        <header className="border-b border-slate-200 bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
             <ArrowLeft className="w-4 h-4" />
             <span>Tirf Market</span>
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-slate-900 bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -624,16 +624,16 @@ export default function DashboardPage() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl">
+          <div className="w-full max-w-md bg-white border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl">
             <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Clock className="w-7 h-7" />
             </div>
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 inline-block mb-3">
               Under Review
             </span>
-            <h1 className="text-2xl font-black text-white mb-2">Application Under Review</h1>
-            <p className="text-slate-400 text-sm mb-6">
-              Your merchant application for <strong className="text-white">{merchant?.shopName || merchant?.name || 'your shop'}</strong> is currently under review by TirfMarket compliance. We verify business TIN and storefront information before activation.
+            <h1 className="text-2xl font-black text-slate-900 mb-2">Application Under Review</h1>
+            <p className="text-slate-600 text-sm mb-6">
+              Your merchant application for <strong className="text-slate-900">{merchant?.shopName || merchant?.name || 'your shop'}</strong> is currently under review by TirfMarket compliance. We verify business TIN and storefront information before activation.
             </p>
             <button
               type="button"
@@ -655,7 +655,7 @@ export default function DashboardPage() {
                   setLoading(false);
                 }
               }}
-              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              className="w-full bg-slate-100 hover:bg-slate-700 text-slate-900 font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Check Status</span>
@@ -668,16 +668,16 @@ export default function DashboardPage() {
 
   if (currentStatus === 'rejected') {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative">
-        <header className="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 text-slate-900 flex flex-col font-sans relative">
+        <header className="border-b border-slate-200 bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
             <ArrowLeft className="w-4 h-4" />
             <span>Tirf Market</span>
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-slate-900 bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -685,26 +685,26 @@ export default function DashboardPage() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-3xl p-8 text-center shadow-2xl">
+          <div className="w-full max-w-md bg-white border border-rose-500/30 rounded-3xl p-8 text-center shadow-2xl">
             <div className="w-14 h-14 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <XCircle className="w-7 h-7" />
             </div>
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 inline-block mb-3">
               Application Rejected
             </span>
-            <h1 className="text-2xl font-black text-white mb-2">Registration Not Approved</h1>
+            <h1 className="text-2xl font-black text-slate-900 mb-2">Registration Not Approved</h1>
             {(merchant?.rejectionReason || merchant?.error) && (
               <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 mb-4 text-left">
                 <span className="text-[11px] font-bold text-rose-300 block mb-1">Reason:</span>
                 <p className="text-xs text-rose-200">{merchant?.rejectionReason || merchant?.error}</p>
               </div>
             )}
-            <p className="text-slate-400 text-sm mb-6">
+            <p className="text-slate-600 text-sm mb-6">
               Your merchant registration was not approved. You can submit a new registration or contact support.
             </p>
             <Link
               href="/merchant/register"
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors block text-center"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-slate-900 font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors block text-center"
             >
               <span>Submit New Registration</span>
             </Link>
@@ -716,16 +716,16 @@ export default function DashboardPage() {
 
   if (currentStatus === 'suspended') {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative">
-        <header className="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 text-slate-900 flex flex-col font-sans relative">
+        <header className="border-b border-slate-200 bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600 hover:text-slate-900">
             <ArrowLeft className="w-4 h-4" />
             <span>Tirf Market</span>
           </Link>
           <button
             type="button"
             onClick={handleLogout}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-slate-900 bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -733,21 +733,21 @@ export default function DashboardPage() {
         </header>
 
         <main className="flex-1 flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-3xl p-8 text-center shadow-2xl">
+          <div className="w-full max-w-md bg-white border border-rose-500/30 rounded-3xl p-8 text-center shadow-2xl">
             <div className="w-14 h-14 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <ShieldAlert className="w-7 h-7" />
             </div>
             <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 inline-block mb-3">
               Account Suspended
             </span>
-            <h1 className="text-2xl font-black text-white mb-2">Account Suspended</h1>
+            <h1 className="text-2xl font-black text-slate-900 mb-2">Account Suspended</h1>
             {(merchant?.rejectionReason || merchant?.error) && (
               <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 mb-4 text-left">
                 <span className="text-[11px] font-bold text-rose-300 block mb-1">Notice:</span>
                 <p className="text-xs text-rose-200">{merchant?.rejectionReason || merchant?.error}</p>
               </div>
             )}
-            <p className="text-slate-400 text-sm mb-6">
+            <p className="text-slate-600 text-sm mb-6">
               This merchant account is suspended. Please contact TirfMarket support to resolve this issue.
             </p>
           </div>
@@ -757,34 +757,34 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans pb-20 selection:bg-emerald-500 selection:text-slate-950 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 text-slate-900 flex flex-col font-sans pb-20 selection:bg-emerald-500 selection:text-slate-950 relative overflow-hidden">
       {/* Background Decorative Ambient Radial Glow */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[340px] bg-gradient-to-b from-emerald-600/10 via-emerald-900/5 to-transparent blur-[140px] rounded-full pointer-events-none -z-10" />
 
       {/* Top Projector & Counter Header */}
-      <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40">
+      <header className="border-b border-slate-200/80 bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/80 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between gap-4">
           {/* Left Brand & Shop Name */}
           <div className="flex items-center gap-3.5">
             <Link
               href="/"
-              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-900 border border-transparent hover:border-slate-800 transition-all"
+              className="p-2 text-slate-600 hover:text-slate-900 rounded-xl hover:bg-white border border-transparent hover:border-slate-200 transition-all"
               title="Return to Public Marketplace"
             >
               <ArrowLeft className="w-5 h-5" />
             </Link>
 
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-600/25 border border-emerald-400/30">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-500 flex items-center justify-center text-slate-900 shadow-lg shadow-emerald-600/25 border border-emerald-400/30">
                 <Store className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-black text-base sm:text-lg tracking-tight text-white">
+                  <span className="font-black text-base sm:text-lg tracking-tight text-slate-900">
                     {merchant?.shopName || merchant?.name || 'Merchant Portal'}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <div className="flex items-center gap-2 text-[11px] text-slate-600">
                   <span className="text-emerald-400 font-semibold flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5" />
                     Verified Counter
@@ -798,7 +798,7 @@ export default function DashboardPage() {
 
           {/* Right Heartbeat & Actions */}
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="hidden md:flex items-center gap-2 text-xs text-slate-300 bg-slate-900/90 px-3.5 py-1.5 rounded-xl border border-slate-800">
+            <div className="hidden md:flex items-center gap-2 text-xs text-slate-700 bg-white/90 px-3.5 py-1.5 rounded-xl border border-slate-200">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <span>Live Counter Feed: <strong className="text-emerald-400 font-mono">Real-time (15s)</strong></span>
             </div>
@@ -814,7 +814,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-slate-900 bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t('dashboard.logout')}</span>
@@ -833,7 +833,7 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={() => setIsPostDealOpen((prev) => !prev)}
-              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-slate-900 text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>{isPostDealOpen ? 'Close' : 'Post Deal'}</span>
@@ -846,20 +846,20 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 flex-1 w-full space-y-8">
         {/* Collapsible Shop Profile Panel */}
         {merchant && (
-          <div className="bg-gradient-to-b from-slate-900/80 to-slate-950/80 border border-slate-800/80 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl transition-all">
+          <div className="bg-gradient-to-b from-slate-900/80 to-slate-950/80 border border-slate-200/80 rounded-2xl overflow-hidden backdrop-blur-xl shadow-xl transition-all">
             <button
               type="button"
               onClick={() => setIsProfileOpen((prev) => !prev)}
               aria-expanded={isProfileOpen}
               aria-controls="shop-profile-panel"
-              className="w-full px-5 py-3.5 min-h-[44px] flex items-center justify-between text-left hover:bg-slate-900/50 transition-colors cursor-pointer group"
+              className="w-full px-5 py-3.5 min-h-[44px] flex items-center justify-between text-left hover:bg-white/50 transition-colors cursor-pointer group"
             >
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                   <Store className="w-4 h-4" />
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
+                  <span className="text-sm font-bold text-slate-900 group-hover:text-emerald-400 transition-colors">
                     {merchant.shopName || merchant.name || t('dashboard.shopProfile')}
                   </span>
                 </div>
@@ -874,23 +874,23 @@ export default function DashboardPage() {
                 }`}>
                   {currentStatus}
                 </span>
-                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`w-4 h-4 text-slate-600 transition-transform duration-200 ${isProfileOpen ? 'rotate-180' : ''}`} />
               </div>
             </button>
 
             {isProfileOpen && (
-              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-slate-800/60 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm animate-fade-in">
+              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-slate-200/60 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm animate-fade-in">
                 <div className="space-y-1">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                     {t('register.shopName') || 'Shop Name'}
                   </div>
-                  <div className="font-bold text-white text-base">
+                  <div className="font-bold text-slate-900 text-base">
                     {merchant.shopName || merchant.name || 'Merchant Shop'}
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                     {t('dashboard.category') || 'Category'}
                   </div>
                   <div className="font-medium text-slate-200 capitalize">
@@ -899,7 +899,7 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  <div className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">
                     {t('dashboard.status') || 'Status'}
                   </div>
                   <div className="flex flex-col gap-1 items-start">
@@ -945,14 +945,14 @@ export default function DashboardPage() {
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-emerald-600/25 border border-emerald-400/30">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-600 to-emerald-500 text-slate-900 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-600/25 border border-emerald-400/30">
                     <Tag className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-lg md:text-xl font-black text-white tracking-tight flex items-center gap-2">
+                    <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
                       {t('dashboard.redeemTitle')}
                     </h2>
-                    <p className="text-xs md:text-sm text-slate-400">
+                    <p className="text-xs md:text-sm text-slate-600">
                       Enter the 8-character code shown on customer&apos;s phone to verify and redeem.
                     </p>
                   </div>
@@ -969,13 +969,13 @@ export default function DashboardPage() {
                     placeholder="Enter 8-character code (e.g. K7M4Q9XR)"
                     disabled={redeemLoading}
                     maxLength={16}
-                    className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 rounded-2xl px-5 py-4 text-xl sm:text-2xl md:text-3xl font-mono tracking-wider md:tracking-widest text-emerald-400 placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:tracking-normal placeholder:text-slate-500 uppercase transition-all min-h-[58px]"
+                    className="w-full bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/90 border border-slate-700/80 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 rounded-2xl px-5 py-4 text-xl sm:text-2xl md:text-3xl font-mono tracking-wider md:tracking-widest text-emerald-400 placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:tracking-normal placeholder:text-slate-500 uppercase transition-all min-h-[58px]"
                   />
                   {redeemCodeInput && (
                     <button
                       type="button"
                       onClick={() => setRedeemCodeInput('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-900 p-1"
                     >
                       ✕
                     </button>
@@ -984,7 +984,7 @@ export default function DashboardPage() {
                 <button
                   type="submit"
                   disabled={redeemLoading || !redeemCodeInput.trim()}
-                  className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] text-white font-black text-base sm:text-lg px-8 py-4 rounded-2xl transition-all shadow-xl shadow-emerald-950/50 flex items-center justify-center gap-2.5 min-h-[58px] cursor-pointer whitespace-nowrap"
+                  className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] text-slate-900 font-black text-base sm:text-lg px-8 py-4 rounded-2xl transition-all shadow-xl shadow-emerald-950/50 flex items-center justify-center gap-2.5 min-h-[58px] cursor-pointer whitespace-nowrap"
                 >
                   {redeemLoading ? (
                     <>
@@ -1008,7 +1008,7 @@ export default function DashboardPage() {
                     <div>
                       <span className="font-bold text-amber-200 block text-sm">{redeemResult.message}</span>
                       <p className="text-xs text-amber-300/80 mt-1">
-                        Redeemed at: <strong className="text-white font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
+                        Redeemed at: <strong className="text-slate-900 font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
                       </p>
                     </div>
                   </div>
@@ -1069,7 +1069,7 @@ export default function DashboardPage() {
                           {t('dashboard.redeemSuccess')}
                         </h3>
                         <p className="text-xs text-emerald-400/80">
-                          {t('dashboard.redeemedAt') || 'Redeemed at'}: <strong className="text-white font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
+                          {t('dashboard.redeemedAt') || 'Redeemed at'}: <strong className="text-slate-900 font-mono">{formatRedeemedAt(redeemResult.redeemedAt)}</strong>
                         </p>
                       </div>
                     </div>
@@ -1077,7 +1077,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => setRedeemResult(null)}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-700 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                     >
                       Redeem Next Voucher
                     </button>
@@ -1088,7 +1088,7 @@ export default function DashboardPage() {
                       <div className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-wider mb-1">
                         Deal Title
                       </div>
-                      <div className="text-lg sm:text-xl font-black text-white leading-tight">
+                      <div className="text-lg sm:text-xl font-black text-slate-900 leading-tight">
                         {redeemResult.dealTitle}
                       </div>
                     </div>
@@ -1103,7 +1103,7 @@ export default function DashboardPage() {
                             {redeemResult.amount} <span className="text-base font-bold text-emerald-300">ETB</span>
                           </>
                         ) : (
-                          <span className="text-slate-400 font-mono">{DASH}</span>
+                          <span className="text-slate-600 font-mono">{DASH}</span>
                         )}
                       </div>
                       <div className="text-[11px] text-emerald-400/70 font-semibold mt-1">
@@ -1115,7 +1115,7 @@ export default function DashboardPage() {
                       <div className="text-[11px] font-semibold text-emerald-400/80 uppercase tracking-wider mb-1">
                         Order Reference
                       </div>
-                      <div className="text-xs sm:text-sm font-mono text-slate-300 break-all bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+                      <div className="text-xs sm:text-sm font-mono text-slate-700 break-all bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/60 p-2.5 rounded-xl border border-slate-200 flex items-center justify-between gap-2">
                         <span>{redeemResult.id}</span>
                         {redeemResult.id !== DASH && (
                           <button
@@ -1125,7 +1125,7 @@ export default function DashboardPage() {
                               setCopiedOrderId(true);
                               setTimeout(() => setCopiedOrderId(false), 2000);
                             }}
-                            className="text-slate-400 hover:text-white p-1"
+                            className="text-slate-600 hover:text-slate-900 p-1"
                             title="Copy Order ID"
                           >
                             {copiedOrderId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -1149,14 +1149,14 @@ export default function DashboardPage() {
             {/* Post Deal Section (Live POST /api/merchant/deals) */}
             {isPostDealOpen && (
               <div className="bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden animate-fade-in">
-                <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
+                <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
                       <Plus className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-white">Post New Deal</h3>
-                      <p className="text-xs text-slate-400">
+                      <h3 className="text-lg font-black text-slate-900">Post New Deal</h3>
+                      <p className="text-xs text-slate-600">
                         Create a verified deal for nearby shoppers within 2 km.
                       </p>
                     </div>
@@ -1167,7 +1167,7 @@ export default function DashboardPage() {
                       setIsPostDealOpen(false);
                       setPostError(null);
                     }}
-                    className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
+                    className="text-xs text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-700 transition-colors cursor-pointer"
                   >
                     ✕ Close
                   </button>
@@ -1183,7 +1183,7 @@ export default function DashboardPage() {
                 <form onSubmit={handlePostDealSubmit} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Deal Title (3-80 chars) *
                       </label>
                       <input
@@ -1194,13 +1194,13 @@ export default function DashboardPage() {
                         value={postTitle}
                         onChange={(e) => setPostTitle(e.target.value)}
                         placeholder="e.g. 25% Off Fresh Roast Coffee & Pastry"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
                           Price (ETB) *
                         </label>
                         <input
@@ -1210,11 +1210,11 @@ export default function DashboardPage() {
                           required
                           value={postPrice}
                           onChange={(e) => setPostPrice(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-900 focus:outline-none focus:border-emerald-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5">
                           Discount ({postDiscountPct}%) *
                         </label>
                         <input
@@ -1224,23 +1224,23 @@ export default function DashboardPage() {
                           required
                           value={postDiscountPct}
                           onChange={(e) => setPostDiscountPct(Math.max(1, Math.min(90, parseInt(e.target.value) || 1)))}
-                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
+                          className="w-full bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
                         />
-                        <span className="text-[10px] text-slate-400 block mt-0.5">New shops: max 50%</span>
+                        <span className="text-[10px] text-slate-600 block mt-0.5">New shops: max 50%</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-800/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-200/80">
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-emerald-400" />
                         <span>Expiry Duration (Days) *</span>
                       </label>
                       <select
                         value={postExpiryDays}
                         onChange={(e) => setPostExpiryDays(parseInt(e.target.value))}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-200 focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-200 focus:outline-none focus:border-emerald-500"
                       >
                         <option value={1}>1 Day</option>
                         <option value={3}>3 Days</option>
@@ -1249,11 +1249,11 @@ export default function DashboardPage() {
                         <option value={14}>14 Days</option>
                         <option value={30}>30 Days</option>
                       </select>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">New shops: up to 7 days only</span>
+                      <span className="text-[10px] text-slate-600 block mt-0.5">New shops: up to 7 days only</span>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                      <label className="block text-xs font-bold text-slate-700 mb-1.5">
                         Item / Stock Code (Optional)
                       </label>
                       <input
@@ -1262,14 +1262,14 @@ export default function DashboardPage() {
                         value={postItemCode}
                         onChange={(e) => setPostItemCode(e.target.value.toUpperCase())}
                         placeholder="e.g. COFFEE-01"
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-slate-900 placeholder-slate-600 focus:outline-none focus:border-emerald-500"
                       />
-                      <span className="text-[10px] text-slate-400 block mt-0.5">3-20 letters/digits/dashes</span>
+                      <span className="text-[10px] text-slate-600 block mt-0.5">3-20 letters/digits/dashes</span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400">Final customer counter price:</span>
+                  <div className="p-3.5 bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/80 rounded-xl border border-slate-200 flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-600">Final customer counter price:</span>
                     <span className="text-emerald-400 font-black text-sm">
                       {Math.round(postPrice * (1 - postDiscountPct / 100))} ETB
                     </span>
@@ -1278,7 +1278,7 @@ export default function DashboardPage() {
                   <button
                     type="submit"
                     disabled={postLoading}
-                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-slate-900 font-black text-sm rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
                     {postLoading ? (
                       <>
@@ -1294,17 +1294,17 @@ export default function DashboardPage() {
             )}
 
             {/* Live Deals Section (GET /api/merchant/deals) */}
-            <div className="bg-slate-900/80 border border-slate-800/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-xl">
-              <div className="p-5 md:p-6 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-white/80 border border-slate-200/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-xl">
+              <div className="p-5 md:p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold shrink-0">
                     <Tag className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-white text-base md:text-lg flex items-center gap-2">
+                    <h3 className="font-bold text-slate-900 text-base md:text-lg flex items-center gap-2">
                       <span>Active Shop Deals</span>
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">
+                    <p className="text-xs text-slate-600 mt-0.5">
                       Live published offers shown to shoppers within 2 km
                     </p>
                   </div>
@@ -1332,7 +1332,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
-                    <thead className="bg-slate-950/70 text-slate-400 text-xs uppercase font-semibold border-b border-slate-800/80">
+                    <thead className="bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/70 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200/80">
                       <tr>
                         <th className="px-6 py-3.5">Deal</th>
                         <th className="px-6 py-3.5 text-right">Original Price</th>
@@ -1344,14 +1344,14 @@ export default function DashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
                       {deals.map((d) => (
-                        <tr key={d.id} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="px-6 py-3.5 font-bold font-sans text-white max-w-xs truncate">
+                        <tr key={d.id} className="hover:bg-slate-100/30 transition-colors">
+                          <td className="px-6 py-3.5 font-bold font-sans text-slate-900 max-w-xs truncate">
                             <div>{d.title}</div>
                             {d.itemCode && (
-                              <span className="text-[10px] text-slate-400 font-mono">Code: {d.itemCode}</span>
+                              <span className="text-[10px] text-slate-600 font-mono">Code: {d.itemCode}</span>
                             )}
                           </td>
-                          <td className="px-6 py-3.5 text-right text-slate-400 line-through">
+                          <td className="px-6 py-3.5 text-right text-slate-600 line-through">
                             {d.price} ETB
                           </td>
                           <td className="px-6 py-3.5 text-center">
@@ -1362,14 +1362,14 @@ export default function DashboardPage() {
                           <td className="px-6 py-3.5 text-right font-black text-amber-400">
                             {d.finalAmount} ETB
                           </td>
-                          <td className="px-6 py-3.5 text-slate-300 font-sans text-xs">
+                          <td className="px-6 py-3.5 text-slate-700 font-sans text-xs">
                             {formatDate(d.expiryDate)}
                           </td>
                           <td className="px-6 py-3.5 text-right font-sans">
                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                               d.isActive
                                 ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/30'
-                                : 'text-slate-400 bg-slate-800 border border-slate-700'
+                                : 'text-slate-600 bg-slate-100 border border-slate-700'
                             }`}>
                               {d.isActive ? 'Active' : 'Paused'}
                             </span>
@@ -1385,9 +1385,9 @@ export default function DashboardPage() {
             {/* Primary Metrics Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {/* Deals Redeemed */}
-              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-400 mb-3">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
+              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+                <div className="flex items-center justify-between text-slate-600 mb-3">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
                     {t('dashboard.dealsRedeemed')}
                   </span>
                   <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-xl border border-emerald-500/20">
@@ -1403,9 +1403,9 @@ export default function DashboardPage() {
               </div>
 
               {/* Cashless Sales */}
-              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-400 mb-3">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
+              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
+                <div className="flex items-center justify-between text-slate-600 mb-3">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
                     {t('dashboard.cashlessSales')}
                   </span>
                   <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
@@ -1421,9 +1421,9 @@ export default function DashboardPage() {
               </div>
 
               {/* Pending Orders */}
-              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-sky-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-400 mb-3">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
+              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-sky-500/40 transition-all">
+                <div className="flex items-center justify-between text-slate-600 mb-3">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
                     {t('dashboard.pending')}
                   </span>
                   <div className="p-2 bg-sky-500/10 text-sky-400 rounded-xl border border-sky-500/20">
@@ -1439,9 +1439,9 @@ export default function DashboardPage() {
               </div>
 
               {/* Failed Orders */}
-              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-rose-500/40 transition-all">
-                <div className="flex items-center justify-between text-slate-400 mb-3">
-                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-400">
+              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-rose-500/40 transition-all">
+                <div className="flex items-center justify-between text-slate-600 mb-3">
+                  <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
                     {t('dashboard.failed')}
                   </span>
                   <div className="p-2 bg-rose-500/10 text-rose-400 rounded-xl border border-rose-500/20">
@@ -1458,17 +1458,17 @@ export default function DashboardPage() {
             </div>
 
             {/* Live Orders Stream List */}
-            <div className="bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-2xl shadow-xl overflow-hidden">
-              <div className="p-6 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl shadow-xl overflow-hidden">
+              <div className="p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center">
                     <Receipt className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-white flex items-center gap-2">
+                    <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
                       <span>{t('dashboard.recentOrders')}</span>
                     </h2>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-slate-600">
                       Live Safaricom transaction receipts and redemption timeline
                     </p>
                   </div>
@@ -1482,12 +1482,12 @@ export default function DashboardPage() {
                       value={orderSearchQuery}
                       onChange={(e) => setOrderSearchQuery(e.target.value)}
                       placeholder="Search deal or receipt..."
-                      className="pl-8 pr-3 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 min-h-[36px]"
+                      className="pl-8 pr-3 py-1.5 bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 border border-slate-200 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 min-h-[36px]"
                     />
                     <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
                   </div>
 
-                  <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+                  <div className="hidden sm:flex items-center gap-2 text-xs text-slate-600 bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50 px-3 py-1.5 rounded-xl border border-slate-200">
                     <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span>Live Stream</span>
                   </div>
@@ -1510,7 +1510,7 @@ export default function DashboardPage() {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
-                    <thead className="bg-slate-950/70 text-slate-400 text-xs uppercase font-semibold border-b border-slate-800/80">
+                    <thead className="bg-gradient-to-br from-slate-100 via-emerald-50/40 to-blue-50/70 text-slate-600 text-xs uppercase font-semibold border-b border-slate-200/80">
                       <tr>
                         <th className="px-6 py-4">{t('dashboard.deal')}</th>
                         <th className="px-6 py-4 text-right">{t('dashboard.amount')}</th>
@@ -1521,8 +1521,8 @@ export default function DashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
                       {filteredRecentOrders.map((order: DashboardOrder) => (
-                        <tr key={order.orderId} className="hover:bg-slate-800/30 transition-colors">
-                          <td className="px-6 py-4 font-bold text-white max-w-xs truncate">
+                        <tr key={order.orderId} className="hover:bg-slate-100/30 transition-colors">
+                          <td className="px-6 py-4 font-bold text-slate-900 max-w-xs truncate">
                             {order.dealTitle || 'Deal'}
                           </td>
                           <td className="px-6 py-4 text-right font-mono font-bold text-amber-400 whitespace-nowrap">
@@ -1537,7 +1537,7 @@ export default function DashboardPage() {
                               <span className="text-slate-600">-</span>
                             )}
                           </td>
-                          <td className="px-6 py-4 text-slate-400 text-xs whitespace-nowrap">
+                          <td className="px-6 py-4 text-slate-600 text-xs whitespace-nowrap">
                             {formatTime(order.paidAt)}
                           </td>
                           <td className="px-6 py-4 font-mono text-xs text-slate-500 whitespace-nowrap">
