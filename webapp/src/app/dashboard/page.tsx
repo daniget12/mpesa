@@ -52,6 +52,8 @@ import {
   Plus,
   Calendar,
 } from 'lucide-react';
+import NotificationBell from '@/components/NotificationBell';
+import { notifyCustomerNewDealNearby } from '@/lib/notifications';
 
 // Animated counter hook
 function useAnimatedNumber(target: number, duration: number = 400): number {
@@ -431,6 +433,17 @@ export default function DashboardPage() {
       const created = await createMerchantDeal(payload, token);
       setPostSuccessMessage(`Deal "${created.title}" published successfully! Final price: ${created.finalAmount} ETB (${created.discountPct}% off).`);
       setTimeout(() => setPostSuccessMessage(null), 6000);
+
+      // Notify customers on the website that a new deal was posted
+      notifyCustomerNewDealNearby({
+        id: created.id || `deal_${Date.now()}`,
+        title: created.title,
+        merchantName: merchant?.shopName || merchant?.name || 'Local Merchant',
+        discountPct: created.discountPct,
+        finalAmount: created.finalAmount,
+        distanceMeters: 180,
+      });
+
       setPostTitle('');
       setPostItemCode('');
       setIsPostDealOpen(false);
@@ -819,6 +832,9 @@ export default function DashboardPage() {
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t('dashboard.logout')}</span>
             </button>
+
+            {/* Notification Bell */}
+            <NotificationBell />
 
             {/* Quick Link to Marketplace */}
             <Link

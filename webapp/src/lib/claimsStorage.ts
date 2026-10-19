@@ -1,3 +1,5 @@
+import { notifyMerchantDealClaimed, notifyMerchantDealBought } from './notifications';
+
 export interface CustomerClaimTicket {
   id: string; // Order ID or Claim ID
   orderId: string;
@@ -458,6 +460,15 @@ export function claimDealOffer(
   saveCustomerClaimTicket(ticket);
   window.dispatchEvent(new Event('tirf_quota_updated'));
 
+  // Notify merchant on website that someone claimed their product
+  notifyMerchantDealClaimed({
+    id: deal.id,
+    title: deal.title,
+    merchantId: deal.merchantId,
+    merchantName: deal.merchantName,
+    amount: deal.finalAmount,
+  });
+
   return {
     success: true,
     ticket,
@@ -498,6 +509,18 @@ export function payClaimTicketAtShop(
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event('tirf_claims_updated'));
     window.dispatchEvent(new Event('tirf_quota_updated'));
+
+    if (updatedTicket) {
+      notifyMerchantDealBought({
+        id: (updatedTicket as CustomerClaimTicket).dealId,
+        title: (updatedTicket as CustomerClaimTicket).dealTitle,
+        merchantId: (updatedTicket as CustomerClaimTicket).merchantId,
+        merchantName: (updatedTicket as CustomerClaimTicket).merchantName,
+        amount: (updatedTicket as CustomerClaimTicket).amount,
+        orderId: (updatedTicket as CustomerClaimTicket).orderId,
+      });
+    }
+
     return updatedTicket;
   } catch (err) {
     console.error('Failed to pay claim ticket at shop:', err);

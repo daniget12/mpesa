@@ -19,6 +19,7 @@ import Link from 'next/link';
 import AuthModal from './AuthModal';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 interface HeaderProps {
   searchQuery?: string;
@@ -199,6 +200,9 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
                 </div>
               )}
             </div>
+
+            {/* In-Website Notifications Bell */}
+            <NotificationBell />
 
             {/* My Claims / Tickets Button */}
             <Link

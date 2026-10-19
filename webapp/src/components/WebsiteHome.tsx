@@ -40,6 +40,7 @@ import {
   checkAndExpireClaims,
   CustomerClaimTicket,
 } from '@/lib/claimsStorage';
+import { notifyCustomerNewDealNearby } from '@/lib/notifications';
 
 const DEFAULT_LAT = 9.0000;
 const DEFAULT_LON = 38.7800;
@@ -177,6 +178,29 @@ export const WebsiteHome: React.FC = () => {
       clearTimeout(coldStartTimer);
       if (Array.isArray(data) && data.length > 0) {
         setDeals(data);
+
+        // Notify customer on the website that there is a new deal around them
+        if (typeof window !== 'undefined') {
+          try {
+            const sessionKey = 'tirf_customer_notified_deal_ids';
+            const notified: string[] = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
+            const closest = [...data].sort((a, b) => (a.distanceMeters || 9999) - (b.distanceMeters || 9999))[0];
+            if (closest && !notified.includes(closest.dealId)) {
+              notified.push(closest.dealId);
+              sessionStorage.setItem(sessionKey, JSON.stringify(notified));
+              setTimeout(() => {
+                notifyCustomerNewDealNearby({
+                  id: closest.dealId,
+                  title: closest.title,
+                  merchantName: closest.merchantName,
+                  discountPct: closest.discountPct,
+                  finalAmount: closest.finalAmount,
+                  distanceMeters: closest.distanceMeters,
+                });
+              }, 1200);
+            }
+          } catch {}
+        }
       } else {
         setDeals(getFallbackNearbyDeals(lat, lon));
       }

@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Inter, Noto_Sans_Ethiopic } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { AuthProvider } from "@/context/AuthContext";
+import NotificationToastContainer from "@/components/NotificationToastContainer";
 
 // Display font for hero headers, large deal titles, and prominent statistics
 const fontDisplay = Plus_Jakarta_Sans({
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <AuthProvider>
             {children}
+            <NotificationToastContainer />
           </AuthProvider>
         </LanguageProvider>
       </body>

@@ -661,12 +661,9 @@ export default function ModernAuthCard({
 
             {/* Right Panel: shown when Inactive (on Merchant Sign In mode) */}
             <div className="toggle-panel toggle-right">
-              <h1 className="text-3xl font-extrabold text-white mb-2">
+              <h1 className="text-3xl font-extrabold text-white mb-6">
                 Shopping for Deals?
               </h1>
-              <p className="text-white/90 text-sm max-w-xs mb-6">
-                Customers do not need an account. Find deals within 2 km and pay directly with M-PESA.
-              </p>
               <button
                 type="button"
                 className="ghost-btn"

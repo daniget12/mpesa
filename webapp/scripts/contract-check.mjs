@@ -73,8 +73,8 @@ async function main() {
     if (!data || data.ok !== true) {
       throw new Error(`Expected ok === true, got ${JSON.stringify(data?.ok)}`);
     }
-    if (!['mock', 'live'].includes(data.mode)) {
-      throw new Error(`Expected mode to be 'mock' or 'live', got '${data.mode}'`);
+    if (!['mock', 'live', 'real'].includes(data.mode)) {
+      throw new Error(`Expected mode to be 'mock', 'live', or 'real', got '${data.mode}'`);
     }
     return `status 200, ok=true, mode="${data.mode}", store="${data.store || 'n/a'}"`;
   });

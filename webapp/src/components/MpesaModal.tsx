@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { X, Check, AlertCircle, Smartphone, ShieldCheck, RefreshCw, Zap, Copy, Ticket } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { saveCustomerClaimTicket, payClaimTicketAtShop } from '@/lib/claimsStorage';
+import { notifyMerchantDealBought } from '@/lib/notifications';
 import { 
   createOrder, 
   getOrderStatus, 
@@ -184,6 +185,15 @@ export default function MpesaModal({
           status: 'paid',
           paidAt: order.updatedAt || new Date().toISOString(),
           phone: sanitizePhone(phoneNumber),
+        });
+
+        notifyMerchantDealBought({
+          id: dealId,
+          title: dealTitle,
+          merchantId: merchantId || '',
+          merchantName: merchantName || 'Approved Shop',
+          amount: Number(order.paidAmount || order.amount || amount),
+          orderId: order.id,
         });
       }
     } catch {}

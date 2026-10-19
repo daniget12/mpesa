@@ -6,6 +6,7 @@ import { Store, PlusCircle, Clock, CheckCircle2, XCircle, Loader2, Image as Imag
 import Link from 'next/link';
 import Image from 'next/image';
 import { getDealImage } from '@/lib/dealImages';
+import { notifyCustomerNewDealNearby } from '@/lib/notifications';
 
 interface Deal {
   id: string;
@@ -157,6 +158,16 @@ export default function SellerDashboard() {
       alert("Error posting deal: " + error.message);
     } else {
       alert("Deal submitted successfully! It is now pending Admin approval.");
+
+      notifyCustomerNewDealNearby({
+        id: `deal_${Date.now()}`,
+        title,
+        merchantName: merchantName || 'Local Merchant',
+        discountPct: Math.round(((parseFloat(originalPrice) - parseFloat(discountedPrice)) / parseFloat(originalPrice)) * 100),
+        finalAmount: parseFloat(discountedPrice),
+        distanceMeters: 200,
+      });
+
       setTitle('');
       setDescription('');
       setLocation('');
