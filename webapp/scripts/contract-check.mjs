@@ -147,11 +147,23 @@ async function main() {
 
   // Check (c): POST /api/orders with invalid phone -> 400
   await runCheck('c. POST /api/orders with invalid phone -> 400', async () => {
+    let dealIdToUse = null;
+    const dealsRes = await fetchWithTimeout(`${BACKEND_URL}/api/deals/nearby?lat=9.0054&lon=38.7840&radiusKm=2`);
+    if (dealsRes.status === 200) {
+      const dealsData = await dealsRes.json().catch(() => []);
+      if (Array.isArray(dealsData) && dealsData.length > 0) {
+        dealIdToUse = dealsData[0].dealId;
+      }
+    }
+    if (!dealIdToUse) {
+      throw new Error('No active deal returned from GET /api/deals/nearby for check (c)');
+    }
+
     const res = await fetchWithTimeout(`${BACKEND_URL}/api/orders`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        dealId: 'd0000000-0000-0000-0000-000000000001',
+        dealId: dealIdToUse,
         phone: 'invalid-phone-string'
       })
     });
@@ -159,7 +171,7 @@ async function main() {
       throw new Error(`Expected HTTP 400, got ${res.status}`);
     }
     const data = await res.json().catch(() => ({}));
-    return `status 400 (rejected invalid phone: "${data.error || 'Bad Request'}")`;
+    return `status 400 (rejected invalid phone with live dealId "${dealIdToUse}": "${data.error || 'Bad Request'}")`;
   });
 
   // Check (d): POST /api/orders with non-existent deal UUID -> 404

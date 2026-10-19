@@ -16,7 +16,8 @@ import {
   Order 
 } from '@/lib/api';
 
-const COUNTDOWN_TOTAL_SECONDS = 90;
+const COUNTDOWN_TOTAL_SECONDS = 120;
+const POLL_CUTOFF_SECONDS = 130;
 const CIRCLE_RADIUS = 40;
 const CIRCLE_CIRCUMFERENCE = 2 * Math.PI * CIRCLE_RADIUS; // ~251.327
 
@@ -45,7 +46,9 @@ export default function MpesaModal({
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [errorType, setErrorType] = useState<'none' | 'poll_timeout' | 'prompt_timeout' | 'rate_limit' | 'order_failed' | 'other'>('none');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isPaymentWaitingOnPhone, setIsPaymentWaitingOnPhone] = useState(false);
   const [activeOrder, setActiveOrder] = useState<Order | null>(null);
   const [pollCountdown, setPollCountdown] = useState(COUNTDOWN_TOTAL_SECONDS);
   const [backendMode, setBackendMode] = useState<string | null>(null);
@@ -64,6 +67,8 @@ export default function MpesaModal({
   const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef<boolean>(false);
+  const pollStartTimeRef = useRef<number>(0);
+  const currentOrderIdRef = useRef<string | null>(null);
 
   // Check backend health for mock mode on open
   useEffect(() => {
@@ -155,23 +160,55 @@ export default function MpesaModal({
     }
   }, [status]);
 
-  if (!isOpen) return null;
+  const handleOrderSuccess = useCallback((order: Order) => {
+    setActiveOrder(order);
+    try {
+      sessionStorage.setItem('tm_paid_order_id', order.id);
+      if (claimTicketId) {
+        payClaimTicketAtShop(claimTicketId, {
+          receipt: order.mpesaReceipt || null,
+          orderId: order.id,
+          phone: sanitizePhone(phoneNumber),
+        });
+      } else {
+        saveCustomerClaimTicket({
+          id: order.id,
+          orderId: order.id,
+          dealId: dealId,
+          dealTitle: dealTitle,
+          merchantId: merchantId || '',
+          merchantName: merchantName || 'Approved Shop',
+          amount: Number(order.paidAmount || order.amount || amount),
+          redemptionCode: order.redemptionCode || ('TIRF-' + order.id.slice(-6).toUpperCase()),
+          receipt: order.mpesaReceipt || null,
+          status: 'paid',
+          paidAt: order.updatedAt || new Date().toISOString(),
+          phone: sanitizePhone(phoneNumber),
+        });
+      }
+    } catch {}
+    setStatus('success');
+  }, [claimTicketId, dealId, dealTitle, merchantId, merchantName, amount, phoneNumber]);
 
   const startPolling = (orderId: string) => {
     stopPolling();
+    currentOrderIdRef.current = orderId;
     setPollCountdown(COUNTDOWN_TOTAL_SECONDS);
+    const startTime = Date.now();
+    pollStartTimeRef.current = startTime;
 
-    // 90s countdown timer
+    // 120s countdown ring, 130s cutoff without answer
     countdownTimerRef.current = setInterval(() => {
-      setPollCountdown((prev) => {
-        if (prev <= 1) {
-          stopPolling();
-          setStatus('error');
-          setErrorMessage('Payment prompt timed out after 90 seconds. Please verify your phone has signal and retry.');
-          return 0;
-        }
-        return prev - 1;
-      });
+      const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+      const remainingSec = Math.max(0, COUNTDOWN_TOTAL_SECONDS - elapsedSec);
+      setPollCountdown(remainingSec);
+
+      if (elapsedSec >= POLL_CUTOFF_SECONDS) {
+        stopPolling();
+        setStatus('error');
+        setErrorType('poll_timeout');
+        setErrorMessage(t("mpesa.pollTimeout") || "No answer yet. Check your phone, then try again");
+      }
     }, 1000);
 
     // Poll GET /api/orders/:id every 2 seconds without stacking
@@ -184,39 +221,28 @@ export default function MpesaModal({
 
         if (order.status === 'paid') {
           stopPolling();
-          try {
-            sessionStorage.setItem('tm_paid_order_id', order.id);
-            if (claimTicketId) {
-              payClaimTicketAtShop(claimTicketId, {
-                receipt: order.mpesaReceipt || null,
-                orderId: order.id,
-                phone: sanitizePhone(phoneNumber),
-              });
-            } else {
-              saveCustomerClaimTicket({
-                id: order.id,
-                orderId: order.id,
-                dealId: dealId,
-                dealTitle: dealTitle,
-                merchantId: merchantId || '',
-                merchantName: merchantName || 'Approved Shop',
-                amount: Number(order.paidAmount || order.amount || amount),
-                redemptionCode: order.redemptionCode || ('TIRF-' + order.id.slice(-6).toUpperCase()),
-                receipt: order.mpesaReceipt || null,
-                status: 'paid',
-                paidAt: order.updatedAt || new Date().toISOString(),
-                phone: sanitizePhone(phoneNumber),
-              });
-            }
-          } catch {}
-          setStatus('success');
+          handleOrderSuccess(order);
         } else if (order.status === 'failed') {
           stopPolling();
           setStatus('error');
-          setErrorMessage(order.failureReason || 'Payment declined or cancelled on mobile handset.');
+          const isTimeout =
+            order.failureReason?.toLowerCase().trim() === 'timeout' ||
+            order.failureReason?.toLowerCase().includes('timeout');
+          if (isTimeout) {
+            setErrorType('prompt_timeout');
+            setErrorMessage(t("mpesa.promptTimedOut") || "The payment prompt timed out");
+          } else {
+            setErrorType('order_failed');
+            setErrorMessage(order.failureReason || 'Payment declined or cancelled on mobile handset.');
+          }
         }
       } catch (err: unknown) {
-        if (err instanceof ApiError && err.status === 408) {
+        if (err instanceof ApiError && err.status === 429) {
+          stopPolling();
+          setStatus('error');
+          setErrorType('rate_limit');
+          setErrorMessage(t("mpesa.rateLimited") || "Please wait a moment and try again");
+        } else if (err instanceof ApiError && err.status === 408) {
           console.warn('Poll request timed out');
         } else {
           const msg = err instanceof Error ? err.message : String(err);
@@ -244,7 +270,9 @@ export default function MpesaModal({
 
     setPhoneError('');
     setStatus('loading');
+    setErrorType('none');
     setErrorMessage('');
+    setIsPaymentWaitingOnPhone(false);
 
     try {
       // POST /api/orders with { dealId, phone } only. Never send an amount.
@@ -252,35 +280,128 @@ export default function MpesaModal({
       setActiveOrder(order);
 
       if (order.status === 'paid') {
-        try {
-          sessionStorage.setItem('tm_paid_order_id', order.id);
-        } catch {}
-        setStatus('success');
+        handleOrderSuccess(order);
         return;
       }
 
       if (order.status === 'failed') {
         setStatus('error');
-        setErrorMessage(order.failureReason || 'Failed to dispatch payment prompt');
+        const isTimeout =
+          order.failureReason?.toLowerCase().trim() === 'timeout' ||
+          order.failureReason?.toLowerCase().includes('timeout');
+        if (isTimeout) {
+          setErrorType('prompt_timeout');
+          setErrorMessage(t("mpesa.promptTimedOut") || "The payment prompt timed out");
+        } else {
+          setErrorType('order_failed');
+          setErrorMessage(order.failureReason || 'Failed to dispatch payment prompt');
+        }
         return;
       }
 
-      // Start polling for customer PIN entry (2s intervals, 90s timeout)
+      // Start polling for customer PIN entry (2s intervals, 120s countdown / 130s cutoff)
       startPolling(order.id);
     } catch (err: unknown) {
+      // 1. 409 from POST /api/orders with code "payment_in_progress": do not show an error.
+      // Take the existing orderId from response and continue polling GET /api/orders/:id as if created.
+      // Show "A payment is already waiting on your phone. Check it and enter your PIN."
+      const errData =
+        err instanceof ApiError && err.data && typeof err.data === 'object'
+          ? (err.data as Record<string, unknown>)
+          : null;
+
+      if (
+        err instanceof ApiError &&
+        err.status === 409 &&
+        (errData?.code === 'payment_in_progress' ||
+          (errData?.error && String(errData.error).includes('payment_in_progress')) ||
+          (errData?.message && String(errData.message).includes('payment_in_progress'))) &&
+        (errData?.orderId || errData?.order_id || errData?.id)
+      ) {
+        const existingOrderId = String(errData.orderId || errData.order_id || errData.id);
+        const existingOrder: Order = {
+          id: existingOrderId,
+          dealId,
+          merchantId: merchantId || '',
+          amount,
+          status: 'pending',
+          createdAt: new Date().toISOString(),
+        };
+        setActiveOrder(existingOrder);
+        setIsPaymentWaitingOnPhone(true);
+        setStatus('loading');
+        setErrorMessage('');
+        setErrorType('none');
+        startPolling(existingOrderId);
+        return;
+      }
+
       setStatus('error');
       if (err instanceof ApiError) {
-        if (err.status === 408) {
+        if (err.status === 429) {
+          setErrorType('rate_limit');
+          setErrorMessage(t("mpesa.rateLimited") || "Please wait a moment and try again");
+        } else if (err.status === 408) {
+          setErrorType('other');
           setErrorMessage(t('deals.waking') + ' ' + t('deals.retry'));
         } else {
+          setErrorType('other');
           setErrorMessage(err.message);
         }
       } else if (err instanceof Error) {
+        setErrorType('other');
         setErrorMessage(err.message);
       } else {
+        setErrorType('other');
         setErrorMessage('Network error. Please check your internet connection.');
       }
     }
+  };
+
+  const handleRetry = async () => {
+    // If after 130s timeout without an answer, first call GET /api/orders/:id once more
+    if (errorType === 'poll_timeout' && currentOrderIdRef.current) {
+      const orderIdToCheck = currentOrderIdRef.current;
+      setStatus('loading');
+      setErrorMessage('');
+      setErrorType('none');
+      try {
+        const order = await getOrderStatus(orderIdToCheck);
+        setActiveOrder(order);
+        if (order.status === 'paid') {
+          handleOrderSuccess(order);
+          return;
+        }
+        if (order.status === 'failed') {
+          setStatus('error');
+          const isTimeout =
+            order.failureReason?.toLowerCase().trim() === 'timeout' ||
+            order.failureReason?.toLowerCase().includes('timeout');
+          if (isTimeout) {
+            setErrorType('prompt_timeout');
+            setErrorMessage(t("mpesa.promptTimedOut") || "The payment prompt timed out");
+          } else {
+            setErrorType('order_failed');
+            setErrorMessage(order.failureReason || 'Payment declined or cancelled on mobile handset.');
+          }
+          return;
+        }
+        // Still pending/no answer: resume polling this order with fresh 120s/130s timers
+        startPolling(orderIdToCheck);
+        return;
+      } catch (err: unknown) {
+        if (err instanceof ApiError && err.status === 429) {
+          setStatus('error');
+          setErrorType('rate_limit');
+          setErrorMessage(t("mpesa.rateLimited") || "Please wait a moment and try again");
+          return;
+        }
+        // If GET /api/orders/:id failed (e.g. network/404), fall back to re-initiating payment
+      }
+    }
+
+    // Default retry: initiate payment again
+    handlePayment();
   };
 
   // Demo overrides: Available ONLY when URL has ?demo=1 AND backend mode is 'mock'
@@ -288,34 +409,8 @@ export default function MpesaModal({
     if (!activeOrder?.id) return;
     try {
       const updated = await forceMockResult(activeOrder.id, 'paid');
-      setActiveOrder(updated);
-      try {
-        sessionStorage.setItem('tm_paid_order_id', updated.id);
-        if (claimTicketId) {
-          payClaimTicketAtShop(claimTicketId, {
-            receipt: updated.mpesaReceipt || null,
-            orderId: updated.id,
-            phone: sanitizePhone(phoneNumber),
-          });
-        } else {
-          saveCustomerClaimTicket({
-            id: updated.id,
-            orderId: updated.id,
-            dealId: dealId,
-            dealTitle: dealTitle,
-            merchantId: merchantId || '',
-            merchantName: merchantName || 'Approved Shop',
-            amount: Number(updated.paidAmount || updated.amount || amount),
-            redemptionCode: updated.redemptionCode || ('TIRF-' + updated.id.slice(-6).toUpperCase()),
-            receipt: updated.mpesaReceipt || null,
-            status: 'paid',
-            paidAt: updated.updatedAt || new Date().toISOString(),
-            phone: sanitizePhone(phoneNumber),
-          });
-        }
-      } catch {}
       stopPolling();
-      setStatus('success');
+      handleOrderSuccess(updated);
     } catch (e: unknown) {
       console.warn('Instant success override failed:', e);
     }
@@ -328,6 +423,7 @@ export default function MpesaModal({
       setActiveOrder(updated);
       stopPolling();
       setStatus('error');
+      setErrorType('order_failed');
       setErrorMessage(updated.failureReason || 'Payment failed (Simulated failure)');
     } catch (e: unknown) {
       console.warn('Instant failure override failed:', e);
@@ -337,10 +433,13 @@ export default function MpesaModal({
   const handleClose = () => {
     stopPolling();
     setStatus('idle');
+    setErrorType('none');
     setErrorMessage('');
     setPhoneError('');
+    setIsPaymentWaitingOnPhone(false);
     setActiveOrder(null);
     setCopied(false);
+    currentOrderIdRef.current = null;
     try {
       sessionStorage.removeItem('tm_paid_order_id');
     } catch {}
@@ -360,6 +459,8 @@ export default function MpesaModal({
 
   // Countdown circle calculations
   const strokeDashoffset = CIRCLE_CIRCUMFERENCE * (1 - pollCountdown / COUNTDOWN_TOTAL_SECONDS);
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
@@ -569,12 +670,22 @@ export default function MpesaModal({
               <h3 className="font-bold text-gray-900 text-base sm:text-lg mb-1">
                 {t("mpesa.step2")}
               </h3>
-              <p className="text-xs text-gray-600 max-w-xs mx-auto mb-2 leading-relaxed">
-                {t("mpesa.promptSentTo")} <strong className="text-gray-900 font-mono">{phoneNumber}</strong>
-              </p>
-              <p className="text-[11px] text-gray-500 max-w-xs mx-auto mb-4">
-                {t("mpesa.confirmPinDesc")}
-              </p>
+              {isPaymentWaitingOnPhone ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl mb-3 text-center">
+                  <p className="text-xs sm:text-sm font-semibold text-amber-900 leading-snug">
+                    {t("mpesa.paymentInProgress") || "A payment is already waiting on your phone. Check it and enter your PIN."}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-600 max-w-xs mx-auto mb-2 leading-relaxed">
+                    {t("mpesa.promptSentTo")} <strong className="text-gray-900 font-mono">{phoneNumber}</strong>
+                  </p>
+                  <p className="text-[11px] text-gray-500 max-w-xs mx-auto mb-4">
+                    {t("mpesa.confirmPinDesc")}
+                  </p>
+                </>
+              )}
 
               {/* Demo Controls panel: ONLY shown when URL has ?demo=1 AND backend mode is 'mock' */}
               {showDemoControls && (
@@ -611,7 +722,11 @@ export default function MpesaModal({
                 <AlertCircle className="w-8 h-8" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
-                Transaction Unsuccessful
+                {errorType === 'poll_timeout'
+                  ? 'Awaiting Confirmation'
+                  : errorType === 'prompt_timeout'
+                  ? 'Prompt Timed Out'
+                  : 'Transaction Unsuccessful'}
               </h3>
               <p className="text-xs sm:text-sm text-gray-600 max-w-xs mx-auto mb-6 leading-relaxed">
                 {errorMessage || 'Payment could not be completed. Please verify your phone number and network, then retry.'}
@@ -620,7 +735,7 @@ export default function MpesaModal({
               <div className="space-y-2.5">
                 <button
                   type="button"
-                  onClick={() => handlePayment()}
+                  onClick={handleRetry}
                   className="w-full min-h-[50px] bg-green-600 hover:bg-green-700 text-white font-bold text-base py-3.5 px-4 rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
@@ -630,7 +745,9 @@ export default function MpesaModal({
                   type="button"
                   onClick={() => {
                     setStatus('idle');
+                    setErrorType('none');
                     setErrorMessage('');
+                    setIsPaymentWaitingOnPhone(false);
                   }}
                   className="w-full min-h-[44px] bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm py-2.5 px-4 rounded-xl transition-colors cursor-pointer"
                 >

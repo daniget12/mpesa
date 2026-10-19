@@ -35,7 +35,7 @@ export default function LoginPage() {
 
       {/* Footer notes */}
       <div className="mt-6 text-center text-xs text-gray-500">
-        Secure authentication powered by Safaricom M-Pesa & Supabase
+        TirfMarket · Hyperlocal Addis Ababa Discounts & Direct Cashless M-PESA
       </div>
     </div>
   );

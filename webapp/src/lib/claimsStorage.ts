@@ -689,7 +689,7 @@ export function getAllReviews(): DealReview[] {
       dealTitle: t.dealTitle,
       merchantId: t.merchantId,
       merchantName: t.merchantName,
-      authorName: t.phone ? `Customer (***${t.phone.slice(-4)})` : 'Verified Buyer',
+      authorName: t.phone ? `Customer (${t.phone})` : 'Verified Buyer',
       rating: t.rating!,
       comment: t.reviewComment || 'Great deal, fast counter redemption with M-PESA!',
       date: t.reviewedAt || t.paidAt || new Date().toISOString(),

@@ -156,8 +156,11 @@ export async function createOrder(dealId: string, phone: string): Promise<Order>
     if (res.status === 404) {
       throw new ApiError(404, 'Deal no longer available', data);
     }
+    if (res.status === 409) {
+      throw new ApiError(409, (data?.message as string) || (data?.error as string) || 'payment_in_progress', data);
+    }
     if (res.status === 429) {
-      throw new ApiError(429, 'Too many attempts, wait a minute', data);
+      throw new ApiError(429, 'Please wait a moment and try again', data);
     }
     if (res.status === 502) {
       throw new ApiError(502, data?.error || 'Payment service unavailable. Please retry.', data);
@@ -189,6 +192,9 @@ export async function getOrderStatus(orderId: string): Promise<Order> {
   }
 
   if (!res.ok) {
+    if (res.status === 429) {
+      throw new ApiError(429, 'Please wait a moment and try again', data);
+    }
     throw new ApiError(res.status, data?.error || `Failed to fetch order status (${res.status})`, data);
   }
 
