@@ -81,7 +81,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
             setRedemptionResult(null);
           }}
           aria-label="Select merchant shop"
-          className="text-xs bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 font-medium focus:outline-none"
+          className="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-slate-700 font-medium focus:outline-none"
         >
           {shops.map(s => (
             <option key={s.id} value={s.id}>
@@ -211,7 +211,7 @@ export const MerchantDashboard: React.FC<MerchantDashboardProps> = ({
 
         <button
           onClick={onNavigateToMyDeals}
-          className="flex-1 py-3 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors"
+          className="flex-1 py-3 px-3 bg-white hover:bg-gray-50 border border-slate-200 text-slate-800 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors"
         >
           <Tag className="w-4 h-4 text-emerald-700" />
           <span>My Active Deals</span>

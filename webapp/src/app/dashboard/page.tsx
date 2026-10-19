@@ -464,7 +464,7 @@ export default function DashboardPage() {
   if (!token) {
     return (
       <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[300px] bg-emerald-500/10 blur-[130px] rounded-full pointer-events-none -z-10" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[300px] bg-white blur-[130px] rounded-full pointer-events-none -z-10" />
 
         <header className="border-b border-slate-200/80 bg-white/80 backdrop-blur-xl px-6 py-4 flex items-center justify-between">
           <Link
@@ -484,7 +484,7 @@ export default function DashboardPage() {
         <main className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-md bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-3xl p-8 shadow-2xl backdrop-blur-xl">
             <div className="text-center mb-8">
-              <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/15">
+              <div className="w-14 h-14 bg-white border border-emerald-500/20 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/15">
                 <KeyRound className="w-7 h-7" />
               </div>
               <h1 className="text-2xl font-black text-slate-900 mb-2">{t('dashboard.loginTitle')}</h1>
@@ -499,7 +499,7 @@ export default function DashboardPage() {
             )}
 
             {authMessage && (
-              <div className="mb-6 bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 p-4 rounded-xl text-xs sm:text-sm flex items-start gap-3">
+              <div className="mb-6 bg-white border border-emerald-500/30 text-emerald-700 p-4 rounded-xl text-xs sm:text-sm flex items-start gap-3">
                 <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5 text-emerald-600" />
                 <span>{authMessage}</span>
               </div>
@@ -655,7 +655,7 @@ export default function DashboardPage() {
                   setLoading(false);
                 }
               }}
-              className="w-full bg-slate-100 hover:bg-slate-700 text-slate-900 font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              className="w-full bg-white hover:bg-slate-700 text-slate-900 font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Check Status</span>
@@ -855,7 +855,7 @@ export default function DashboardPage() {
               className="w-full px-5 py-3.5 min-h-[44px] flex items-center justify-between text-left hover:bg-white/50 transition-colors cursor-pointer group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-lg bg-white border border-emerald-500/20 text-emerald-600 flex items-center justify-center shrink-0">
                   <Store className="w-4 h-4" />
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -867,7 +867,7 @@ export default function DashboardPage() {
               <div className="flex items-center gap-3">
                 <span className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${
                   currentStatus === 'approved'
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
+                    ? 'bg-white text-emerald-600 border-emerald-500/30'
                     : currentStatus === 'pending'
                     ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
                     : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
@@ -940,7 +940,7 @@ export default function DashboardPage() {
         )}
 
         {/* HERO COMPONENT: Voucher Redemption Counter Box */}
-        <div className="bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden group">
+        <div className="bg-white border border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 blur-[90px] rounded-full pointer-events-none" />
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
@@ -1077,7 +1077,7 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => setRedeemResult(null)}
-                      className="px-3 py-1.5 bg-slate-100 hover:bg-slate-700 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                      className="px-3 py-1.5 bg-white hover:bg-slate-700 text-slate-700 hover:text-slate-900 rounded-xl text-xs font-bold transition-colors cursor-pointer"
                     >
                       Redeem Next Voucher
                     </button>
@@ -1140,7 +1140,7 @@ export default function DashboardPage() {
 
             {/* Post Deal Success Alert Banner */}
             {postSuccessMessage && (
-              <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 p-4 rounded-2xl text-xs sm:text-sm flex items-center gap-3 animate-fade-in">
+              <div className="bg-white border border-emerald-500/30 text-emerald-700 p-4 rounded-2xl text-xs sm:text-sm flex items-center gap-3 animate-fade-in">
                 <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                 <span className="font-semibold">{postSuccessMessage}</span>
               </div>
@@ -1148,10 +1148,10 @@ export default function DashboardPage() {
 
             {/* Post Deal Section (Live POST /api/merchant/deals) */}
             {isPostDealOpen && (
-              <div className="bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden animate-fade-in">
+              <div className="bg-white border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden animate-fade-in">
                 <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-white border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold">
                       <Plus className="w-5 h-5" />
                     </div>
                     <div>
@@ -1167,7 +1167,7 @@ export default function DashboardPage() {
                       setIsPostDealOpen(false);
                       setPostError(null);
                     }}
-                    className="text-xs text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-700 transition-colors cursor-pointer"
+                    className="text-xs text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white hover:bg-slate-700 transition-colors cursor-pointer"
                   >
                     ✕ Close
                   </button>
@@ -1297,7 +1297,7 @@ export default function DashboardPage() {
             <div className="bg-white/80 border border-slate-200/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-xl">
               <div className="p-5 md:p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-white border border-emerald-500/20 text-emerald-600 flex items-center justify-center font-bold shrink-0">
                     <Tag className="w-5 h-5" />
                   </div>
                   <div>
@@ -1313,7 +1313,7 @@ export default function DashboardPage() {
                 <button
                   type="button"
                   onClick={() => setIsPostDealOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-700 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-600/30 text-emerald-700 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Post Deal</span>
@@ -1344,7 +1344,7 @@ export default function DashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
                       {deals.map((d) => (
-                        <tr key={d.id} className="hover:bg-slate-100/30 transition-colors">
+                        <tr key={d.id} className="hover:bg-white/30 transition-colors">
                           <td className="px-6 py-3.5 font-bold font-sans text-slate-900 max-w-xs truncate">
                             <div>{d.title}</div>
                             {d.itemCode && (
@@ -1368,8 +1368,8 @@ export default function DashboardPage() {
                           <td className="px-6 py-3.5 text-right font-sans">
                             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
                               d.isActive
-                                ? 'text-emerald-600 bg-emerald-500/10 border border-emerald-500/30'
-                                : 'text-slate-600 bg-slate-100 border border-slate-300'
+                                ? 'text-emerald-600 bg-white border border-emerald-500/30'
+                                : 'text-slate-600 bg-white border border-slate-300'
                             }`}>
                               {d.isActive ? 'Active' : 'Paused'}
                             </span>
@@ -1385,12 +1385,12 @@ export default function DashboardPage() {
             {/* Primary Metrics Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {/* Deals Redeemed */}
-              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
                 <div className="flex items-center justify-between text-slate-600 mb-3">
                   <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
                     {t('dashboard.dealsRedeemed')}
                   </span>
-                  <div className="p-2 bg-emerald-500/10 text-emerald-600 rounded-xl border border-emerald-500/20">
+                  <div className="p-2 bg-white text-emerald-600 rounded-xl border border-emerald-500/20">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                 </div>
@@ -1403,7 +1403,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Cashless Sales */}
-              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
                 <div className="flex items-center justify-between text-slate-600 mb-3">
                   <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
                     {t('dashboard.cashlessSales')}
@@ -1421,7 +1421,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Pending Orders */}
-              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-sky-500/40 transition-all">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-sky-500/40 transition-all">
                 <div className="flex items-center justify-between text-slate-600 mb-3">
                   <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
                     {t('dashboard.pending')}
@@ -1439,7 +1439,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Failed Orders */}
-              <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-rose-500/40 transition-all">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-rose-500/40 transition-all">
                 <div className="flex items-center justify-between text-slate-600 mb-3">
                   <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-600">
                     {t('dashboard.failed')}
@@ -1461,7 +1461,7 @@ export default function DashboardPage() {
             <div className="bg-gradient-to-b from-slate-900/90 to-slate-950/90 border border-slate-200/80 rounded-2xl shadow-xl overflow-hidden">
               <div className="p-6 border-b border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-lg bg-white border border-emerald-500/20 text-emerald-600 flex items-center justify-center">
                     <Receipt className="w-4 h-4" />
                   </div>
                   <div>
@@ -1521,7 +1521,7 @@ export default function DashboardPage() {
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
                       {filteredRecentOrders.map((order: DashboardOrder) => (
-                        <tr key={order.orderId} className="hover:bg-slate-100/30 transition-colors">
+                        <tr key={order.orderId} className="hover:bg-white/30 transition-colors">
                           <td className="px-6 py-4 font-bold text-slate-900 max-w-xs truncate">
                             {order.dealTitle || 'Deal'}
                           </td>
@@ -1530,7 +1530,7 @@ export default function DashboardPage() {
                           </td>
                           <td className="px-6 py-4 font-mono text-xs text-emerald-600">
                             {order.receipt ? (
-                              <span className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                              <span className="inline-flex items-center gap-1 bg-white border border-emerald-500/20 px-2 py-0.5 rounded-md">
                                 {order.receipt}
                               </span>
                             ) : (
