@@ -458,11 +458,11 @@ export async function fetchDashboardStats(token?: string): Promise<DashboardStat
 // ==========================================
 
 export interface RedeemResponse {
-  orderId: string;
-  dealTitle: string;
+  orderId: string | null;
+  dealTitle: string | null;
   itemCode?: string | null;
-  amount: number;
-  redeemedAt: string;
+  amount: number | null;
+  redeemedAt: string | null;
   isSample?: boolean;
 }
 
@@ -620,12 +620,38 @@ export async function redeemDealCode(code: string, token?: string): Promise<Rede
     throw new DashboardApiError(res.status, data?.error || 'Failed to redeem code. Please try again.');
   }
 
+  // Handle both { ok: true, order: { id, dealTitle, amount, redeemedAt, ... } } and top-level fields
+  const order = (data && typeof data === 'object' && data.order && typeof data.order === 'object')
+    ? data.order
+    : data;
+
+  const rawOrderId = order?.id || order?.orderId;
+  const orderId = (typeof rawOrderId === 'string' && rawOrderId.trim()) ? rawOrderId.trim() : null;
+
+  const rawDealTitle = order?.dealTitle || order?.title;
+  const dealTitle = (typeof rawDealTitle === 'string' && rawDealTitle.trim()) ? rawDealTitle.trim() : null;
+
+  const rawAmount = order?.amount;
+  let amount: number | null = null;
+  if (rawAmount !== null && rawAmount !== undefined && rawAmount !== '') {
+    const num = Number(rawAmount);
+    if (!isNaN(num)) {
+      amount = Math.round(num);
+    }
+  }
+
+  const rawRedeemedAt = order?.redeemedAt || order?.paidAt;
+  const redeemedAt = (typeof rawRedeemedAt === 'string' && rawRedeemedAt.trim()) ? rawRedeemedAt.trim() : null;
+
+  const rawItemCode = order?.itemCode;
+  const itemCode = (typeof rawItemCode === 'string' && rawItemCode.trim()) ? rawItemCode.trim() : null;
+
   return {
-    orderId: String(data.orderId || ''),
-    dealTitle: String(data.dealTitle || 'Deal'),
-    itemCode: data.itemCode ?? null,
-    amount: Number(data.amount || 0),
-    redeemedAt: String(data.redeemedAt || new Date().toISOString()),
+    orderId,
+    dealTitle,
+    itemCode,
+    amount,
+    redeemedAt,
     isSample: false,
   };
 }

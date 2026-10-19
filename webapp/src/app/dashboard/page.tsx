@@ -131,13 +131,14 @@ export default function DashboardPage() {
   const animatedFailed = useAnimatedNumber(stats?.failed ?? 0);
 
   // Format order date/time safely on client
-  const formatTime = (isoString: string): string => {
+  const formatTime = (isoString?: string | null): string => {
+    if (!isoString) return '-';
     try {
       const d = new Date(isoString);
-      if (isNaN(d.getTime())) return isoString;
+      if (isNaN(d.getTime())) return '-';
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     } catch {
-      return isoString;
+      return '-';
     }
   };
 
@@ -1037,7 +1038,7 @@ export default function DashboardPage() {
                         Deal Title
                       </div>
                       <div className="text-lg sm:text-xl font-black text-white leading-tight">
-                        {redeemResult.dealTitle}
+                        {redeemResult.dealTitle || '-'}
                       </div>
                       {redeemResult.itemCode && (
                         <div className="text-xs font-mono text-emerald-300/80 mt-1.5 flex items-center gap-1">
@@ -1051,7 +1052,13 @@ export default function DashboardPage() {
                         Amount Paid (Cashless)
                       </div>
                       <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono tracking-tight">
-                        {redeemResult.amount.toLocaleString()} <span className="text-base font-bold text-emerald-300">ETB</span>
+                        {redeemResult.amount !== null && redeemResult.amount !== undefined ? (
+                          <>
+                            {redeemResult.amount} <span className="text-base font-bold text-emerald-300">ETB</span>
+                          </>
+                        ) : (
+                          <span className="text-slate-400 font-mono">-</span>
+                        )}
                       </div>
                       <div className="text-[11px] text-emerald-400/70 font-semibold mt-1">
                         ✓ Settled via Safaricom M-PESA
@@ -1063,19 +1070,21 @@ export default function DashboardPage() {
                         Order Reference
                       </div>
                       <div className="text-xs sm:text-sm font-mono text-slate-300 break-all bg-slate-950/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
-                        <span>{redeemResult.orderId}</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(redeemResult.orderId);
-                            setCopiedOrderId(true);
-                            setTimeout(() => setCopiedOrderId(false), 2000);
-                          }}
-                          className="text-slate-400 hover:text-white p-1"
-                          title="Copy Order ID"
-                        >
-                          {copiedOrderId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        </button>
+                        <span>{redeemResult.orderId || '-'}</span>
+                        {redeemResult.orderId && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(redeemResult.orderId!);
+                              setCopiedOrderId(true);
+                              setTimeout(() => setCopiedOrderId(false), 2000);
+                            }}
+                            className="text-slate-400 hover:text-white p-1"
+                            title="Copy Order ID"
+                          >
+                            {copiedOrderId ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
