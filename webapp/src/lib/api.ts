@@ -237,11 +237,11 @@ export async function forceMockResult(orderId: string, outcome: 'paid' | 'failed
 }
 
 /**
- * Checks whether merchant registration is in mock mode (default "true").
- * Only "false" performs live network requests.
+ * Checks whether merchant registration is in mock mode (default "false").
+ * Only "true" enables mock mode.
  */
 export function isMockRegister(): boolean {
-  return process.env.NEXT_PUBLIC_REGISTER_MOCK !== 'false';
+  return process.env.NEXT_PUBLIC_REGISTER_MOCK === 'true';
 }
 
 export interface MerchantRegisterPayload {
@@ -309,10 +309,10 @@ export async function registerMerchant(
       throw new ApiError(400, data?.error || 'Validation error. Please verify all fields.', data);
     }
     if (res.status === 409) {
-      throw new ApiError(409, 'A shop with these details already exists. Contact support if this is yours.', data);
+      throw new ApiError(409, data?.error || 'A shop with these details already exists. Contact support if this is yours.', data);
     }
     if (res.status === 429) {
-      throw new ApiError(429, 'Too many attempts, try again in an hour', data);
+      throw new ApiError(429, data?.error || 'Too many attempts, try again in an hour', data);
     }
     if (res.status === 500) {
       throw new ApiError(500, data?.error || 'Failed to process registration. Please retry.', data);

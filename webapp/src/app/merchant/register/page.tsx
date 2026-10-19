@@ -224,11 +224,13 @@ export default function MerchantRegisterPage() {
           setSubmitError(err.message || 'Validation error');
         } else if (err.status === 409) {
           setSubmitError(
+            err.message ||
             t('register.conflictMsg') ||
             'A shop with these details already exists. Contact support if this is yours.'
           );
         } else if (err.status === 429) {
           setSubmitError(
+            err.message ||
             t('register.rateLimitMsg') ||
             'Too many attempts, try again in an hour'
           );

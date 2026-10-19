@@ -2,9 +2,9 @@
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://tirfmarket-backend.onrender.com';
 
-// Mock mode is enabled by default unless NEXT_PUBLIC_DASHBOARD_MOCK is explicitly set to 'false'
+// Mock mode is disabled by default. Enabled only if NEXT_PUBLIC_DASHBOARD_MOCK is explicitly 'true'.
 export function isMockDashboard(): boolean {
-  return process.env.NEXT_PUBLIC_DASHBOARD_MOCK !== 'false';
+  return process.env.NEXT_PUBLIC_DASHBOARD_MOCK === 'true';
 }
 
 // ==========================================
@@ -245,22 +245,23 @@ export async function requestAuthCode(email: string): Promise<{ ok: boolean; mes
     return { ok: true, message: 'If this email is registered, a code was sent' };
   }
 
-  try {
-    const res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/auth/request`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: normalizedEmail }),
-    });
+  const res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/auth/request`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: normalizedEmail }),
+  });
 
-    if (res.status === 429) {
-      throw new DashboardApiError(429, 'Too many attempts, wait 15 minutes');
-    }
-    // Backend always answers 200
-    return { ok: true, message: 'If this email is registered, a code was sent' };
-  } catch (err: unknown) {
-    if (err instanceof DashboardApiError) throw err;
-    return { ok: true, message: 'If this email is registered, a code was sent' };
+  const data = await res.json().catch(() => ({}));
+
+  if (res.status === 429) {
+    throw new DashboardApiError(429, data?.error || 'Too many attempts, wait 15 minutes');
   }
+
+  if (!res.ok) {
+    throw new DashboardApiError(res.status, data?.error || 'Failed to request verification code');
+  }
+
+  return { ok: true, message: data.message || 'If an account exists for this email, a verification code has been sent.' };
 }
 
 /**
@@ -292,11 +293,22 @@ export async function verifyAuthCode(
       body: JSON.stringify({ email: normalizedEmail, code: cleanCode }),
     });
 
-    if (res.status === 429) {
-      return { error: 'Too many attempts, wait 15 minutes', status: 429 };
+    const data = await res.json().catch(() => ({}));
+
+    if (res.status === 401) {
+      return {
+        error: data?.error || 'Invalid verification code',
+        status: 401,
+      };
     }
 
-    const data = await res.json().catch(() => ({}));
+    if (res.status === 429) {
+      return {
+        error: data?.error || 'Too many attempts, wait 15 minutes',
+        status: 429,
+      };
+    }
+
     if (!res.ok) {
       return {
         error: data?.error || 'Invalid verification code. Please try again.',
@@ -587,12 +599,21 @@ export async function redeemDealCode(code: string, token?: string): Promise<Rede
 
   const data = await res.json().catch(() => ({}));
 
+  if (res.status === 400) {
+    throw new DashboardApiError(400, data?.error || 'Invalid code format. 8-character code required.');
+  }
+
   if (res.status === 404) {
-    throw new DashboardApiError(404, data?.error || 'Code not found for this shop');
+    throw new DashboardApiError(404, data?.error || 'Invalid code: not found for this shop');
   }
 
   if (res.status === 409) {
-    throw new DashboardApiError(409, data?.error || 'This code was already used');
+    const timeStr = data?.redeemedAt ? ` on ${new Date(data.redeemedAt).toLocaleString()}` : '';
+    throw new DashboardApiError(409, (data?.error || 'This code was already used') + timeStr);
+  }
+
+  if (res.status === 429) {
+    throw new DashboardApiError(429, data?.error || 'Too many attempts, please wait 15 minutes');
   }
 
   if (!res.ok) {
@@ -607,4 +628,104 @@ export async function redeemDealCode(code: string, token?: string): Promise<Rede
     redeemedAt: String(data.redeemedAt || new Date().toISOString()),
     isSample: false,
   };
+}
+
+// ==========================================
+// MERCHANT DEALS MANAGEMENT (LIVE)
+// ==========================================
+
+export interface CreateDealPayload {
+  title: string;
+  price: number;
+  discountPct: number;
+  expiryDate: string;
+  itemCode?: string | null;
+}
+
+export interface MerchantDeal {
+  id: string;
+  merchantId: string;
+  merchantName: string;
+  category: string;
+  title: string;
+  price: number;
+  discountPct: number;
+  finalAmount: number;
+  expiryDate: string;
+  isActive: boolean;
+  reportCount: number;
+  itemCode?: string | null;
+  createdAt: string;
+}
+
+export async function fetchMerchantDeals(token?: string): Promise<MerchantDeal[]> {
+  if (isMockDashboard()) {
+    return [];
+  }
+
+  const authToken = token || getStoredToken();
+  if (!authToken) {
+    throw new DashboardApiError(401, 'Unauthorized');
+  }
+
+  let res: Response;
+  try {
+    res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/deals`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+  } catch (err: unknown) {
+    if (err instanceof DashboardApiError) throw err;
+    throw new DashboardApiError(0, 'Network error. Please check your connection.');
+  }
+
+  if (res.status === 401) {
+    clearStoredToken();
+    throw new DashboardApiError(401, 'Unauthorized');
+  }
+
+  const data = await res.json().catch(() => []);
+  if (!res.ok) {
+    throw new DashboardApiError(res.status, (data && data.error) || 'Failed to fetch deals');
+  }
+
+  return Array.isArray(data) ? data : [];
+}
+
+export async function createMerchantDeal(
+  payload: CreateDealPayload,
+  token?: string
+): Promise<MerchantDeal> {
+  const authToken = token || getStoredToken();
+  if (!authToken) {
+    throw new DashboardApiError(401, 'Unauthorized');
+  }
+
+  let res: Response;
+  try {
+    res = await fetchWithDashboardTimeout(`${BACKEND_URL}/api/merchant/deals`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (err: unknown) {
+    if (err instanceof DashboardApiError) throw err;
+    throw new DashboardApiError(0, 'Network error. Please check your connection.');
+  }
+
+  if (res.status === 401) {
+    clearStoredToken();
+    throw new DashboardApiError(401, 'Unauthorized');
+  }
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new DashboardApiError(res.status, data?.error || `Failed to create deal (${res.status})`);
+  }
+
+  return data as MerchantDeal;
 }

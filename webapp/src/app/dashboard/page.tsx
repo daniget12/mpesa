@@ -4,16 +4,19 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Link from 'next/link';
 import { useLanguage } from '@/context/LanguageContext';
 import {
-  isMockDashboard,
   getStoredToken,
   clearStoredToken,
   requestAuthCode,
   verifyAuthCode,
   fetchMerchantMe,
   fetchDashboardStats,
+  fetchMerchantDeals,
+  createMerchantDeal,
   DashboardStats,
   DashboardOrder,
   MerchantMe,
+  MerchantDeal,
+  CreateDealPayload,
   DashboardApiError,
   MerchantStatus,
   redeemDealCode,
@@ -33,7 +36,6 @@ import {
   ShieldAlert,
   ShieldCheck,
   ArrowLeft,
-  Sparkles,
   ChevronDown,
   Store,
   Tag,
@@ -42,50 +44,36 @@ import {
   Copy,
   Check,
   Receipt,
-  Ticket,
-  Star,
   Plus,
+  Calendar,
 } from 'lucide-react';
-import {
-  getRatingForMerchant,
-  getReviewsForMerchant,
-  verifyClaimCodeForMerchant,
-  payClaimTicketAtShop,
-  markClaimTicketRedeemed,
-  setCustomDealQuota,
-  getDealQuota,
-  getStoredDealQuotas,
-  getAllDealQuotasSummary,
-  checkAndExpireClaims,
-  CustomerClaimTicket,
-} from '@/lib/claimsStorage';
 
-// Smooth animated number hook using requestAnimationFrame with cubic ease-out
-function useAnimatedNumber(target: number, duration: number = 650): number {
+// Animated counter hook
+function useAnimatedNumber(target: number, duration: number = 400): number {
   const [current, setCurrent] = useState<number>(target);
-  const prevRef = useRef<number>(target);
+  const prevTargetRef = useRef<number>(target);
 
   useEffect(() => {
-    const start = prevRef.current;
-    const end = target;
-    prevRef.current = target;
-    if (start === end) return;
-
+    const startValue = prevTargetRef.current;
+    prevTargetRef.current = target;
     const startTime = performance.now();
-    let frameId: number;
+    let animationFrameId: number;
 
-    const tick = (now: number) => {
-      const elapsed = now - startTime;
+    const animate = (time: number) => {
+      const elapsed = time - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const ease = 1 - Math.pow(1 - progress, 3);
-      setCurrent(Math.round(start + (end - start) * ease));
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      const nextValue = Math.round(startValue + (target - startValue) * easeProgress);
+
+      setCurrent(nextValue);
+
       if (progress < 1) {
-        frameId = requestAnimationFrame(tick);
+        animationFrameId = requestAnimationFrame(animate);
       }
     };
 
-    frameId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frameId);
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
   }, [target, duration]);
 
   return current;
@@ -93,23 +81,10 @@ function useAnimatedNumber(target: number, duration: number = 650): number {
 
 export default function DashboardPage() {
   const { t } = useLanguage();
-  const isMock = isMockDashboard();
 
-  // Authentication State (Real Mode)
+  // Authentication State
   const [token, setToken] = useState<string | null>(null);
-  const [merchant, setMerchant] = useState<MerchantMe | null>(() => {
-    if (isMock) {
-      return {
-        id: 'mock-sample-merchant',
-        shopName: 'Bole Highland Cafe',
-        name: 'Bole Highland Cafe',
-        category: 'cafe',
-        status: 'approved',
-        rejectionReason: null,
-      };
-    }
-    return null;
-  });
+  const [merchant, setMerchant] = useState<MerchantMe | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [emailInput, setEmailInput] = useState<string>('');
   const [codeInput, setCodeInput] = useState<string>('');
@@ -126,6 +101,19 @@ export default function DashboardPage() {
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [statusOverride, setStatusOverride] = useState<string | null>(null);
 
+  // Merchant Deals (Live)
+  const [deals, setDeals] = useState<MerchantDeal[]>([]);
+  const [dealsLoading, setDealsLoading] = useState<boolean>(false);
+  const [isPostDealOpen, setIsPostDealOpen] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postPrice, setPostPrice] = useState<number>(200);
+  const [postDiscountPct, setPostDiscountPct] = useState<number>(25);
+  const [postExpiryDays, setPostExpiryDays] = useState<number>(7);
+  const [postItemCode, setPostItemCode] = useState('');
+  const [postLoading, setPostLoading] = useState(false);
+  const [postError, setPostError] = useState<string | null>(null);
+  const [postSuccessMessage, setPostSuccessMessage] = useState<string | null>(null);
+
   // Redeem Code State
   const [redeemCodeInput, setRedeemCodeInput] = useState<string>('');
   const [redeemLoading, setRedeemLoading] = useState<boolean>(false);
@@ -135,22 +123,6 @@ export default function DashboardPage() {
 
   // Orders Search Query
   const [orderSearchQuery, setOrderSearchQuery] = useState<string>('');
-
-  // Post Deal Quotas & Validity State
-  const [isPostDealOpen, setIsPostDealOpen] = useState(false);
-  const [postTitle, setPostTitle] = useState('');
-  const [postOriginalPrice, setPostOriginalPrice] = useState<number>(200);
-  const [postDiscountPct, setPostDiscountPct] = useState<number>(25);
-  const [postQuota, setPostQuota] = useState<number>(10); // Amount of discounts present
-  const [postHoldMinutes, setPostHoldMinutes] = useState<number>(30); // Given validity time from merchant
-  const [postSuccessMessage, setPostSuccessMessage] = useState<string | null>(null);
-
-  // Cashier Counter Active Hold Verification
-  const [counterClaim, setCounterClaim] = useState<{
-    status: 'claimed_active' | 'paid_ready' | 'already_redeemed' | 'expired' | 'not_found';
-    ticket?: CustomerClaimTicket;
-    message: string;
-  } | null>(null);
 
   // Animated counters
   const animatedDealsRedeemed = useAnimatedNumber(stats?.dealsRedeemed ?? 0);
@@ -169,33 +141,19 @@ export default function DashboardPage() {
     }
   };
 
-  // Synchronize reviews & quotas from claim tickets storage in real-time
-  const [reviewsVersion, setReviewsVersion] = useState(0);
-  useEffect(() => {
-    checkAndExpireClaims();
-    const handleUpdate = () => setReviewsVersion((v) => v + 1);
-    window.addEventListener('tirf_claims_updated', handleUpdate);
-    window.addEventListener('tirf_quota_updated', handleUpdate);
-    const interval = setInterval(() => {
-      checkAndExpireClaims();
-    }, 4000);
-    return () => {
-      window.removeEventListener('tirf_claims_updated', handleUpdate);
-      window.removeEventListener('tirf_quota_updated', handleUpdate);
-      clearInterval(interval);
-    };
-  }, []);
-
-  const merchantShopName = merchant?.shopName || merchant?.name || 'Bole Highland Cafe';
-  const merchantRating = useMemo(() => getRatingForMerchant(merchantShopName), [merchantShopName, reviewsVersion]);
-  const merchantReviews = useMemo(() => getReviewsForMerchant(merchantShopName), [merchantShopName, reviewsVersion]);
-  const merchantQuotas = useMemo(() => getAllDealQuotasSummary(), [reviewsVersion]);
+  const formatDate = (isoString: string): string => {
+    try {
+      const d = new Date(isoString);
+      if (isNaN(d.getTime())) return isoString;
+      return d.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return isoString;
+    }
+  };
 
   // Waking server detection (> 5s loading)
   useEffect(() => {
-    if (!loading) {
-      return;
-    }
+    if (!loading) return;
     const timer = setTimeout(() => {
       setIsWakingUp(true);
     }, 5000);
@@ -259,14 +217,22 @@ export default function DashboardPage() {
     [t]
   );
 
-  // Initial Load: check stored token or init mock mode
+  // Fetch merchant deals function
+  const loadDeals = useCallback(async (currentToken?: string) => {
+    setDealsLoading(true);
+    try {
+      const list = await fetchMerchantDeals(currentToken);
+      setDeals(list);
+    } catch {
+      // Non-fatal, deals empty
+    } finally {
+      setDealsLoading(false);
+    }
+  }, []);
+
+  // Initial Load: check stored token
   useEffect(() => {
     const init = async () => {
-      if (isMock) {
-        await fetchStats(undefined, true);
-        return;
-      }
-
       const stored = getStoredToken();
       if (!stored) {
         setLoading(false);
@@ -280,6 +246,7 @@ export default function DashboardPage() {
 
         if (me.status === 'approved') {
           await fetchStats(stored, true);
+          await loadDeals(stored);
         } else {
           setLoading(false);
         }
@@ -296,18 +263,18 @@ export default function DashboardPage() {
     };
 
     init();
-  }, [isMock, fetchStats]);
+  }, [fetchStats, loadDeals]);
 
-  // Polling Interval: refresh stats every 3 seconds while approved
+  // Polling Interval: refresh stats every 15 seconds while approved
   useEffect(() => {
     const currentStatus = (statusOverride || merchant?.status || 'approved') as MerchantStatus;
-    if (currentStatus !== 'approved') return;
+    if (currentStatus !== 'approved' || !token) return;
 
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') {
-        fetchStats(token || undefined, false);
+        fetchStats(token, false);
       }
-    }, 3000);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [token, merchant?.status, statusOverride, fetchStats]);
@@ -322,12 +289,12 @@ export default function DashboardPage() {
     setAuthMessage(null);
 
     try {
-      await requestAuthCode(emailInput);
-      setAuthMessage(t('dashboard.codeSent'));
+      const res = await requestAuthCode(emailInput);
+      setAuthMessage(res.message || 'If an account exists for this email, a verification code has been sent.');
       setCodeSent(true);
     } catch (err: unknown) {
-      if (err instanceof DashboardApiError && err.status === 429) {
-        setAuthError(t('dashboard.tooManyAttempts'));
+      if (err instanceof DashboardApiError) {
+        setAuthError(err.message);
       } else {
         setAuthError('Could not send code. Please try again.');
       }
@@ -347,11 +314,7 @@ export default function DashboardPage() {
     try {
       const result = await verifyAuthCode(emailInput, codeInput);
       if (result.error) {
-        if (result.status === 429) {
-          setAuthError(t('dashboard.tooManyAttempts'));
-        } else {
-          setAuthError(result.error);
-        }
+        setAuthError(result.error);
         return;
       }
 
@@ -362,142 +325,29 @@ export default function DashboardPage() {
         setMerchant(me);
         if (me.status === 'approved') {
           await fetchStats(result.token, true);
+          await loadDeals(result.token);
         }
-      }
-    } catch (err: unknown) {
-      if (err instanceof DashboardApiError && err.status === 429) {
-        setAuthError(t('dashboard.tooManyAttempts'));
       } else {
-        setAuthError('Authentication failed. Please verify your code and retry.');
-      }
-    } finally {
-      setAuthLoading(false);
-      setLoading(false);
-    }
-  };
-
-  // Handle Post Deal with Quotas and Validity Duration
-  const handlePostDealSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!postTitle.trim() || postOriginalPrice <= 0 || postQuota <= 0) return;
-
-    const dealId = `d_custom_${Date.now()}`;
-    setCustomDealQuota(
-      dealId,
-      Number(postQuota),
-      Number(postHoldMinutes),
-      merchantShopName,
-      postTitle.trim()
-    );
-
-    setPostSuccessMessage(`Deal published! Quota of ${postQuota} discounts present with ${postHoldMinutes}m claim validity window.`);
-    setTimeout(() => setPostSuccessMessage(null), 5000);
-    setPostTitle('');
-    setIsPostDealOpen(false);
-  };
-
-  // Cashier confirms payment made at counter
-  const handleConfirmCounterPayment = (ticket: CustomerClaimTicket) => {
-    payClaimTicketAtShop(ticket.id);
-    markClaimTicketRedeemed(ticket.id);
-    setCounterClaim(null);
-    setRedeemResult({
-      orderId: ticket.orderId,
-      dealTitle: ticket.dealTitle,
-      amount: ticket.amount,
-      redeemedAt: new Date().toISOString(),
-      isSample: true,
-    });
-    if (isMock || token) {
-      fetchStats(token || undefined, false);
-    }
-  };
-
-  // Handle Redeem / Verify Code
-  const handleRedeemCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = redeemCodeInput.trim().toUpperCase();
-    if (!code) return;
-
-    setRedeemLoading(true);
-    setRedeemError(null);
-    setRedeemResult(null);
-    setCounterClaim(null);
-
-    // Clear input after each attempt (Requirement: "Clear input after each attempt")
-    setRedeemCodeInput('');
-
-    // Check local customer claim tickets
-    const localCheck = verifyClaimCodeForMerchant(code, merchantShopName);
-    if (localCheck.status !== 'not_found') {
-      setRedeemLoading(false);
-
-      if (localCheck.status === 'claimed_active' && localCheck.ticket) {
-        setCounterClaim(localCheck);
-        return;
-      }
-      if (localCheck.status === 'paid_ready' && localCheck.ticket) {
-        markClaimTicketRedeemed(localCheck.ticket.id);
-        setRedeemResult({
-          orderId: localCheck.ticket.orderId,
-          dealTitle: localCheck.ticket.dealTitle,
-          amount: localCheck.ticket.amount,
-          redeemedAt: new Date().toISOString(),
-          isSample: true,
-        });
-        if (isMock || token) {
-          fetchStats(token || undefined, false);
-        }
-        return;
-      }
-      if (localCheck.status === 'expired') {
-        setRedeemError(localCheck.message);
-        return;
-      }
-      if (localCheck.status === 'already_redeemed') {
-        setRedeemError(localCheck.message);
-        return;
-      }
-    }
-
-    try {
-      const result = await redeemDealCode(code, token || undefined);
-      setRedeemResult(result);
-      if (isMock || token) {
-        fetchStats(token || undefined, false);
+        setAuthError('No session token received from verification server.');
       }
     } catch (err: unknown) {
       if (err instanceof DashboardApiError) {
-        if (err.status === 401) {
-          clearStoredToken();
-          setToken(null);
-          setMerchant(null);
-          setStats(null);
-          return;
-        }
-        if (err.status === 404) {
-          setRedeemError(t('dashboard.codeNotFound') || 'Code not found for this shop');
-          return;
-        }
-        if (err.status === 409) {
-          setRedeemError(t('dashboard.codeAlreadyUsed') || 'This code was already used');
-          return;
-        }
-        setRedeemError(err.message || t('dashboard.redeemError') || 'Could not redeem code. Please try again.');
+        setAuthError(err.message);
       } else {
-        setRedeemError(t('dashboard.redeemError') || 'Could not redeem code. Please try again.');
+        setAuthError('Could not verify code. Please try again.');
       }
     } finally {
-      setRedeemLoading(false);
+      setAuthLoading(false);
     }
   };
 
-  // Handle Log Out
+  // Handle Logout
   const handleLogout = () => {
     clearStoredToken();
     setToken(null);
     setMerchant(null);
     setStats(null);
+    setDeals([]);
     setCodeSent(false);
     setEmailInput('');
     setCodeInput('');
@@ -507,6 +357,82 @@ export default function DashboardPage() {
     setRedeemResult(null);
     setRedeemError(null);
     setRedeemCodeInput('');
+  };
+
+  // Handle Redeem / Verify Code (Live POST /api/merchant/redeem)
+  const handleRedeemCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const code = redeemCodeInput.trim().toUpperCase();
+    if (!code) return;
+
+    setRedeemLoading(true);
+    setRedeemError(null);
+    setRedeemResult(null);
+
+    try {
+      const res = await redeemDealCode(code, token || undefined);
+      setRedeemResult(res);
+      setRedeemCodeInput('');
+      // Refresh stats immediately after successful redemption
+      if (token) {
+        fetchStats(token, false);
+      }
+    } catch (err: unknown) {
+      if (err instanceof DashboardApiError) {
+        setRedeemError(err.message);
+      } else {
+        setRedeemError('Could not process voucher redemption.');
+      }
+    } finally {
+      setRedeemLoading(false);
+    }
+  };
+
+  // Handle Post Deal Submit (Live POST /api/merchant/deals)
+  const handlePostDealSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!token) {
+      setPostError('You must be signed in to post deals.');
+      return;
+    }
+    if (!postTitle.trim()) {
+      setPostError('Title must be between 3 and 80 characters.');
+      return;
+    }
+
+    setPostLoading(true);
+    setPostError(null);
+    setPostSuccessMessage(null);
+
+    try {
+      // Calculate future ISO expiry timestamp
+      const expiryDate = new Date(Date.now() + postExpiryDays * 24 * 60 * 60 * 1000).toISOString();
+      const payload: CreateDealPayload = {
+        title: postTitle.trim(),
+        price: Math.round(Number(postPrice)),
+        discountPct: Math.round(Number(postDiscountPct)),
+        expiryDate,
+        ...(postItemCode.trim() ? { itemCode: postItemCode.trim().toUpperCase() } : {}),
+      };
+
+      const created = await createMerchantDeal(payload, token);
+      setPostSuccessMessage(`Deal "${created.title}" published successfully! Final price: ${created.finalAmount} ETB (${created.discountPct}% off).`);
+      setTimeout(() => setPostSuccessMessage(null), 6000);
+      setPostTitle('');
+      setPostItemCode('');
+      setIsPostDealOpen(false);
+      // Reload deals list & stats
+      await loadDeals(token);
+      await fetchStats(token, false);
+    } catch (err: unknown) {
+      if (err instanceof DashboardApiError) {
+        setPostError(err.message);
+      } else {
+        setPostError('Failed to create deal. Please verify your inputs.');
+      }
+    } finally {
+      setPostLoading(false);
+    }
   };
 
   // Filtered orders for cashier search
@@ -521,8 +447,8 @@ export default function DashboardPage() {
     );
   }, [stats, orderSearchQuery]);
 
-  // Render Login Form in Real Mode when unauthenticated
-  if (!isMock && !token) {
+  // Render Login Form in Live Mode when unauthenticated
+  if (!token) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative overflow-hidden">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] h-[300px] bg-emerald-500/10 blur-[130px] rounded-full pointer-events-none -z-10" />
@@ -578,7 +504,7 @@ export default function DashboardPage() {
                       required
                       value={emailInput}
                       onChange={(e) => setEmailInput(e.target.value)}
-                      placeholder="shop@example.com"
+                      placeholder="merchant@yourshop.et"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all pl-11 text-sm"
                     />
                     <Mail className="w-5 h-5 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -609,6 +535,9 @@ export default function DashboardPage() {
                     placeholder="123456"
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-center text-2xl font-mono tracking-widest text-emerald-400 placeholder-slate-700 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   />
+                  <p className="text-[11px] text-slate-400 text-center mt-1">
+                    Sent to <span className="font-semibold text-slate-200">{emailInput}</span>
+                  </p>
                 </div>
 
                 <button
@@ -653,7 +582,166 @@ export default function DashboardPage() {
 
   // Active status check for Real Mode
   const currentStatus = (statusOverride || merchant?.status || 'approved') as MerchantStatus;
-  const isStatusBlocked = !isMock && currentStatus !== 'approved';
+
+  if (loading && !merchant && !errorMessage) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400 mb-4" />
+        <p className="text-slate-400 text-sm">Verifying merchant session...</p>
+      </div>
+    );
+  }
+
+  if (currentStatus === 'pending') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative">
+        <header className="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Tirf Market</span>
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-amber-500/30 rounded-3xl p-8 text-center shadow-2xl">
+            <div className="w-14 h-14 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Clock className="w-7 h-7" />
+            </div>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/30 inline-block mb-3">
+              Under Review
+            </span>
+            <h1 className="text-2xl font-black text-white mb-2">Application Under Review</h1>
+            <p className="text-slate-400 text-sm mb-6">
+              Your merchant application for <strong className="text-white">{merchant?.shopName || merchant?.name || 'your shop'}</strong> is currently under review by TirfMarket compliance. We verify business TIN and storefront information before activation.
+            </p>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!token) return;
+                setLoading(true);
+                try {
+                  const me = await fetchMerchantMe(token);
+                  setMerchant(me);
+                  if (me.status === 'approved') {
+                    await fetchStats(token, true);
+                    await loadDeals(token);
+                  }
+                } catch (e: unknown) {
+                  if (e instanceof DashboardApiError && e.status === 401) {
+                    handleLogout();
+                  }
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Check Status</span>
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (currentStatus === 'rejected') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative">
+        <header className="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Tirf Market</span>
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-3xl p-8 text-center shadow-2xl">
+            <div className="w-14 h-14 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <XCircle className="w-7 h-7" />
+            </div>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 inline-block mb-3">
+              Application Rejected
+            </span>
+            <h1 className="text-2xl font-black text-white mb-2">Registration Not Approved</h1>
+            {(merchant?.rejectionReason || merchant?.error) && (
+              <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 mb-4 text-left">
+                <span className="text-[11px] font-bold text-rose-300 block mb-1">Reason:</span>
+                <p className="text-xs text-rose-200">{merchant?.rejectionReason || merchant?.error}</p>
+              </div>
+            )}
+            <p className="text-slate-400 text-sm mb-6">
+              Your merchant registration was not approved. You can submit a new registration or contact support.
+            </p>
+            <Link
+              href="/merchant/register"
+              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-3 px-4 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors block text-center"
+            >
+              <span>Submit New Registration</span>
+            </Link>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (currentStatus === 'suspended') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans relative">
+        <header className="border-b border-slate-800 bg-slate-950/80 px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white">
+            <ArrowLeft className="w-4 h-4" />
+            <span>Tirf Market</span>
+          </Link>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
+        </header>
+
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-3xl p-8 text-center shadow-2xl">
+            <div className="w-14 h-14 bg-rose-500/10 border border-rose-500/30 text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <ShieldAlert className="w-7 h-7" />
+            </div>
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30 inline-block mb-3">
+              Account Suspended
+            </span>
+            <h1 className="text-2xl font-black text-white mb-2">Account Suspended</h1>
+            {(merchant?.rejectionReason || merchant?.error) && (
+              <div className="bg-rose-950/40 border border-rose-500/30 rounded-xl p-3 mb-4 text-left">
+                <span className="text-[11px] font-bold text-rose-300 block mb-1">Notice:</span>
+                <p className="text-xs text-rose-200">{merchant?.rejectionReason || merchant?.error}</p>
+              </div>
+            )}
+            <p className="text-slate-400 text-sm mb-6">
+              This merchant account is suspended. Please contact TirfMarket support to resolve this issue.
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans pb-20 selection:bg-emerald-500 selection:text-slate-950 relative overflow-hidden">
@@ -680,14 +768,8 @@ export default function DashboardPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-black text-base sm:text-lg tracking-tight text-white">
-                    {merchant?.shopName || 'Merchant Portal'}
+                    {merchant?.shopName || merchant?.name || 'Merchant Portal'}
                   </span>
-                  {isMock && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 uppercase tracking-wider">
-                      <Sparkles className="w-2.5 h-2.5" />
-                      DEMO
-                    </span>
-                  )}
                 </div>
                 <div className="flex items-center gap-2 text-[11px] text-slate-400">
                   <span className="text-emerald-400 font-semibold flex items-center gap-1">
@@ -705,7 +787,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2.5 sm:gap-3">
             <div className="hidden md:flex items-center gap-2 text-xs text-slate-300 bg-slate-900/90 px-3.5 py-1.5 rounded-xl border border-slate-800">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Live Counter Feed: <strong className="text-emerald-400 font-mono">Real-time</strong></span>
+              <span>Live Counter Feed: <strong className="text-emerald-400 font-mono">Real-time (15s)</strong></span>
             </div>
 
             {/* Offline Alert */}
@@ -715,17 +797,15 @@ export default function DashboardPage() {
               </span>
             )}
 
-            {/* Logout button (Real mode) */}
-            {!isMock && token && (
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t('dashboard.logout')}</span>
-              </button>
-            )}
+            {/* Logout button */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-400 hover:text-white bg-rose-500/10 hover:bg-rose-600/30 border border-rose-500/20 px-3 py-1.5 rounded-xl transition-all cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t('dashboard.logout')}</span>
+            </button>
 
             {/* Quick Link to Marketplace */}
             <Link
@@ -736,14 +816,14 @@ export default function DashboardPage() {
               <span className="hidden sm:inline">Marketplace</span>
             </Link>
 
-            {/* Post Deal (Quotas & Validity) Button */}
+            {/* Post Deal Button */}
             <button
               type="button"
               onClick={() => setIsPostDealOpen((prev) => !prev)}
               className="px-3 sm:px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>{isPostDealOpen ? 'Close Post Deal' : 'Post Deal'}</span>
+              <span>{isPostDealOpen ? 'Close' : 'Post Deal'}</span>
             </button>
           </div>
         </div>
@@ -769,11 +849,6 @@ export default function DashboardPage() {
                   <span className="text-sm font-bold text-white group-hover:text-emerald-400 transition-colors">
                     {merchant.shopName || merchant.name || t('dashboard.shopProfile')}
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-2xs">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span>{merchantRating.average.toFixed(1)}</span>
-                    <span className="text-slate-400 font-normal">({merchantRating.count} reviews)</span>
-                  </span>
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -791,26 +866,13 @@ export default function DashboardPage() {
             </button>
 
             {isProfileOpen && (
-              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-slate-800/60 grid grid-cols-1 sm:grid-cols-4 gap-4 text-sm animate-fade-in">
+              <div id="shop-profile-panel" className="px-5 pb-5 pt-3 border-t border-slate-800/60 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm animate-fade-in">
                 <div className="space-y-1">
                   <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                     {t('register.shopName') || 'Shop Name'}
                   </div>
                   <div className="font-bold text-white text-base">
-                    {merchant.shopName || merchant.name || 'Bole Highland Cafe'}
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Customer Rating
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-amber-400 text-base flex items-center gap-1">
-                      <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                      {merchantRating.average.toFixed(1)} / 5.0
-                    </span>
-                    <span className="text-xs text-slate-400">({merchantRating.count} reviews)</span>
+                    {merchant.shopName || merchant.name || 'Merchant Shop'}
                   </div>
                 </div>
 
@@ -819,7 +881,7 @@ export default function DashboardPage() {
                     {t('dashboard.category') || 'Category'}
                   </div>
                   <div className="font-medium text-slate-200 capitalize">
-                    {merchant.category ? (t(`cat.${merchant.category}` as unknown as Parameters<typeof t>[0]) || merchant.category) : 'Cafe'}
+                    {merchant.category || 'Shop'}
                   </div>
                 </div>
 
@@ -864,48 +926,8 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* Status Screen (pending, rejected, suspended in Real Mode) */}
-        {isStatusBlocked ? (
-          <div className="max-w-xl mx-auto my-16 bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-10 text-center shadow-2xl">
-            {currentStatus === 'pending' ? (
-              <>
-                <Clock className="w-16 h-16 text-yellow-400 mx-auto mb-4 animate-pulse" />
-                <h2 className="text-2xl font-bold text-white mb-2">{t('dashboard.waitingApproval')}</h2>
-                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                  Your merchant verification request has been received and is currently under review by our operations
-                  team.
-                </p>
-              </>
-            ) : currentStatus === 'rejected' ? (
-              <>
-                <XCircle className="w-16 h-16 text-rose-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-white mb-2">{t('dashboard.statusRejected')}</h2>
-                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                  Your merchant registration could not be approved at this time. Please contact support.
-                </p>
-              </>
-            ) : (
-              <>
-                <ShieldAlert className="w-16 h-16 text-rose-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold text-white mb-2">{t('dashboard.statusSuspended')}</h2>
-                <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                  This merchant account has been temporarily suspended. Please reach out to administration.
-                </p>
-              </>
-            )}
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm px-6 py-2.5 rounded-xl transition-colors cursor-pointer"
-            >
-              {t('dashboard.logout')}
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* HERO COMPONENT: Voucher Redemption Counter Box (Phone on counter / projector friendly) */}
-            <div className="bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden group">
+        {/* HERO COMPONENT: Voucher Redemption Counter Box */}
+        <div className="bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-500/5 blur-[90px] rounded-full pointer-events-none" />
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
@@ -916,51 +938,13 @@ export default function DashboardPage() {
                   <div>
                     <h2 className="text-lg md:text-xl font-black text-white tracking-tight flex items-center gap-2">
                       {t('dashboard.redeemTitle')}
-                      {isMock && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 uppercase tracking-wider">
-                          <Sparkles className="w-3 h-3" />
-                          {t('dashboard.sampleData')}
-                        </span>
-                      )}
                     </h2>
                     <p className="text-xs md:text-sm text-slate-400">
-                      {t('dashboard.redeemSubtitle')}
+                      Enter the 8-character code shown on customer&apos;s phone to verify and redeem.
                     </p>
                   </div>
                 </div>
               </div>
-
-              {/* Fast Sample Code Chips (in Mock/Demo Mode) */}
-              {isMock && (
-                <div className="mb-5 text-xs text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-2.5">
-                  <span className="font-bold flex items-center gap-1">
-                    <Ticket className="w-3.5 h-3.5" />
-                    <span>Quick-Select Test Voucher:</span>
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {[
-                      { code: 'SAMPLE-ORD-01', label: 'SAMPLE-ORD-01' },
-                      { code: 'SAMPLE-ORD-02', label: 'SAMPLE-ORD-02' },
-                      { code: 'SAMPLE-ORD-03', label: 'SAMPLE-ORD-03' },
-                      { code: 'TIRF-8F1A01', label: 'TIRF-8F1A01 (Paid)' },
-                      { code: 'TIRF-7X9P', label: 'TIRF-7X9P (Active Hold)' },
-                    ].map((item) => (
-                      <button
-                        key={item.code}
-                        type="button"
-                        onClick={() => setRedeemCodeInput(item.code)}
-                        className={`px-2.5 py-1 font-mono text-xs font-black rounded-lg transition-all active:scale-95 cursor-pointer shadow-xs ${
-                          item.code === 'TIRF-7X9P'
-                            ? 'bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-200 border border-emerald-500/50'
-                            : 'bg-amber-500/20 hover:bg-amber-500/35 text-amber-200 border border-amber-500/40'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* Form Input & Action Button */}
               <form onSubmit={handleRedeemCode} className="flex flex-col sm:flex-row gap-3">
@@ -969,8 +953,9 @@ export default function DashboardPage() {
                     type="text"
                     value={redeemCodeInput}
                     onChange={(e) => setRedeemCodeInput(e.target.value.toUpperCase())}
-                    placeholder={t('dashboard.redeemPlaceholder')}
+                    placeholder="Enter 8-character code (e.g. K7M4Q9XR)"
                     disabled={redeemLoading}
+                    maxLength={16}
                     className="w-full bg-slate-950/90 border border-slate-700/80 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/20 rounded-2xl px-5 py-4 text-xl sm:text-2xl md:text-3xl font-mono tracking-wider md:tracking-widest text-emerald-400 placeholder:font-sans placeholder:text-sm sm:placeholder:text-base placeholder:tracking-normal placeholder:text-slate-500 uppercase transition-all min-h-[58px]"
                   />
                   {redeemCodeInput && (
@@ -1001,101 +986,6 @@ export default function DashboardPage() {
                   )}
                 </button>
               </form>
-
-              {/* Active Counter Hold Verification Card */}
-              {counterClaim && counterClaim.ticket && (
-                <div className="mt-5 bg-gradient-to-br from-amber-950/60 via-slate-900/95 to-amber-950/40 border-2 border-amber-500/60 text-amber-200 p-6 sm:p-7 rounded-3xl shadow-2xl shadow-amber-950/50 animate-fade-in relative">
-                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-5 border-b border-amber-500/20">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2.5 bg-amber-500/20 text-amber-300 rounded-2xl border border-amber-500/40 shadow-inner">
-                        <Clock className="w-7 h-7 animate-pulse text-amber-400" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="text-lg sm:text-xl font-black text-amber-300">
-                            Active Customer Hold • Pay at Shop
-                          </h3>
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase">
-                            Zero Upfront Claim
-                          </span>
-                        </div>
-                        <p className="text-xs text-amber-400/80 mt-0.5">
-                          {counterClaim.message}
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setCounterClaim(null)}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-6">
-                    <div>
-                      <div className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1">
-                        Reserved Deal
-                      </div>
-                      <div className="text-lg sm:text-xl font-black text-white leading-tight">
-                        {counterClaim.ticket.dealTitle}
-                      </div>
-                      <div className="text-xs font-mono text-amber-300/80 mt-1.5 flex items-center gap-1.5">
-                        <span>Code:</span>
-                        <span className="font-black text-amber-200 px-2 py-0.5 rounded bg-amber-500/20 tracking-wider">
-                          {counterClaim.ticket.redemptionCode}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1">
-                        Amount to Collect at Counter
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-black text-amber-300 font-mono tracking-tight">
-                        {counterClaim.ticket.amount.toLocaleString()} <span className="text-base font-bold text-amber-200">ETB</span>
-                      </div>
-                      <div className="text-[11px] text-amber-400/70 font-semibold mt-1">
-                        Original: <span className="line-through">{counterClaim.ticket.originalPrice || counterClaim.ticket.amount} ETB</span> ({counterClaim.ticket.discountPct || 0}% OFF)
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-[11px] font-semibold text-amber-400/80 uppercase tracking-wider mb-1">
-                        Validity Window & Quota Rule
-                      </div>
-                      <div className="text-xs font-medium text-slate-300 bg-slate-950/60 p-2.5 rounded-xl border border-amber-500/20 space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="text-slate-400">Merchant Hold:</span>
-                          <span className="font-bold text-amber-300">{counterClaim.ticket.holdMinutes || 30} minutes</span>
-                        </div>
-                        <div className="text-[10px] text-amber-400/80 leading-tight">
-                          If customer leaves without paying, quota automatically returns to your store stock.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cashier Confirmation Action */}
-                  <div className="pt-4 border-t border-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <p className="text-xs text-amber-300/90 flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      <span>Customer presents M-PESA or cash at counter. Once received, confirm below:</span>
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={() => handleConfirmCounterPayment(counterClaim.ticket!)}
-                      className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm rounded-2xl shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-2 cursor-pointer transition-all active:scale-[0.98]"
-                    >
-                      <CheckCircle2 className="w-5 h-5 text-white" />
-                      <span>Confirm Counter Payment & Settle</span>
-                    </button>
-                  </div>
-                </div>
-              )}
 
               {/* Error Banner */}
               {redeemError && (
@@ -1132,21 +1022,13 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      {redeemResult.isSample && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 uppercase tracking-wider">
-                          <Sparkles className="w-3 h-3" />
-                          {t('dashboard.sampleData')}
-                        </span>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setRedeemResult(null)}
-                        className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
-                      >
-                        Redeem Next Voucher
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setRedeemResult(null)}
+                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                    >
+                      Redeem Next Voucher
+                    </button>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -1209,7 +1091,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Merchant Post Deal Section with Quota & Validity Duration */}
+            {/* Post Deal Section (Live POST /api/merchant/deals) */}
             {isPostDealOpen && (
               <div className="bg-gradient-to-br from-slate-900/95 via-slate-900/90 to-slate-950/95 border-2 border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden animate-fade-in">
                 <div className="flex items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-800">
@@ -1218,28 +1100,42 @@ export default function DashboardPage() {
                       <Plus className="w-5 h-5" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-white">Post Deal with Quota & Claim Validity</h3>
-                      <p className="text-xs text-slate-400">Configure discounts present and set how long claims remain valid before reversing.</p>
+                      <h3 className="text-lg font-black text-white">Post New Deal</h3>
+                      <p className="text-xs text-slate-400">
+                        Create a verified deal for nearby shoppers within 2 km.
+                      </p>
                     </div>
                   </div>
                   <button
                     type="button"
-                    onClick={() => setIsPostDealOpen(false)}
+                    onClick={() => {
+                      setIsPostDealOpen(false);
+                      setPostError(null);
+                    }}
                     className="text-xs text-slate-400 hover:text-white px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer"
                   >
                     ✕ Close
                   </button>
                 </div>
 
+                {postError && (
+                  <div className="mb-5 bg-rose-500/10 border border-rose-500/30 text-rose-300 p-4 rounded-2xl text-xs sm:text-sm flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                    <span className="font-semibold">{postError}</span>
+                  </div>
+                )}
+
                 <form onSubmit={handlePostDealSubmit} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                        Deal Title *
+                        Deal Title (3-80 chars) *
                       </label>
                       <input
                         type="text"
                         required
+                        minLength={3}
+                        maxLength={80}
                         value={postTitle}
                         onChange={(e) => setPostTitle(e.target.value)}
                         placeholder="e.g. 25% Off Fresh Roast Coffee & Pastry"
@@ -1250,93 +1146,99 @@ export default function DashboardPage() {
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                          Original Price (ETB) *
+                          Price (ETB) *
                         </label>
                         <input
                           type="number"
                           min={1}
+                          max={100000}
                           required
-                          value={postOriginalPrice}
-                          onChange={(e) => setPostOriginalPrice(Math.max(1, parseInt(e.target.value) || 1))}
+                          value={postPrice}
+                          onChange={(e) => setPostPrice(Math.max(1, parseInt(e.target.value) || 1))}
                           className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-500"
                         />
                       </div>
                       <div>
                         <label className="block text-xs font-bold text-slate-300 mb-1.5">
-                          Discount ({postDiscountPct}%)
+                          Discount ({postDiscountPct}%) *
                         </label>
                         <input
                           type="number"
-                          min={5}
+                          min={1}
                           max={90}
+                          required
                           value={postDiscountPct}
-                          onChange={(e) => setPostDiscountPct(Math.max(5, Math.min(90, parseInt(e.target.value) || 5)))}
+                          onChange={(e) => setPostDiscountPct(Math.max(1, Math.min(90, parseInt(e.target.value) || 1)))}
                           className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono text-emerald-400 focus:outline-none focus:border-emerald-500"
                         />
+                        <span className="text-[10px] text-slate-400 block mt-0.5">New shops: max 50%</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Quota & Validity Window Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-slate-800/80">
                     <div>
-                      <label className="block text-xs font-bold text-amber-400 mb-1.5 flex items-center gap-1.5">
-                        <span>Discounts Present (Total Quota Available) *</span>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Expiry Duration (Days) *</span>
                       </label>
-                      <input
-                        type="number"
-                        min={1}
-                        max={500}
-                        required
-                        value={postQuota}
-                        onChange={(e) => setPostQuota(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-full bg-slate-950 border border-amber-500/30 rounded-xl px-4 py-2.5 text-base font-mono font-bold text-amber-300 focus:outline-none focus:border-amber-400"
-                      />
-                      <p className="text-[11px] text-slate-400 mt-1">
-                        Total discounts posted. Buyers claim with zero upfront payment.
-                      </p>
+                      <select
+                        value={postExpiryDays}
+                        onChange={(e) => setPostExpiryDays(parseInt(e.target.value))}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-200 focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value={1}>1 Day</option>
+                        <option value={3}>3 Days</option>
+                        <option value={5}>5 Days</option>
+                        <option value={7}>7 Days (New shop maximum)</option>
+                        <option value={14}>14 Days</option>
+                        <option value={30}>30 Days</option>
+                      </select>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">New shops: up to 7 days only</span>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-emerald-400 mb-1.5 flex items-center gap-1.5">
-                        <span>Claim Hold Validity Duration (Merchant Window) *</span>
+                      <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                        Item / Stock Code (Optional)
                       </label>
-                      <select
-                        value={postHoldMinutes}
-                        onChange={(e) => setPostHoldMinutes(parseInt(e.target.value))}
-                        className="w-full bg-slate-950 border border-emerald-500/30 rounded-xl px-4 py-2.5 text-sm font-bold text-emerald-300 focus:outline-none focus:border-emerald-400"
-                      >
-                        <option value={15}>15 Minutes</option>
-                        <option value={20}>20 Minutes</option>
-                        <option value={30}>30 Minutes (Recommended)</option>
-                        <option value={45}>45 Minutes</option>
-                        <option value={60}>60 Minutes (1 Hour)</option>
-                        <option value={120}>120 Minutes (2 Hours)</option>
-                      </select>
-                      <p className="text-[11px] text-slate-400 mt-1">
-                        If buyer does not pay at counter within this time, quota automatically reverses back to your store!
-                      </p>
+                      <input
+                        type="text"
+                        maxLength={20}
+                        value={postItemCode}
+                        onChange={(e) => setPostItemCode(e.target.value.toUpperCase())}
+                        placeholder="e.g. COFFEE-01"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm font-mono uppercase text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500"
+                      />
+                      <span className="text-[10px] text-slate-400 block mt-0.5">3-20 letters/digits/dashes</span>
                     </div>
                   </div>
 
                   <div className="p-3.5 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-between text-xs font-mono">
                     <span className="text-slate-400">Final customer counter price:</span>
                     <span className="text-emerald-400 font-black text-sm">
-                      {Math.round(postOriginalPrice * (1 - postDiscountPct / 100))} ETB
+                      {Math.round(postPrice * (1 - postDiscountPct / 100))} ETB
                     </span>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm rounded-xl shadow-lg transition-all cursor-pointer"
+                    disabled={postLoading}
+                    className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-sm rounded-xl shadow-lg transition-all cursor-pointer flex items-center justify-center gap-2"
                   >
-                    Publish Deal & Activate Quota
+                    {postLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Publishing deal to marketplace...</span>
+                      </>
+                    ) : (
+                      <span>Publish Live Deal</span>
+                    )}
                   </button>
                 </form>
               </div>
             )}
 
-            {/* Deal Quotas & Counter Holds Real-Time Inventory Table */}
+            {/* Live Deals Section (GET /api/merchant/deals) */}
             <div className="bg-slate-900/80 border border-slate-800/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-xl">
               <div className="p-5 md:p-6 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
@@ -1345,11 +1247,10 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-white text-base md:text-lg flex items-center gap-2">
-                      <span>Posted Deals, Quotas & Claim Holds</span>
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                      <span>Active Shop Deals</span>
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      Real-time inventory: discounts present, active counter holds, and auto-reversals
+                      Live published offers shown to shoppers within 2 km
                     </p>
                   </div>
                 </div>
@@ -1360,73 +1261,73 @@ export default function DashboardPage() {
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Post Another Deal</span>
+                  <span>Post Deal</span>
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs sm:text-sm">
-                  <thead className="bg-slate-950/70 text-slate-400 text-xs uppercase font-semibold border-b border-slate-800/80">
-                    <tr>
-                      <th className="px-6 py-3.5">Deal</th>
-                      <th className="px-6 py-3.5 text-center">Discounts Present</th>
-                      <th className="px-6 py-3.5 text-center">Available Quota</th>
-                      <th className="px-6 py-3.5 text-center">Active Holds</th>
-                      <th className="px-6 py-3.5 text-center">Paid / Redeemed</th>
-                      <th className="px-6 py-3.5 text-center">Hold Validity</th>
-                      <th className="px-6 py-3.5 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
-                    {merchantQuotas.map((q) => (
-                      <tr key={q.dealId} className="hover:bg-slate-800/30 transition-colors">
-                        <td className="px-6 py-3.5 font-bold font-sans text-white max-w-xs truncate">
-                          {q.dealTitle || 'Special Offer'}
-                        </td>
-                        <td className="px-6 py-3.5 text-center font-bold text-slate-300">
-                          {q.totalQuota}
-                        </td>
-                        <td className="px-6 py-3.5 text-center">
-                          <span className={`px-2 py-0.5 rounded font-black ${
-                            q.availableQuota > 0 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'
-                          }`}>
-                            {q.availableQuota} left
-                          </span>
-                        </td>
-                        <td className="px-6 py-3.5 text-center">
-                          {q.activeHolds > 0 ? (
-                            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold animate-pulse">
-                              {q.activeHolds} pending pay
-                            </span>
-                          ) : (
-                            <span className="text-slate-500">0</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-3.5 text-center text-slate-400">
-                          {q.paidCount}
-                        </td>
-                        <td className="px-6 py-3.5 text-center text-slate-300">
-                          {q.holdMinutes} min
-                        </td>
-                        <td className="px-6 py-3.5 text-right font-sans">
-                          {q.isSoldOut ? (
-                            <span className="text-[11px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/30 px-2 py-0.5 rounded-full">
-                              All Claimed
-                            </span>
-                          ) : (
-                            <span className="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                              Available
-                            </span>
-                          )}
-                        </td>
+              {dealsLoading ? (
+                <div className="py-12 text-center text-slate-500 flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                  <p className="text-xs">Loading active deals...</p>
+                </div>
+              ) : deals.length === 0 ? (
+                <div className="py-12 text-center text-slate-500 text-xs">
+                  No active deals posted yet. Click &quot;Post Deal&quot; to publish your first offer.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs sm:text-sm">
+                    <thead className="bg-slate-950/70 text-slate-400 text-xs uppercase font-semibold border-b border-slate-800/80">
+                      <tr>
+                        <th className="px-6 py-3.5">Deal</th>
+                        <th className="px-6 py-3.5 text-right">Original Price</th>
+                        <th className="px-6 py-3.5 text-center">Discount</th>
+                        <th className="px-6 py-3.5 text-right">Final Amount</th>
+                        <th className="px-6 py-3.5">Expires</th>
+                        <th className="px-6 py-3.5 text-right">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono text-xs">
+                      {deals.map((d) => (
+                        <tr key={d.id} className="hover:bg-slate-800/30 transition-colors">
+                          <td className="px-6 py-3.5 font-bold font-sans text-white max-w-xs truncate">
+                            <div>{d.title}</div>
+                            {d.itemCode && (
+                              <span className="text-[10px] text-slate-400 font-mono">Code: {d.itemCode}</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-3.5 text-right text-slate-400 line-through">
+                            {d.price} ETB
+                          </td>
+                          <td className="px-6 py-3.5 text-center">
+                            <span className="px-2 py-0.5 rounded font-black bg-emerald-500/20 text-emerald-300">
+                              {d.discountPct}% OFF
+                            </span>
+                          </td>
+                          <td className="px-6 py-3.5 text-right font-black text-amber-400">
+                            {d.finalAmount} ETB
+                          </td>
+                          <td className="px-6 py-3.5 text-slate-300 font-sans text-xs">
+                            {formatDate(d.expiryDate)}
+                          </td>
+                          <td className="px-6 py-3.5 text-right font-sans">
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                              d.isActive
+                                ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/30'
+                                : 'text-slate-400 bg-slate-800 border border-slate-700'
+                            }`}>
+                              {d.isActive ? 'Active' : 'Paused'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
-            {/* Primary Metrics Grid (High-Contrast Projector Cards) */}
+            {/* Primary Metrics Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {/* Deals Redeemed */}
               <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
@@ -1594,88 +1495,6 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-
-            {/* Customer Reviews & Feedback Card */}
-            <div className="bg-slate-900/80 border border-slate-800/80 rounded-3xl overflow-hidden backdrop-blur-md shadow-xl space-y-0">
-              <div className="p-5 md:p-6 border-b border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center font-bold shrink-0">
-                    <Star className="w-5 h-5 fill-amber-400" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-bold text-white text-base md:text-lg">
-                        Customer Reviews & Counter Feedback
-                      </h3>
-                      <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                        <Star className="w-3 h-3 fill-amber-400" />
-                        {merchantRating.average.toFixed(1)} / 5.0
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Ratings and comments left by buyers who visited your counter
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-xs text-slate-400 font-mono">
-                  {merchantReviews.length} total reviews
-                </div>
-              </div>
-
-              {merchantReviews.length === 0 ? (
-                <div className="py-12 text-center text-slate-500 text-xs">
-                  No reviews submitted yet for this shop.
-                </div>
-              ) : (
-                <div className="p-5 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {merchantReviews.map((rev) => (
-                    <div
-                      key={rev.id}
-                      className="p-4 bg-slate-950/60 rounded-2xl border border-slate-800/80 space-y-2 hover:border-slate-700 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-bold flex items-center justify-center">
-                            {rev.authorName ? rev.authorName.charAt(0).toUpperCase() : 'B'}
-                          </div>
-                          <span className="text-xs font-bold text-white">{rev.authorName}</span>
-                          <span className="text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded">
-                            Verified M-PESA
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-0.5">
-                          {[1, 2, 3, 4, 5].map((s) => (
-                            <Star
-                              key={s}
-                              className={`w-3.5 h-3.5 ${
-                                s <= rev.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-700'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {rev.dealTitle && (
-                        <div className="text-[11px] font-medium text-emerald-400 truncate">
-                          {rev.dealTitle}
-                        </div>
-                      )}
-
-                      <p className="text-xs text-slate-300 leading-relaxed italic">
-                        &ldquo;{rev.comment}&rdquo;
-                      </p>
-
-                      <div className="text-[10px] text-slate-500 font-mono">
-                        {formatTime(rev.date)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
-        )}
       </main>
     </div>
   );
