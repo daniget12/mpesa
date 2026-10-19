@@ -691,11 +691,89 @@ export interface MerchantDeal {
   reportCount: number;
   itemCode?: string | null;
   createdAt: string;
+  claimedCount?: number;
+  earnedAmount?: number;
+}
+
+const mockMerchantDealsStore: MerchantDeal[] = [
+  {
+    id: 'deal_bole_01',
+    merchantId: 'merchant_bole_highland',
+    merchantName: 'Bole Highland Cafe',
+    category: 'cafe',
+    title: '20% off Specialty Macchiato & Croissant',
+    price: 180,
+    discountPct: 20,
+    finalAmount: 144,
+    expiryDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 5).toISOString(),
+    isActive: true,
+    reportCount: 0,
+    itemCode: 'COFFEE-01',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
+  },
+  {
+    id: 'deal_bole_02',
+    merchantId: 'merchant_bole_highland',
+    merchantName: 'Bole Highland Cafe',
+    category: 'cafe',
+    title: '25% off Double Cheeseburger Combo',
+    price: 346,
+    discountPct: 25,
+    finalAmount: 260,
+    expiryDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 4).toISOString(),
+    isActive: true,
+    reportCount: 0,
+    itemCode: 'BURGER-02',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 1).toISOString(),
+  },
+  {
+    id: 'deal_bole_03',
+    merchantId: 'merchant_bole_highland',
+    merchantName: 'Bole Highland Cafe',
+    category: 'cafe',
+    title: '15% off Roasted Coffee Beans (House Blend)',
+    price: 120,
+    discountPct: 15,
+    finalAmount: 102,
+    expiryDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 6).toISOString(),
+    isActive: true,
+    reportCount: 0,
+    itemCode: 'BEANS-01',
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 12).toISOString(),
+  },
+];
+
+export function attachDealPerformance(
+  deals: MerchantDeal[],
+  recentOrders: DashboardOrder[]
+): MerchantDeal[] {
+  return deals.map((deal) => {
+    const cleanDealTitle = deal.title.trim().toLowerCase();
+    const matchingOrders = recentOrders.filter((o) => {
+      const orderTitle = (o.dealTitle || '').trim().toLowerCase();
+      if (!orderTitle) return false;
+      return (
+        orderTitle === cleanDealTitle ||
+        cleanDealTitle.includes(orderTitle) ||
+        orderTitle.includes(cleanDealTitle) ||
+        (deal.itemCode && orderTitle.includes(deal.itemCode.toLowerCase()))
+      );
+    });
+
+    const claimedCount = matchingOrders.length;
+    const earnedAmount = matchingOrders.reduce((sum, o) => sum + o.amount, 0);
+
+    return {
+      ...deal,
+      claimedCount: (deal.claimedCount || 0) + claimedCount,
+      earnedAmount: (deal.earnedAmount || 0) + earnedAmount,
+    };
+  });
 }
 
 export async function fetchMerchantDeals(token?: string): Promise<MerchantDeal[]> {
   if (isMockDashboard()) {
-    return [];
+    return [...mockMerchantDealsStore];
   }
 
   const authToken = token || getStoredToken();
@@ -732,6 +810,29 @@ export async function createMerchantDeal(
   payload: CreateDealPayload,
   token?: string
 ): Promise<MerchantDeal> {
+  if (isMockDashboard()) {
+    const finalAmount = Math.round(payload.price * (1 - payload.discountPct / 100));
+    const newDeal: MerchantDeal = {
+      id: `deal_mock_${Date.now()}`,
+      merchantId: 'merchant_bole_highland',
+      merchantName: 'Bole Highland Cafe',
+      category: 'cafe',
+      title: payload.title,
+      price: payload.price,
+      discountPct: payload.discountPct,
+      finalAmount,
+      expiryDate: payload.expiryDate,
+      isActive: true,
+      reportCount: 0,
+      itemCode: payload.itemCode || null,
+      createdAt: new Date().toISOString(),
+      claimedCount: 0,
+      earnedAmount: 0,
+    };
+    mockMerchantDealsStore.unshift(newDeal);
+    return newDeal;
+  }
+
   const authToken = token || getStoredToken();
   if (!authToken) {
     throw new DashboardApiError(401, 'Unauthorized');

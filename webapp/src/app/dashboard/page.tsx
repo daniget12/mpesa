@@ -12,6 +12,7 @@ import {
   fetchDashboardStats,
   fetchMerchantDeals,
   createMerchantDeal,
+  attachDealPerformance,
   DashboardStats,
   DashboardOrder,
   MerchantMe,
@@ -597,6 +598,15 @@ export default function DashboardPage() {
       (o.receipt && o.receipt.toLowerCase().includes(q))
     );
   }, [stats, orderSearchQuery]);
+
+  // Enriched deals with individual claim counts and earnings
+  const enrichedDeals = useMemo(() => {
+    return attachDealPerformance(deals, stats?.recent || []);
+  }, [deals, stats?.recent]);
+
+  // Overall deal claim and earnings summary
+  const totalDealsClaimedCount = stats?.dealsRedeemed ?? (stats?.recent?.length || 0);
+  const totalEarnedAmount = stats?.cashlessSales ?? (stats?.recent?.reduce((sum, o) => sum + o.amount, 0) || 0);
 
   // Render Login Form in Live Mode when unauthenticated
   if (!token) {
@@ -1629,12 +1639,46 @@ export default function DashboardPage() {
                 </button>
               </div>
 
+              {/* Deal Performance & Revenue Banner */}
+              <div className="bg-emerald-50/80 border-b border-emerald-100/80 px-5 md:px-6 py-3.5 flex flex-wrap items-center justify-between gap-4 text-xs">
+                <div className="flex items-center gap-6 sm:gap-8 flex-wrap">
+                  <div>
+                    <span className="text-gray-500 uppercase tracking-wider text-[10px] font-bold block">
+                      Total Deal Earnings
+                    </span>
+                    <span className="text-base sm:text-lg font-black text-emerald-800 font-mono">
+                      {totalEarnedAmount.toLocaleString()} <span className="text-xs font-bold">ETB</span>
+                    </span>
+                  </div>
+                  <div className="border-l border-emerald-200/80 pl-6 sm:pl-8">
+                    <span className="text-gray-500 uppercase tracking-wider text-[10px] font-bold block">
+                      Total Vouchers Claimed
+                    </span>
+                    <span className="text-base sm:text-lg font-black text-slate-900 font-mono">
+                      {totalDealsClaimedCount} <span className="text-xs font-bold text-gray-600">claims</span>
+                    </span>
+                  </div>
+                  <div className="border-l border-emerald-200/80 pl-6 sm:pl-8 hidden md:block">
+                    <span className="text-gray-500 uppercase tracking-wider text-[10px] font-bold block">
+                      Active Offers Live
+                    </span>
+                    <span className="text-base sm:text-lg font-black text-slate-800 font-mono">
+                      {enrichedDeals.filter((d) => d.isActive).length} / {enrichedDeals.length}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-[11px] text-emerald-800 font-medium bg-white px-3 py-1.5 rounded-xl border border-emerald-200 shadow-2xs flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Settles directly to your Safaricom M-PESA merchant till</span>
+                </div>
+              </div>
+
               {dealsLoading ? (
                 <div className="py-12 text-center text-gray-600 flex flex-col items-center justify-center gap-2">
                   <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
                   <p className="text-xs">Loading active deals...</p>
                 </div>
-              ) : deals.length === 0 ? (
+              ) : enrichedDeals.length === 0 ? (
                 <div className="py-12 text-center text-gray-600 text-xs">
                   No active deals posted yet. Click &quot;Post Deal&quot; to publish your first offer.
                 </div>
@@ -1646,13 +1690,15 @@ export default function DashboardPage() {
                         <th className="px-6 py-3.5">Deal</th>
                         <th className="px-6 py-3.5 text-right">Original Price</th>
                         <th className="px-6 py-3.5 text-center">Discount</th>
-                        <th className="px-6 py-3.5 text-right">Final Amount</th>
+                        <th className="px-6 py-3.5 text-right">Counter Price</th>
+                        <th className="px-6 py-3.5 text-center">Claimed</th>
+                        <th className="px-6 py-3.5 text-right">Earned</th>
                         <th className="px-6 py-3.5">Expires</th>
                         <th className="px-6 py-3.5 text-right">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200 font-mono text-xs">
-                      {deals.map((d) => (
+                      {enrichedDeals.map((d) => (
                         <tr key={d.id} className="hover:bg-white/30 transition-colors">
                           <td className="px-6 py-3.5 font-bold font-sans text-black max-w-xs truncate">
                             <div>{d.title}</div>
@@ -1668,8 +1714,26 @@ export default function DashboardPage() {
                               {d.discountPct}% OFF
                             </span>
                           </td>
-                          <td className="px-6 py-3.5 text-right font-black text-amber-400">
+                          <td className="px-6 py-3.5 text-right font-black text-amber-500">
                             {d.finalAmount} ETB
+                          </td>
+                          <td className="px-6 py-3.5 text-center font-sans">
+                            {(d.claimedCount || 0) > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs">
+                                🔥 {d.claimedCount} claimed
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs font-medium">0 claimed</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-3.5 text-right font-mono">
+                            {(d.earnedAmount || 0) > 0 ? (
+                              <span className="text-xs sm:text-sm font-black text-emerald-700">
+                                {(d.earnedAmount || 0).toLocaleString()} ETB
+                              </span>
+                            ) : (
+                              <span className="text-gray-400 text-xs">0 ETB</span>
+                            )}
                           </td>
                           <td className="px-6 py-3.5 text-gray-900 font-sans text-xs">
                             {formatDate(d.expiryDate)}
@@ -1693,39 +1757,45 @@ export default function DashboardPage() {
 
             {/* Primary Metrics Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-              {/* Deals Redeemed */}
+              {/* Deals Claimed */}
               <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-emerald-500/40 transition-all">
                 <div className="flex items-center justify-between text-gray-700 mb-3">
                   <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-700">
-                    {t('dashboard.dealsRedeemed')}
+                    {t('dashboard.dealsClaimed') || 'Total Deals Claimed'}
                   </span>
-                  <div className="p-2 bg-white text-emerald-600 rounded-xl border border-emerald-500/20">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-500/20">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                 </div>
                 <div className="text-4xl sm:text-5xl md:text-6xl font-black text-emerald-600 font-mono tracking-tight">
                   {animatedDealsRedeemed}
                 </div>
-                <div className="text-[11px] text-gray-600 font-medium mt-2">
-                  Counter verified vouchers
+                <div className="text-[11px] text-gray-600 font-medium mt-2 flex items-center justify-between flex-wrap gap-1">
+                  <span>Counter-verified vouchers</span>
+                  <span className="text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded text-[10px]">✓ M-PESA Paid</span>
                 </div>
               </div>
 
-              {/* Cashless Sales */}
+              {/* Cashless Sales / Total Earned */}
               <div className="bg-white border border-gray-200/80 rounded-2xl p-6 flex flex-col justify-between shadow-xl relative overflow-hidden group hover:border-amber-500/40 transition-all">
                 <div className="flex items-center justify-between text-gray-700 mb-3">
                   <span className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-700">
-                    {t('dashboard.cashlessSales')}
+                    {t('dashboard.totalEarned') || 'Total Earned'}
                   </span>
-                  <div className="p-2 bg-amber-500/10 text-amber-400 rounded-xl border border-amber-500/20">
+                  <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl border border-amber-500/20">
                     <DollarSign className="w-5 h-5" />
                   </div>
                 </div>
-                <div className="text-3xl sm:text-4xl md:text-5xl font-black text-amber-400 font-mono tracking-tight truncate">
+                <div className="text-3xl sm:text-4xl md:text-5xl font-black text-amber-500 font-mono tracking-tight truncate">
                   {animatedSales.toLocaleString()} <span className="text-lg sm:text-xl font-bold">ETB</span>
                 </div>
-                <div className="text-[11px] text-gray-600 font-medium mt-2">
-                  Cleared to M-PESA merchant till
+                <div className="text-[11px] text-gray-600 font-medium mt-2 flex items-center justify-between flex-wrap gap-1">
+                  <span>Cleared to merchant till</span>
+                  {animatedDealsRedeemed > 0 && (
+                    <span className="text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded text-[10px]">
+                      Avg. {(animatedSales / Math.max(1, animatedDealsRedeemed)).toFixed(0)} ETB / claim
+                    </span>
+                  )}
                 </div>
               </div>
 
