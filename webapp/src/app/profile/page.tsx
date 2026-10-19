@@ -217,25 +217,25 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#05070C] via-[#0A0D12] to-[#0F131C] text-slate-100 flex flex-col font-sans selection:bg-emerald-500 selection:text-white">
       {/* Header */}
-      <header className="border-b border-slate-800/60 bg-slate-900/50 backdrop-blur-xl sticky top-0 z-30 px-4 md:px-8 py-4 flex items-center justify-between shadow-lg shadow-black/10">
+      <header className="border-b border-violet-900/40 bg-gradient-to-r from-violet-950/30 via-slate-900/50 to-orange-950/30 backdrop-blur-xl sticky top-0 z-30 px-4 md:px-8 py-4 flex items-center justify-between shadow-lg shadow-violet-950/20">
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors bg-slate-800/80 hover:bg-slate-800 px-3 py-1.5 rounded-lg min-h-[38px]"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white transition-colors bg-violet-900/30 hover:bg-violet-800/40 px-3 py-1.5 rounded-lg min-h-[38px] border border-violet-700/30"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>{t('profile.backHome') || 'Back to Deals'}</span>
           </Link>
-          <div className="h-4 w-px bg-slate-700 hidden sm:block"></div>
+          <div className="h-4 w-px bg-violet-700/40 hidden sm:block"></div>
           <span className="text-sm font-bold text-white hidden sm:inline">
-            <span className="text-yellow-400">Tirf</span> Market Profile
+            <span className="text-transparent bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text">Tirf</span> Market Profile
           </span>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
             href="/"
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 px-3 py-1.5 rounded-lg transition-colors min-h-[38px]"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-300 bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/40 px-3 py-1.5 rounded-lg transition-colors min-h-[38px]"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>{t('profile.exploreMore') || 'Explore More Deals'}</span>
@@ -255,9 +255,9 @@ export default function ProfilePage() {
 
         {/* Merchant Portal Banner */}
         {isMerchant && (
-          <section className="mb-8 p-6 bg-emerald-950/40 border border-emerald-500/30 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-md">
+          <section className="mb-8 p-6 bg-gradient-to-br from-violet-950/40 via-purple-950/30 to-fuchsia-950/20 border border-violet-500/40 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-md shadow-lg shadow-violet-950/30">
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-violet-500/20 text-violet-300 flex items-center justify-center shrink-0 border border-violet-400/30">
                 <Store className="w-6 h-6" />
               </div>
               <div>
@@ -276,7 +276,7 @@ export default function ProfilePage() {
             </div>
             <Link
               href="/dashboard"
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition-all shadow-md shrink-0 whitespace-nowrap min-h-[40px] flex items-center justify-center"
+              className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 active:scale-[0.98] text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-violet-950/40 shrink-0 whitespace-nowrap min-h-[40px] flex items-center justify-center"
             >
               Go to Merchant Dashboard
             </Link>
@@ -284,14 +284,14 @@ export default function ProfilePage() {
         )}
 
         {/* Profile Card */}
-        <section className="bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/40 border border-slate-700/50 rounded-[2rem] p-6 md:p-8 mb-10 shadow-2xl shadow-black/20 relative overflow-hidden backdrop-blur-xl">
+        <section className="bg-gradient-to-br from-violet-950/30 via-slate-900/60 to-orange-950/30 border border-violet-500/30 rounded-[2rem] p-6 md:p-8 mb-10 shadow-2xl shadow-violet-950/40 relative overflow-hidden backdrop-blur-xl">
           {/* Ambient glow effect */}
-          <div className="absolute top-0 left-1/4 w-64 h-64 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none"></div>
-          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-cyan-500/5 blur-[120px] rounded-full pointer-events-none"></div>
+          <div className="absolute top-0 left-1/4 w-64 h-64 bg-violet-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-orange-500/10 blur-[120px] rounded-full pointer-events-none"></div>
 
-          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-slate-700/50">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6 pb-6 border-b border-violet-500/20">
             <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-[1.25rem] bg-gradient-to-tr from-emerald-600 via-emerald-500 to-cyan-400 text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-emerald-950/40 shrink-0 relative overflow-hidden">
+              <div className="w-20 h-20 rounded-[1.25rem] bg-gradient-to-tr from-violet-600 via-purple-500 to-fuchsia-400 text-white flex items-center justify-center font-black text-3xl shadow-xl shadow-violet-950/60 shrink-0 relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
                 <span className="relative z-10">
                   {profileName
@@ -306,7 +306,7 @@ export default function ProfilePage() {
                   <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
                     {profileName || user?.user_metadata?.full_name || (user?.email ? user.email.split('@')[0] : (t('profile.defaultBuyer') || 'Customer'))}
                   </h1>
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-emerald-400 bg-emerald-500/15 border border-emerald-500/40 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm shadow-emerald-500/10">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-violet-300 bg-violet-500/20 border border-violet-400/40 px-3 py-1 rounded-full uppercase tracking-wider shadow-sm shadow-violet-500/20">
                     <Sparkles className="w-3.5 h-3.5" />
                     {isMerchant ? 'Merchant Account' : (t('profile.verifiedBuyer') || 'Verified Buyer')}
                   </span>
@@ -330,29 +330,29 @@ export default function ProfilePage() {
 
           {/* Quick Metrics */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-8 relative z-10">
-            <div className="bg-gradient-to-br from-slate-800/60 to-slate-900/40 border border-slate-700/50 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-slate-600/50 transition-all group">
-              <div className="text-3xl md:text-4xl font-black text-white font-mono group-hover:scale-105 transition-transform">
+            <div className="bg-gradient-to-br from-violet-900/40 to-slate-900/40 border border-violet-500/30 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-violet-400/50 transition-all group">
+              <div className="text-3xl md:text-4xl font-black text-violet-300 font-mono group-hover:scale-105 transition-transform">
                 {tickets.length}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mt-2">
+              <div className="text-[11px] md:text-xs font-bold text-violet-400 uppercase tracking-wider mt-2">
                 {t('profile.totalClaims') || 'Total Claims'}
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-amber-950/30 to-slate-900/40 border border-amber-500/40 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-amber-500/50 transition-all group shadow-lg shadow-amber-950/20">
-              <div className="text-3xl md:text-4xl font-black text-amber-400 font-mono group-hover:scale-105 transition-transform">
+            <div className="bg-gradient-to-br from-orange-950/40 to-slate-900/40 border border-orange-500/40 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-orange-400/50 transition-all group shadow-lg shadow-orange-950/30">
+              <div className="text-3xl md:text-4xl font-black text-orange-400 font-mono group-hover:scale-105 transition-transform">
                 {activeCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-amber-300 uppercase tracking-wider mt-2">
+              <div className="text-[11px] md:text-xs font-bold text-orange-300 uppercase tracking-wider mt-2">
                 Active Holds
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-950/30 to-slate-900/40 border border-emerald-500/40 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-emerald-500/50 transition-all group shadow-lg shadow-emerald-950/20">
-              <div className="text-3xl md:text-4xl font-black text-emerald-400 font-mono group-hover:scale-105 transition-transform">
+            <div className="bg-gradient-to-br from-rose-950/40 to-slate-900/40 border border-rose-500/40 rounded-[1.25rem] p-5 text-center backdrop-blur-sm hover:border-rose-400/50 transition-all group shadow-lg shadow-rose-950/30">
+              <div className="text-3xl md:text-4xl font-black text-rose-400 font-mono group-hover:scale-105 transition-transform">
                 {readyCount}
               </div>
-              <div className="text-[11px] md:text-xs font-bold text-emerald-400 uppercase tracking-wider mt-2">
+              <div className="text-[11px] md:text-xs font-bold text-rose-300 uppercase tracking-wider mt-2">
                 {t('profile.readyToRedeem') || 'Ready to Redeem'}
               </div>
             </div>
@@ -384,14 +384,14 @@ export default function ProfilePage() {
             </div>
 
             {/* Filter Tabs */}
-            <div className="flex items-center gap-2 bg-slate-900/60 backdrop-blur-sm border border-slate-700/50 p-1.5 rounded-[1rem] self-start sm:self-auto flex-wrap shadow-lg shadow-black/10">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-violet-950/40 to-slate-900/60 backdrop-blur-sm border border-violet-700/30 p-1.5 rounded-[1rem] self-start sm:self-auto flex-wrap shadow-lg shadow-violet-950/20">
               <button
                 type="button"
                 onClick={() => setActiveTab('active')}
                 className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'active'
-                    ? 'bg-gradient-to-r from-amber-600 to-amber-500 text-white shadow-lg shadow-amber-950/30'
-                    : 'text-amber-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-gradient-to-r from-orange-600 to-amber-500 text-white shadow-lg shadow-orange-950/40'
+                    : 'text-orange-300 hover:text-white hover:bg-violet-900/30'
                 }`}
               >
                 Active Holds ({activeCount})
@@ -401,8 +401,8 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('ready')}
                 className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'ready'
-                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-950/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-gradient-to-r from-rose-600 to-pink-500 text-white shadow-lg shadow-rose-950/40'
+                    : 'text-slate-400 hover:text-white hover:bg-violet-900/30'
                 }`}
               >
                 {t('profile.tabReady') || 'Ready to Redeem'} ({readyCount})
@@ -412,8 +412,8 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('all')}
                 className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'all'
-                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-950/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-lg shadow-violet-950/40'
+                    : 'text-slate-400 hover:text-white hover:bg-violet-900/30'
                 }`}
               >
                 {t('profile.tabAll') || 'All'} ({tickets.length})
@@ -423,8 +423,8 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('reviewed')}
                 className={`text-xs font-bold px-4 py-2.5 rounded-xl transition-all min-h-[40px] cursor-pointer ${
                   activeTab === 'reviewed'
-                    ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-950/30'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-500 text-white shadow-lg shadow-violet-950/40'
+                    : 'text-slate-400 hover:text-white hover:bg-violet-900/30'
                 }`}
               >
                 {t('profile.tabReviewed') || 'Reviewed'} ({reviewedCount})
@@ -434,8 +434,8 @@ export default function ProfilePage() {
 
           {/* Empty State */}
           {filteredTickets.length === 0 && (
-            <div className="bg-gradient-to-br from-slate-900/60 via-slate-900/40 to-slate-900/20 border border-slate-700/50 rounded-[2rem] p-16 text-center space-y-6 backdrop-blur-sm shadow-lg shadow-black/10">
-              <div className="w-20 h-20 mx-auto rounded-[1.25rem] bg-gradient-to-br from-slate-800/60 to-slate-800/30 text-slate-400 flex items-center justify-center border border-slate-700/50 shadow-lg shadow-black/20">
+            <div className="bg-gradient-to-br from-violet-950/40 via-slate-900/40 to-orange-950/20 border border-violet-500/30 rounded-[2rem] p-16 text-center space-y-6 backdrop-blur-sm shadow-lg shadow-violet-950/30">
+              <div className="w-20 h-20 mx-auto rounded-[1.25rem] bg-gradient-to-br from-violet-900/50 to-purple-900/30 text-violet-300 flex items-center justify-center border border-violet-500/40 shadow-lg shadow-violet-950/40">
                 <Ticket className="w-10 h-10" />
               </div>
               <h3 className="text-xl font-black text-white">
@@ -451,7 +451,7 @@ export default function ProfilePage() {
               {isMerchant ? (
                 <Link
                   href="/dashboard"
-                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-lg shadow-emerald-950/40"
+                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-violet-600 to-purple-500 hover:from-violet-500 hover:to-purple-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-lg shadow-violet-950/50"
                 >
                   <Store className="w-5 h-5" />
                   <span>Go to Merchant Dashboard</span>
@@ -459,7 +459,7 @@ export default function ProfilePage() {
               ) : (
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-lg shadow-emerald-950/40"
+                  className="inline-flex items-center gap-2.5 bg-gradient-to-r from-orange-600 to-rose-500 hover:from-orange-500 hover:to-rose-400 text-white text-sm font-extrabold px-6 py-3.5 rounded-[0.875rem] transition-all min-h-[48px] shadow-lg shadow-orange-950/40"
                 >
                   <ShoppingBag className="w-5 h-5" />
                   <span>{t('profile.browseDeals') || 'Browse Nearby Deals'}</span>
@@ -484,15 +484,15 @@ export default function ProfilePage() {
               return (
               <div
                 key={ticket.id}
-                className={`bg-gradient-to-br from-slate-900/80 via-slate-900/60 to-slate-900/40 border rounded-[2rem] overflow-hidden shadow-2xl shadow-black/20 transition-all backdrop-blur-xl hover:shadow-black/30 ${
-                  isClaimed ? 'border-amber-500/60 shadow-amber-950/20' : isExpired ? 'border-rose-900/50 opacity-80' : 'border-slate-700/50 hover:border-slate-600/60'
+                className={`bg-gradient-to-br from-violet-950/30 via-slate-900/60 to-purple-950/30 border rounded-[2rem] overflow-hidden shadow-2xl shadow-violet-950/20 transition-all backdrop-blur-xl hover:shadow-violet-950/30 ${
+                  isClaimed ? 'border-amber-500/60 shadow-amber-950/30' : isExpired ? 'border-rose-900/50 opacity-80' : 'border-violet-500/30 hover:border-violet-400/50'
                 }`}
               >
                 {/* Ticket Top Header */}
-                <div className="p-6 md:p-7 bg-slate-900/70 backdrop-blur-sm border-b border-slate-700/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="p-6 md:p-7 bg-gradient-to-r from-violet-950/50 to-slate-900/70 backdrop-blur-sm border-b border-violet-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-[0.875rem] flex items-center justify-center shrink-0 ${
-                      isClaimed ? 'bg-amber-500/15 text-amber-400 border-2 border-amber-500/30' : 'bg-emerald-500/15 text-emerald-400 border-2 border-emerald-500/30'
+                      isClaimed ? 'bg-amber-500/15 text-amber-400 border-2 border-amber-500/30' : 'bg-violet-500/20 text-violet-300 border-2 border-violet-400/40'
                     }`}>
                       <Store className="w-6 h-6" />
                     </div>
@@ -501,7 +501,7 @@ export default function ProfilePage() {
                         <span className="font-bold text-white text-lg">
                           {ticket.merchantName}
                         </span>
-                        <span className="text-[10px] font-extrabold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full">
+                        <span className="text-[10px] font-extrabold text-violet-300 bg-violet-500/15 border border-violet-400/30 px-2.5 py-1 rounded-full">
                           {t('deal.approvedShop') || 'Approved shop'}
                         </span>
                       </div>
@@ -707,7 +707,7 @@ export default function ProfilePage() {
                   <div className="pt-6 border-t border-slate-700/50">
                     {/* View existing review */}
                     {ticket.rating && editingReviewId !== ticket.id && (
-                      <div className="bg-gradient-to-br from-slate-900/70 via-slate-900/50 to-slate-900/30 border border-slate-700/50 rounded-[1.5rem] p-6 md:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-5 backdrop-blur-sm shadow-lg shadow-black/10">
+                      <div className="bg-gradient-to-br from-violet-950/40 via-purple-900/30 to-slate-900/30 border border-violet-500/30 rounded-[1.5rem] p-6 md:p-7 flex flex-col sm:flex-row sm:items-start justify-between gap-5 backdrop-blur-sm shadow-lg shadow-violet-950/20">
                         <div className="space-y-3 flex-1">
                           <div className="flex items-center gap-3 flex-wrap">
                             <div className="flex items-center gap-1 text-amber-400">
@@ -745,7 +745,7 @@ export default function ProfilePage() {
                         <button
                           type="button"
                           onClick={() => handleStartReview(ticket)}
-                          className="inline-flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white bg-slate-800/60 hover:bg-slate-700 px-4 py-2.5 rounded-xl transition-all shrink-0 min-h-[40px] border border-slate-700/60 backdrop-blur-sm shadow-sm"
+                          className="inline-flex items-center gap-2 text-sm font-bold text-violet-300 hover:text-white bg-violet-900/40 hover:bg-violet-800/50 px-4 py-2.5 rounded-xl transition-all shrink-0 min-h-[40px] border border-violet-500/40 backdrop-blur-sm shadow-sm"
                         >
                           <Edit3 className="w-4 h-4" />
                           <span>{t('profile.editReview') || 'Edit Review'}</span>
@@ -755,11 +755,11 @@ export default function ProfilePage() {
 
                     {/* Review Form (New or Editing) */}
                     {(!ticket.rating || editingReviewId === ticket.id) && (
-                      <div className="bg-gradient-to-br from-slate-900/70 via-slate-900/50 to-slate-900/30 border border-slate-700/50 rounded-[1.5rem] p-6 md:p-7 space-y-5 backdrop-blur-sm shadow-lg shadow-black/10">
+                      <div className="bg-gradient-to-br from-orange-950/30 via-rose-950/20 to-slate-900/30 border border-orange-500/30 rounded-[1.5rem] p-6 md:p-7 space-y-5 backdrop-blur-sm shadow-lg shadow-orange-950/20">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-                              <MessageSquarePlus className="w-4.5 h-4.5 text-emerald-400" />
+                            <div className="w-9 h-9 rounded-xl bg-orange-500/20 border border-orange-400/40 flex items-center justify-center">
+                              <MessageSquarePlus className="w-4.5 h-4.5 text-orange-300" />
                             </div>
                             <h4 className="text-base font-black text-white">
                               {ticket.rating
@@ -817,7 +817,7 @@ export default function ProfilePage() {
                             value={commentInput}
                             onChange={(e) => setCommentInput(e.target.value)}
                             placeholder={t('profile.reviewPlaceholder') || 'How was the deal? Quick counter redemption, great quality, recommended?'}
-                            className="w-full bg-slate-900/60 border border-slate-700/60 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-[0.875rem] p-4 text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all backdrop-blur-sm shadow-inner"
+                            className="w-full bg-slate-900/60 border border-orange-500/40 focus:border-orange-400 focus:ring-2 focus:ring-orange-500/30 rounded-[0.875rem] p-4 text-sm text-white placeholder:text-slate-500 focus:outline-none transition-all backdrop-blur-sm shadow-inner"
                           />
                         </div>
 
@@ -827,7 +827,7 @@ export default function ProfilePage() {
                             type="button"
                             disabled={reviewSubmitting}
                             onClick={() => handleSubmitReview(ticket.id)}
-                            className="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 disabled:from-slate-800 disabled:to-slate-700 text-white font-extrabold text-sm px-6 py-3 rounded-[0.875rem] transition-all shadow-lg shadow-emerald-950/40 flex items-center gap-2 min-h-[44px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+                            className="bg-gradient-to-r from-orange-600 to-rose-500 hover:from-orange-500 hover:to-rose-400 disabled:from-slate-800 disabled:to-slate-700 text-white font-extrabold text-sm px-6 py-3 rounded-[0.875rem] transition-all shadow-lg shadow-orange-950/40 flex items-center gap-2 min-h-[44px] cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Star className="w-4 h-4 fill-current" />
                             <span>{t('profile.submitReview') || 'Submit Review'}</span>
