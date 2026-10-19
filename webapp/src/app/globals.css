@@ -123,7 +123,8 @@
   }
 } */
 
-.dark {
+/* Dark class disabled - app uses light theme only */
+/* .dark {
   --background: #020617;
   --foreground: #f8fafc;
   --card: #0f172a;
@@ -143,7 +144,7 @@
   --border: #1e293b;
   --input: #1e293b;
   --ring: #94a3b8;
-}
+} */
 
 @theme inline {
   --color-background: var(--background);
