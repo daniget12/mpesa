@@ -64,6 +64,36 @@ export default function ModernAuthCard({
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [isCustomerSignup, setIsCustomerSignup] = useState(false);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
+
+  // Reactive listener: automatically redirect as soon as confirmation or sign-in occurs
+  React.useEffect(() => {
+    if (!isSupabaseConfigured) return;
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'USER_UPDATED' || event === 'INITIAL_SESSION') && session?.user) {
+        if (pendingConfirmationEmail || isCustomerSignup) {
+          setSuccessMsg('Email confirmed! Redirecting to page...');
+          const searchParams = new URLSearchParams(window.location.search);
+          const redirect = searchParams.get('redirect') || '/';
+          setTimeout(() => {
+            if (onSuccess) {
+              onSuccess();
+            } else if (onClose) {
+              onClose();
+              router.push(redirect);
+            } else {
+              router.push(redirect);
+            }
+          }, 600);
+        }
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [pendingConfirmationEmail, isCustomerSignup, onSuccess, onClose, router]);
 
   // Complete merchant redirect helper
   const completeMerchantLogin = (destination?: string) => {
@@ -297,12 +327,21 @@ export default function ModernAuthCard({
 
     setLoading(true);
     setError(null);
+    setPendingConfirmationEmail(null);
 
     try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirect = searchParams.get('redirect') || '/';
+      const origin = typeof window !== 'undefined' ? window.location.origin : '';
+      const emailRedirectTo = origin
+        ? `${origin}/login?redirect=${encodeURIComponent(redirect)}&confirmed=true`
+        : undefined;
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: cleanEmail,
         password: customerPassword,
         options: {
+          emailRedirectTo,
           data: {
             full_name: customerName,
             phone: customerPhone || null,
@@ -313,37 +352,41 @@ export default function ModernAuthCard({
 
       if (signUpError) throw signUpError;
 
-      // Create profile record
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            full_name: customerName,
-            phone: customerPhone || null,
-            account_type: 'buyer',
-            role: 'user',
-          });
-
-        if (profileError) console.error('Profile creation error:', profileError);
-      }
-
-      setSuccessMsg('Account created successfully! Redirecting...');
-
-      // Get redirect URL from query params
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirect = searchParams.get('redirect') || '/';
-
-      setTimeout(() => {
-        if (onSuccess) {
-          onSuccess();
-        } else if (onClose) {
-          onClose();
-          router.push(redirect);
-        } else {
-          router.push(redirect);
+      // Upsert profile record if user and session exist
+      if (data.user && data.session) {
+        try {
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: data.user.id,
+              full_name: customerName,
+              phone: customerPhone || null,
+              account_type: 'buyer',
+              role: 'user',
+            });
+        } catch (profileError) {
+          console.warn('Profile creation note:', profileError);
         }
-      }, 600);
+
+        setSuccessMsg('Account created successfully! Redirecting as signed up...');
+
+        setTimeout(() => {
+          if (onSuccess) {
+            onSuccess();
+          } else if (onClose) {
+            onClose();
+            router.push(redirect);
+          } else {
+            router.push(redirect);
+          }
+        }, 600);
+      } else {
+        // Confirmation email is required
+        setPendingConfirmationEmail(cleanEmail);
+        setSuccessMsg(
+          `Confirmation email sent to ${cleanEmail}! Please check your email to activate your account. You will be automatically redirected as signed up.`
+        );
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create account.';
       setError(msg);
@@ -423,96 +466,125 @@ export default function ModernAuthCard({
               </div>
             )}
 
-            {/* Customer Name (signup only) */}
-            {isCustomerSignup && (
-              <div className="mb-3">
-                <label htmlFor="customer-name" className="block text-xs font-bold text-gray-700 mb-1.5">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  id="customer-name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  required={isCustomerSignup}
-                  placeholder="Enter your full name"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
-                />
+            {pendingConfirmationEmail ? (
+              <div className="bg-emerald-50/90 border border-emerald-200 rounded-2xl p-5 mb-4 text-center animate-fade-in">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                  <Mail className="w-6 h-6 animate-pulse" />
+                </div>
+                <h3 className="text-sm font-black text-gray-900 mb-1">Check Your Email to Confirm</h3>
+                <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+                  We sent a confirmation link to <span className="font-bold text-gray-900">{pendingConfirmationEmail}</span>. 
+                  Click the link in your email to activate your account.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-[11px] font-semibold text-emerald-800 bg-emerald-100/70 py-2.5 px-3 rounded-xl mb-3 border border-emerald-200/50">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                  <span>Waiting for confirmation... will redirect automatically</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingConfirmationEmail(null);
+                    setSuccessMsg(null);
+                  }}
+                  className="text-xs font-bold text-gray-500 hover:text-gray-800 underline cursor-pointer"
+                >
+                  Use a different email
+                </button>
               </div>
+            ) : (
+              <>
+                {/* Customer Name (signup only) */}
+                {isCustomerSignup && (
+                  <div className="mb-3">
+                    <label htmlFor="customer-name" className="block text-xs font-bold text-gray-700 mb-1.5">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      id="customer-name"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      required={isCustomerSignup}
+                      placeholder="Enter your full name"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
+                    />
+                  </div>
+                )}
+
+                {/* Customer Email */}
+                <div className="mb-3">
+                  <label htmlFor="customer-email" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    Email Address *
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="email"
+                      id="customer-email"
+                      value={customerEmail}
+                      onChange={(e) => setCustomerEmail(e.target.value)}
+                      required
+                      placeholder="customer@example.com"
+                      className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Customer Password */}
+                <div className="mb-3">
+                  <label htmlFor="customer-password" className="block text-xs font-bold text-gray-700 mb-1.5">
+                    Password *
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <input
+                      type="password"
+                      id="customer-password"
+                      value={customerPassword}
+                      onChange={(e) => setCustomerPassword(e.target.value)}
+                      required
+                      placeholder={isCustomerSignup ? "At least 6 characters" : "Enter your password"}
+                      className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Customer Phone (signup only, optional) */}
+                {isCustomerSignup && (
+                  <div className="mb-4">
+                    <label htmlFor="customer-phone" className="block text-xs font-bold text-gray-700 mb-1.5">
+                      Phone Number (Optional)
+                    </label>
+                    <input
+                      type="tel"
+                      id="customer-phone"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="07xxxxxxxx"
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading || !isSupabaseConfigured}
+                  className="action-btn w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isCustomerSignup ? 'Creating Account...' : 'Signing In...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{isCustomerSignup ? 'Create Account' : 'Sign In'}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </>
             )}
-
-            {/* Customer Email */}
-            <div className="mb-3">
-              <label htmlFor="customer-email" className="block text-xs font-bold text-gray-700 mb-1.5">
-                Email Address *
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="email"
-                  id="customer-email"
-                  value={customerEmail}
-                  onChange={(e) => setCustomerEmail(e.target.value)}
-                  required
-                  placeholder="customer@example.com"
-                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Customer Password */}
-            <div className="mb-3">
-              <label htmlFor="customer-password" className="block text-xs font-bold text-gray-700 mb-1.5">
-                Password *
-              </label>
-              <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="password"
-                  id="customer-password"
-                  value={customerPassword}
-                  onChange={(e) => setCustomerPassword(e.target.value)}
-                  required
-                  placeholder={isCustomerSignup ? "At least 6 characters" : "Enter your password"}
-                  className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
-                />
-              </div>
-            </div>
-
-            {/* Customer Phone (signup only, optional) */}
-            {isCustomerSignup && (
-              <div className="mb-4">
-                <label htmlFor="customer-phone" className="block text-xs font-bold text-gray-700 mb-1.5">
-                  Phone Number (Optional)
-                </label>
-                <input
-                  type="tel"
-                  id="customer-phone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="07xxxxxxxx"
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-600 transition-all"
-                />
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || !isSupabaseConfigured}
-              className="action-btn w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{isCustomerSignup ? 'Creating Account...' : 'Signing In...'}</span>
-                </>
-              ) : (
-                <>
-                  <span>{isCustomerSignup ? 'Create Account' : 'Sign In'}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
 
             {/* Toggle between signin/signup */}
             <div className="mt-4 text-center text-xs text-gray-600">
