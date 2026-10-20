@@ -86,7 +86,7 @@ function getIsDemoSnapshot(): boolean {
 
 export const WebsiteHome: React.FC = () => {
   const { t, language } = useLanguage();
-  const { isMerchant } = useAuth();
+  const { user, isMerchant } = useAuth();
   const [selectedDealForDetails, setSelectedDealForDetails] = useState<NearbyDeal | null>(null);
   const [selectedDealForBuy, setSelectedDealForBuy] = useState<NearbyDeal | null>(null);
   const [selectedMerchantForModal, setSelectedMerchantForModal] = useState<string | null>(null);
@@ -181,8 +181,8 @@ export const WebsiteHome: React.FC = () => {
       if (Array.isArray(data) && data.length > 0) {
         setDeals(data);
 
-        // Notify customer on the website that there is a new deal around them
-        if (typeof window !== 'undefined') {
+        // Notify customer on the website that there is a new deal around them (strictly logged-in customers only)
+        if (typeof window !== 'undefined' && user && !isMerchant) {
           try {
             const sessionKey = 'tirf_customer_notified_deal_ids';
             const notified: string[] = JSON.parse(sessionStorage.getItem(sessionKey) || '[]');
@@ -218,7 +218,7 @@ export const WebsiteHome: React.FC = () => {
       setLoading(false);
       setIsWakingUp(false);
     }
-  }, [radiusMeters]);
+  }, [radiusMeters, user, isMerchant]);
 
   // GPS User Location Detection
   const requestUserLocation = useCallback(() => {

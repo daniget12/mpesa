@@ -202,7 +202,7 @@ export default function Header({ searchQuery = '', onSearchChange, onSwitchToMin
             </div>
 
             {/* In-Website Notifications Bell */}
-            <NotificationBell />
+            <NotificationBell role="customer" />
 
             {/* My Claims / Tickets Button - only visible when logged in */}
             {user && (

@@ -22,10 +22,13 @@ import {
 } from '@/lib/notifications';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
+import { usePathname } from 'next/navigation';
 import { getStoredToken } from '@/lib/dashboardApi';
 
 interface NotificationBellProps {
   onDealClick?: (dealId: string) => void;
+  role?: 'merchant' | 'customer';
+  merchantId?: string;
 }
 
 function subscribeStorage(callback: () => void) {
@@ -56,8 +59,9 @@ function formatRelativeTime(isoString: string): string {
   }
 }
 
-export default function NotificationBell({ onDealClick }: NotificationBellProps) {
-  const { user, isMerchant } = useAuth();
+export default function NotificationBell({ onDealClick, role, merchantId }: NotificationBellProps) {
+  const pathname = usePathname();
+  const { user, isMerchant: isAuthMerchant } = useAuth();
   const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
@@ -68,11 +72,25 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
     () => null
   );
 
-  const isLoggedIn = Boolean(user || merchantToken);
+  // Determine effective persona role:
+  // 1. Explicit role prop if passed
+  // 2. If current pathname is /dashboard -> 'merchant'
+  // 3. Otherwise -> 'customer'
+  const effectiveRole: 'merchant' | 'customer' =
+    role || (pathname?.startsWith('/dashboard') ? 'merchant' : 'customer');
+
+  const isMerchantPersona = effectiveRole === 'merchant';
+
+  // Strict role login gating:
+  // - Customer notifications only work if logged in as customer (user is non-null)
+  // - Merchant notifications only work if logged in as merchant (merchantToken or isAuthMerchant)
+  const isLoggedIn = isMerchantPersona
+    ? Boolean(merchantToken || isAuthMerchant)
+    : Boolean(user);
 
   const [rawNotifications, setRawNotifications] = useState<WebNotification[]>(() => {
     if (typeof window === 'undefined') return [];
-    return getNotifications(isMerchant ? 'merchant' : 'customer');
+    return getNotifications(effectiveRole, merchantId);
   });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -80,7 +98,7 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
     if (!isLoggedIn) return;
 
     const handleUpdate = () => {
-      setRawNotifications(getNotifications(isMerchant ? 'merchant' : 'customer'));
+      setRawNotifications(getNotifications(effectiveRole, merchantId));
     };
 
     window.addEventListener('tirf_notifications_updated', handleUpdate);
@@ -90,7 +108,7 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
       window.removeEventListener('tirf_notifications_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [isMerchant, isLoggedIn]);
+  }, [effectiveRole, merchantId, isLoggedIn]);
 
   const notifications = isLoggedIn ? rawNotifications : [];
 
@@ -128,13 +146,11 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
   };
 
   const handleMarkAllRead = () => {
-    const roleFilter = isMerchant ? 'merchant' : 'customer';
-    markAllAsRead(roleFilter);
+    markAllAsRead(effectiveRole);
   };
 
   const handleClearAll = () => {
-    const roleFilter = isMerchant ? 'merchant' : 'customer';
-    clearNotifications(roleFilter);
+    clearNotifications(effectiveRole);
   };
 
   const renderIcon = (type: WebNotification['type']) => {
@@ -191,7 +207,9 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
           {/* Header */}
           <div className="p-3.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-sm text-slate-900">Notifications</span>
+              <span className="font-bold text-sm text-slate-900">
+                {isMerchantPersona ? 'Shop Claims & Orders' : 'Deal Alerts Near You'}
+              </span>
               {isLoggedIn && unreadCount > 0 && (
                 <span className="px-2 py-0.5 text-[11px] font-semibold bg-emerald-100 text-emerald-800 rounded-full">
                   {unreadCount} new
@@ -234,10 +252,14 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
               </div>
               <div className="space-y-1">
                 <h4 className="text-sm font-bold text-slate-900">
-                  {t('notifications.loginRequired') || 'Sign in to view notifications'}
+                  {isMerchantPersona
+                    ? 'Sign in to view shop orders'
+                    : (t('notifications.loginRequired') || 'Sign in to view notifications')}
                 </h4>
                 <p className="text-xs text-slate-500 max-w-[240px] mx-auto leading-relaxed">
-                  {t('notifications.loginDesc') || 'Sign in to receive deal alerts near you and live order updates.'}
+                  {isMerchantPersona
+                    ? 'Sign in with your merchant account to track customer claims and M-PESA purchases.'
+                    : (t('notifications.loginDesc') || 'Sign in to receive deal alerts near you and live order updates.')}
                 </p>
               </div>
               <Link
@@ -254,7 +276,7 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
               {/* Persona Sub-header & Filter Tabs */}
               <div className="px-3.5 py-2 border-b border-slate-100 bg-white flex items-center justify-between text-xs">
                 <span className="font-medium text-slate-500">
-                  {isMerchant ? 'Merchant Alerts' : 'Customer Alerts'}
+                  {isMerchantPersona ? 'Merchant Alerts' : 'Customer Alerts'}
                 </span>
                 <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
                   <button
@@ -285,11 +307,13 @@ export default function NotificationBell({ onDealClick }: NotificationBellProps)
                 <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mb-2">
                   <Bell className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-semibold text-slate-800">You are all caught up!</p>
-                <p className="text-xs text-slate-500 mt-1 max-w-[200px]">
-                  {isMerchant
-                    ? 'When someone claims or buys your product, you will be notified here.'
-                    : 'When exciting new deals pop up in your area, you will be notified here.'}
+                <p className="text-sm font-semibold text-slate-800">
+                  {isMerchantPersona ? 'No shop claims or purchases yet.' : 'You are all caught up!'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 max-w-[220px]">
+                  {isMerchantPersona
+                    ? 'When a customer claims or buys your product with M-PESA, you will be notified here.'
+                    : 'When exciting new deals pop up around you in Bole, you will be notified here.'}
                 </p>
               </div>
             ) : (

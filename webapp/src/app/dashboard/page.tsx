@@ -1205,7 +1205,7 @@ export default function DashboardPage() {
             </button>
 
             {/* Notification Bell */}
-            <NotificationBell />
+            <NotificationBell role="merchant" merchantId={stats?.merchantId} />
 
             {/* Quick Link to Marketplace */}
             <Link

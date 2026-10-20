@@ -84,56 +84,64 @@ const SEED_NOTIFICATIONS: WebNotification[] = [
   },
 ];
 
-function filterList(
-  list: WebNotification[],
-  roleFilter?: 'merchant' | 'customer',
-  merchantId?: string
-): WebNotification[] {
-  if (!roleFilter) return list;
-  return list.filter((item) => {
-    if (item.recipientType === 'all') return true;
-    if (roleFilter === 'merchant') {
-      if (item.recipientType !== 'merchant') return false;
-      if (merchantId && item.merchantId && item.merchantId !== merchantId) return false;
-      return true;
-    }
-    if (roleFilter === 'customer') {
-      return item.recipientType === 'customer';
-    }
-    return true;
-  });
-}
-
 /**
- * Returns stored notifications, optionally filtered by user role (merchant or customer).
+ * Internal helper to read raw notification list from local storage.
  */
-export function getNotifications(
-  roleFilter?: 'merchant' | 'customer',
-  merchantId?: string
-): WebNotification[] {
+export function getRawNotificationList(): WebNotification[] {
   if (typeof window === 'undefined') {
-    return filterList(SEED_NOTIFICATIONS, roleFilter, merchantId);
+    return SEED_NOTIFICATIONS;
   }
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    let list: WebNotification[] = [];
-
     if (!raw) {
-      list = SEED_NOTIFICATIONS;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-    } else {
-      list = JSON.parse(raw);
-      if (!Array.isArray(list) || list.length === 0) {
-        list = SEED_NOTIFICATIONS;
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_NOTIFICATIONS));
+      return SEED_NOTIFICATIONS;
     }
-
-    return filterList(list, roleFilter, merchantId);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED_NOTIFICATIONS));
+      return SEED_NOTIFICATIONS;
+    }
+    return parsed;
   } catch {
-    return filterList(SEED_NOTIFICATIONS, roleFilter, merchantId);
+    return SEED_NOTIFICATIONS;
   }
+}
+
+function filterList(
+  list: WebNotification[],
+  roleFilter: 'merchant' | 'customer' = 'customer',
+  merchantId?: string
+): WebNotification[] {
+  return list.filter((item) => {
+    if (roleFilter === 'merchant') {
+      // Merchants ONLY receive sales and claim updates
+      if (item.recipientType !== 'merchant') return false;
+      if (item.type !== 'deal_claimed' && item.type !== 'deal_bought') return false;
+      if (merchantId && item.merchantId && item.merchantId !== merchantId) return false;
+      return true;
+    }
+    if (roleFilter === 'customer') {
+      // Customers ONLY receive new deal discovery alerts around them
+      if (item.recipientType !== 'customer') return false;
+      if (item.type !== 'new_deal_nearby') return false;
+      return true;
+    }
+    return false;
+  });
+}
+
+/**
+ * Returns stored notifications, strictly aligned and filtered by user role (merchant or customer).
+ * Notifications meant for merchants will never be returned when requesting customer notifications.
+ */
+export function getNotifications(
+  roleFilter: 'merchant' | 'customer' = 'customer',
+  merchantId?: string
+): WebNotification[] {
+  const rawList = getRawNotificationList();
+  return filterList(rawList, roleFilter, merchantId);
 }
 
 /**
@@ -152,7 +160,7 @@ export function addNotification(
 
   if (typeof window !== 'undefined') {
     try {
-      const all = getNotifications();
+      const all = getRawNotificationList();
       const updated = [newNotif, ...all.slice(0, 49)]; // keep latest 50
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
 
@@ -178,7 +186,7 @@ export function markAsRead(id: string): void {
   if (typeof window === 'undefined') return;
 
   try {
-    const all = getNotifications();
+    const all = getRawNotificationList();
     const updated = all.map((n) => (n.id === id ? { ...n, read: true } : n));
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
     window.dispatchEvent(new Event('tirf_notifications_updated'));
@@ -194,9 +202,9 @@ export function markAllAsRead(roleFilter?: 'merchant' | 'customer'): void {
   if (typeof window === 'undefined') return;
 
   try {
-    const all = getNotifications();
+    const all = getRawNotificationList();
     const updated = all.map((n) => {
-      if (!roleFilter || n.recipientType === roleFilter || n.recipientType === 'all') {
+      if (!roleFilter || n.recipientType === roleFilter) {
         return { ...n, read: true };
       }
       return n;
@@ -209,7 +217,7 @@ export function markAllAsRead(roleFilter?: 'merchant' | 'customer'): void {
 }
 
 /**
- * Clears notifications.
+ * Clears notifications for a specific persona or all.
  */
 export function clearNotifications(roleFilter?: 'merchant' | 'customer'): void {
   if (typeof window === 'undefined') return;
@@ -218,8 +226,8 @@ export function clearNotifications(roleFilter?: 'merchant' | 'customer'): void {
     if (!roleFilter) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
     } else {
-      const all = getNotifications();
-      const remaining = all.filter((n) => n.recipientType !== roleFilter && n.recipientType !== 'all');
+      const all = getRawNotificationList();
+      const remaining = all.filter((n) => n.recipientType !== roleFilter);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
     }
     window.dispatchEvent(new Event('tirf_notifications_updated'));

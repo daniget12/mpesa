@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { X, Sparkles, ShoppingBag, Ticket, ArrowRight } from 'lucide-react';
 import { WebNotification, markAsRead } from '@/lib/notifications';
 import { useAuth } from '@/context/AuthContext';
@@ -12,25 +13,38 @@ interface ActiveToast extends WebNotification {
 }
 
 export default function NotificationToastContainer() {
-  const { user, isMerchant } = useAuth();
+  const pathname = usePathname();
+  const { user, isMerchant: isAuthMerchant } = useAuth();
   const [toasts, setToasts] = useState<ActiveToast[]>([]);
 
   useEffect(() => {
     const handleToastEvent = (e: Event) => {
-      // Notification toasts should not work without login
-      const merchantToken = getStoredToken();
-      const isLoggedIn = Boolean(user || merchantToken);
-      if (!isLoggedIn) return;
-
       const customEvent = e as CustomEvent<WebNotification>;
       const notif = customEvent.detail;
       if (!notif) return;
 
-      // Filter toasts based on the current persona
-      // If user is merchant, display merchant toasts; if customer, display customer toasts
-      const targetRole = isMerchant ? 'merchant' : 'customer';
-      if (notif.recipientType !== targetRole && notif.recipientType !== 'all') {
-        return;
+      // Determine active context based on route:
+      // On /dashboard -> user is in merchant context
+      // Everywhere else (/ and marketplace) -> user is in customer context
+      const isDashboardRoute = pathname?.startsWith('/dashboard');
+      const merchantToken = getStoredToken();
+
+      if (isDashboardRoute) {
+        // Merchant context: only logged-in merchants receive toasts
+        const isMerchantLoggedIn = Boolean(merchantToken || isAuthMerchant);
+        if (!isMerchantLoggedIn) return;
+
+        // Strictly only show merchant notifications (sales / claims)
+        if (notif.recipientType !== 'merchant') return;
+        if (notif.type !== 'deal_claimed' && notif.type !== 'deal_bought') return;
+      } else {
+        // Customer context: only logged-in customers receive toasts
+        if (!user) return;
+
+        // Strictly only show customer notifications (deal discovery)
+        // Notifications that are supposed to be sent to merchant must NOT be sent to customers!
+        if (notif.recipientType !== 'customer') return;
+        if (notif.type !== 'new_deal_nearby') return;
       }
 
       const toastId = `toast_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
@@ -48,7 +62,7 @@ export default function NotificationToastContainer() {
     return () => {
       window.removeEventListener('tirf_notification_toast', handleToastEvent);
     };
-  }, [isMerchant, user]);
+  }, [pathname, isAuthMerchant, user]);
 
   const handleDismiss = (toastId: string, notifId: string) => {
     markAsRead(notifId);
